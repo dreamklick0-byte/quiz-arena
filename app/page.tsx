@@ -55,6 +55,27 @@ export default function Home() {
           </ul>
         </section>
 
+        <section className="mt-8">
+          <div className="rounded-2xl border border-white/10 bg-[#161627]/90 p-5 shadow-xl shadow-black/40 sm:p-6">
+            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-base font-semibold text-white">
+                  ⚔️ Battle Mode
+                </h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Challenge a friend to a real-time quiz battle
+                </p>
+              </div>
+              <Link
+                href="/battle"
+                className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99] sm:w-auto"
+              >
+                ⚔️ Enter Battle Mode
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <footer className="mt-14 border-t border-white/10 pt-8 text-center text-xs text-zinc-600 sm:text-left">
           Quiz Arena — practice mode. Live competitions coming soon.
         </footer>
