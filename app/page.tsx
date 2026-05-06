@@ -1,85 +1,145 @@
 import Link from "next/link";
 import { SUBJECTS } from "@/app/data/practiceQuestions";
+import { glassCardClass, PageShell } from "@/app/components/PageShell";
 
 export default function Home() {
+  const homeSubjects = [
+    { slug: "maths", title: "Maths", emoji: "🔢" },
+    { slug: "english", title: "English", emoji: "📝" },
+    { slug: "physics", title: "Physics", emoji: "⚛️" },
+    { slug: "chemistry", title: "Chemistry", emoji: "🧪" },
+    { slug: "biology", title: "Biology", emoji: "🌿" },
+    { slug: "government", title: "Government", emoji: "🏛️" },
+    { slug: "economics", title: "Economics", emoji: "📊" },
+    { slug: "agricultural-science", title: "Agricultural Science", emoji: "🌾" },
+  ] as const;
+
+  const subjectImages: Record<(typeof homeSubjects)[number]["slug"], string> = {
+    maths:
+      "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400",
+    english:
+      "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400",
+    physics:
+      "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400",
+    chemistry:
+      "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400",
+    biology:
+      "https://images.unsplash.com/photo-1530026405186-ed1f139313f3?w=400",
+    government:
+      "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400",
+    economics:
+      "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400",
+    "agricultural-science":
+      "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400",
+  };
+
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-zinc-100">
+    <PageShell
+      imageUrl="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1600"
+      overlay="rgba(15,15,26,0.88)"
+      className="min-h-screen text-white"
+    >
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-[#7c3aed]/20 blur-3xl" />
-        <div className="absolute -right-24 bottom-32 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
+        <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-[#7c3aed]/20 blur-3xl" />
+        <div className="absolute -right-44 bottom-24 h-[28rem] w-[28rem] rounded-full bg-[#f59e0b]/10 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-4 py-10 pb-16 sm:py-14">
-        <header className="text-center sm:text-left">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#7c3aed]">
+      <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-6 sm:pt-10">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
+            QUIZ ARENA
+          </p>
+          <span className="hidden text-[11px] font-medium text-white/60 sm:inline">
+            Study Smart • Compete Live
+          </span>
+        </div>
+
+        <header className="mt-10 text-center sm:mt-14">
+          <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl">
             Quiz Arena
-          </p>
-          <h1 className="mt-3 bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
-            Practice Zone
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-400 sm:mx-0 sm:text-base">
-            Pick a subject and answer 10 timed questions. Beat the clock, learn
-            from explanations, and see how you stack up.
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+            Study Smart. Compete Live. Win Big.
           </p>
+
+          <div
+            className={`mx-auto mt-6 max-w-3xl px-4 py-3 text-center ${glassCardClass}`}
+          >
+            <p className="text-xs font-semibold tracking-wide text-white/90 sm:text-sm">
+              10,000+ Questions <span className="text-white/20">|</span> Live
+              Battles <span className="text-white/20">|</span> JAMB • WAEC • NECO
+            </p>
+          </div>
         </header>
 
-        <section className="mt-10">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#f59e0b]/90">
-            Subjects
-          </h2>
+        <section className="mt-10 sm:mt-12">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+              Subjects
+            </h2>
+            <span className="text-xs text-white/60">Pick one to start</span>
+          </div>
+
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {SUBJECTS.map((s) => (
+            {homeSubjects.map((s) => (
               <li key={s.slug}>
                 <Link
                   href={`/practice/${s.slug}`}
-                  className="group flex h-full flex-col rounded-2xl border border-white/10 bg-[#161627]/90 p-4 shadow-lg shadow-black/30 transition hover:border-[#7c3aed]/50 hover:bg-[#1a1a2e] hover:shadow-[#7c3aed]/10 active:scale-[0.98]"
+                  className="group relative flex min-h-[140px] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_55px_-38px_rgba(0,0,0,0.95)] transition hover:-translate-y-0.5 hover:border-[#7c3aed]/55 hover:shadow-[0_28px_90px_-45px_rgba(124,58,237,0.6)] active:translate-y-0 active:scale-[0.99]"
                 >
-                  <span
-                    className="text-2xl transition group-hover:scale-110"
-                    aria-hidden
-                  >
-                    {s.emoji}
-                  </span>
-                  <span className="mt-3 text-sm font-semibold text-white sm:text-base">
-                    {s.title}
-                  </span>
-                  <span className="mt-1 text-xs text-zinc-500">
-                    10 questions · 30s each
-                  </span>
-                  <span className="mt-3 text-xs font-medium text-[#7c3aed] opacity-90 group-hover:opacity-100">
-                    Start →
-                  </span>
+                  <div
+                    className="absolute inset-0 bg-center bg-cover transition duration-500 group-hover:scale-[1.04]"
+                    style={{ backgroundImage: `url(${subjectImages[s.slug]})` }}
+                  />
+                  <div className="absolute inset-0 bg-[#0f0f1a]/80" />
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(124,58,237,0.22),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(245,158,11,0.16),transparent_55%)]" />
+                  </div>
+
+                  <div className="relative flex h-full flex-col p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-3xl drop-shadow" aria-hidden>
+                        {s.emoji}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/25 px-2 py-1 text-[11px] font-semibold text-white/85">
+                        10 Qs
+                      </span>
+                    </div>
+
+                    <div className="mt-auto pt-5">
+                      <p className="text-sm font-semibold text-white sm:text-base">
+                        {s.title}
+                      </p>
+                      <p className="mt-1 text-xs text-white/65">
+                        Timed practice · Instant feedback
+                      </p>
+                      <div className="mt-3 text-xs font-semibold text-[#7c3aed]">
+                        Start →
+                      </div>
+                    </div>
+                  </div>
                 </Link>
               </li>
             ))}
           </ul>
         </section>
 
-        <section className="mt-8">
-          <div className="rounded-2xl border border-white/10 bg-[#161627]/90 p-5 shadow-xl shadow-black/40 sm:p-6">
-            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="text-base font-semibold text-white">
-                  ⚔️ Battle Mode
-                </h2>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Challenge a friend to a real-time quiz battle
-                </p>
-              </div>
-              <Link
-                href="/battle"
-                className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99] sm:w-auto"
-              >
-                ⚔️ Enter Battle Mode
-              </Link>
-            </div>
-          </div>
+        <section className="mt-10">
+          <Link
+            href="/battle"
+            className="group relative mx-auto flex max-w-3xl items-center justify-center overflow-hidden rounded-2xl bg-[#7c3aed] px-6 py-5 text-center text-base font-extrabold tracking-wide text-white shadow-[0_0_30px_rgba(124,58,237,0.55),0_25px_90px_-45px_rgba(124,58,237,0.95)] ring-1 ring-white/10 transition hover:bg-[#6d28d9] hover:shadow-[0_0_40px_rgba(124,58,237,0.75),0_30px_100px_-50px_rgba(124,58,237,1)] active:scale-[0.99]"
+          >
+            <span className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
+              <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.28),transparent_55%)]" />
+            </span>
+            <span className="relative">⚔️ Enter Battle Mode</span>
+          </Link>
         </section>
 
-        <footer className="mt-14 border-t border-white/10 pt-8 text-center text-xs text-zinc-600 sm:text-left">
-          Quiz Arena — practice mode. Live competitions coming soon.
+        <footer className="mt-14 border-t border-white/10 pt-8 text-center text-xs text-white/55">
+          Powered by Quiz Arena
         </footer>
       </div>
-    </div>
+    </PageShell>
   );
 }
