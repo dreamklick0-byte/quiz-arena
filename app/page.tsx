@@ -12,6 +12,7 @@ export default function Home() {
     { slug: "government", title: "Government", emoji: "🏛️" },
     { slug: "economics", title: "Economics", emoji: "📊" },
     { slug: "agricultural-science", title: "Agricultural Science", emoji: "🌾" },
+    { slug: "current_affairs", title: "Current Affairs", emoji: "📰" },
   ] as const;
 
   const subjectImages: Record<(typeof homeSubjects)[number]["slug"], string> = {
@@ -31,6 +32,8 @@ export default function Home() {
       "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400",
     "agricultural-science":
       "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400",
+    current_affairs:
+      "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400",
   };
 
   return (

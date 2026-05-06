@@ -26,6 +26,12 @@ export const SUBJECTS: SubjectMeta[] = [
     title: "Agricultural Science",
     shortLabel: "Agri Sci",
     emoji: "🌾" },
+  {
+    slug: "current_affairs",
+    title: "Current Affairs",
+    shortLabel: "Current",
+    emoji: "📰",
+  },
 ];
 
 const MATHS: Question[] = [
