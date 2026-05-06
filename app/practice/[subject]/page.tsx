@@ -8,7 +8,7 @@ type PageProps = {
 
 function toTitle(slug: string) {
   return slug
-    .split("-")
+    .split(/[-_]/g)
     .filter(Boolean)
     .map((w) => w[0]?.toUpperCase() + w.slice(1))
     .join(" ");
@@ -18,7 +18,9 @@ export default async function ExamTypeSelectionPage({ params }: PageProps) {
   const { subject } = await params;
   const subjectTitle = toTitle(subject);
 
-  const cards = [
+  const isCurrentAffairs = subject.toLowerCase() === "current_affairs";
+
+  const defaultCards = [
     {
       examType: "JAMB",
       description: "University entrance exam",
@@ -42,30 +44,44 @@ export default async function ExamTypeSelectionPage({ params }: PageProps) {
     },
   ] as const;
 
-  const { count: jambCount } = await supabase
-    .from("questions")
-    .select("*", { count: "exact", head: true })
-    .eq("subject", subject)
-    .eq("exam_type", "JAMB");
-
-  const { count: waecCount } = await supabase
-    .from("questions")
-    .select("*", { count: "exact", head: true })
-    .eq("subject", subject)
-    .eq("exam_type", "WAEC");
-
-  const { count: necoCount } = await supabase
-    .from("questions")
-    .select("*", { count: "exact", head: true })
-    .eq("subject", subject)
-    .eq("exam_type", "NECO");
-
-  const countsByExamType: Record<(typeof cards)[number]["examType"], number> =
+  const currentAffairsCards = [
     {
-      JAMB: jambCount ?? 0,
-      WAEC: waecCount ?? 0,
-      NECO: necoCount ?? 0,
-    };
+      examType: "Nigeria Current Affairs",
+      description: "News & events in Nigeria",
+      accent: "#7c3aed",
+      ring: "hover:border-[#7c3aed]/55 hover:shadow-[0_28px_90px_-45px_rgba(124,58,237,0.6)]",
+      bgGlow: "bg-[#7c3aed]/20",
+    },
+    {
+      examType: "Africa Current Affairs",
+      description: "News & events across Africa",
+      accent: "#f59e0b",
+      ring: "hover:border-[#f59e0b]/55 hover:shadow-[0_28px_90px_-45px_rgba(245,158,11,0.55)]",
+      bgGlow: "bg-[#f59e0b]/15",
+    },
+    {
+      examType: "Global Current Affairs",
+      description: "Major world news & trends",
+      accent: "#10b981",
+      ring: "hover:border-[#10b981]/55 hover:shadow-[0_28px_90px_-45px_rgba(16,185,129,0.55)]",
+      bgGlow: "bg-[#10b981]/15",
+    },
+  ] as const;
+
+  const cards = isCurrentAffairs ? currentAffairsCards : defaultCards;
+
+  const countPromises = cards.map(async (c) => {
+    const { count } = await supabase
+      .from("questions")
+      .select("*", { count: "exact", head: true })
+      .eq("subject", subject)
+      .eq("exam_type", c.examType);
+    return [c.examType, count ?? 0] as const;
+  });
+
+  const countsByExamType = Object.fromEntries(
+    await Promise.all(countPromises),
+  ) as Record<(typeof cards)[number]["examType"], number>;
 
   return (
     <PageShell
@@ -99,7 +115,8 @@ export default async function ExamTypeSelectionPage({ params }: PageProps) {
             {subjectTitle}
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
-            Choose your exam type to start a timed 10-question practice.
+            Choose your {isCurrentAffairs ? "category" : "exam type"} to start a
+            timed 10-question practice.
           </p>
         </header>
 

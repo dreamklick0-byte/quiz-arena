@@ -41,12 +41,13 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
       setLoading(true)
       setError('')
       const subjectLower = subject.toLowerCase()
-      const examTypeUpper = examType.toUpperCase()
+      const isCurrentAffairs = subjectLower === 'current_affairs'
+      const examTypeFilter = isCurrentAffairs ? examType : examType.toUpperCase()
       const { data, error: err } = await supabase
         .from('questions')
         .select('*')
         .eq('subject', subjectLower)
-        .eq('exam_type', examTypeUpper)
+        .eq('exam_type', examTypeFilter)
         .limit(50)
       if (err) {
         setError('Failed to load questions: ' + err.message)
@@ -54,7 +55,7 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
         return
       }
       if (!data || data.length === 0) {
-        setError(`No questions found for ${subject} (${examTypeUpper}). Please add questions in the admin panel.`)
+        setError(`No questions found for ${subject} (${examTypeFilter}). Please add questions in the admin panel.`)
         setLoading(false)
         return
       }
