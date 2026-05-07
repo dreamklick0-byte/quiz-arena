@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
-import { SUBJECTS } from "@/app/data/practiceQuestions";
-import { generateRoomCode, normalizeRoomCode } from "@/app/battle/battleUtils";
+import {
+  getSubjectMeta,
+  SUBJECTS,
+} from "@/app/data/practiceQuestions";
+import { normalizeRoomCode } from "@/app/battle/battleUtils";
+import { createBattleRoom } from "@/lib/battleRoom";
+import { insertRoomPlayer } from "@/lib/battleRoomPlayer";
 
 type Mode = "create" | "join";
 
@@ -17,6 +22,11 @@ export default function BattleLobbyPage() {
   const [joinCode, setJoinCode] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [joinPreview, setJoinPreview] = useState<{
+    subject: string;
+    status: string;
+  } | null>(null);
+  const [joinPreviewLoading, setJoinPreviewLoading] = useState(false);
 
   const canSubmit = useMemo(() => {
     if (!playerName.trim()) return false;
@@ -33,35 +43,14 @@ export default function BattleLobbyPage() {
     setBusy(true);
     setError(null);
     try {
-      const supabase = getSupabaseClient();
-      const roomCode = generateRoomCode(6);
-      const { data: room, error: roomErr } = await supabase
-        .from("game_rooms")
-        .insert({
-          room_code: roomCode,
-          status: "waiting",
-          subject,
-          current_question: 0,
-        })
-        .select("id, room_code")
-        .single();
-      if (roomErr) throw roomErr;
+      const { roomCode, playerId } = await createBattleRoom(
+        subject,
+        playerName,
+      );
 
-      const { data: player, error: playerErr } = await supabase
-        .from("room_players")
-        .insert({
-          room_id: room.id,
-          player_name: playerName.trim(),
-          score: 0,
-          finished: false,
-        })
-        .select("id")
-        .single();
-      if (playerErr) throw playerErr;
-
-      persistIdentity(player.id);
-      localStorage.setItem("createdRoomCode", room.room_code);
-      router.push(`/battle/${room.room_code}`);
+      persistIdentity(playerId);
+      localStorage.setItem("createdRoomCode", roomCode);
+      router.push(`/battle/${roomCode}`);
     } catch (e: any) {
       setError(e?.message ?? "Failed to create room.");
     } finally {
@@ -85,18 +74,7 @@ export default function BattleLobbyPage() {
         throw new Error("That room is not accepting new players.");
       }
 
-      const { data: player, error: playerErr } = await supabase
-        .from("room_players")
-        .insert({
-          room_id: room.id,
-          player_name: playerName.trim(),
-          score: 0,
-          finished: false,
-        })
-        .select("id")
-        .single();
-      if (playerErr) throw playerErr;
-
+      const player = await insertRoomPlayer(room.id, playerName);
       persistIdentity(player.id);
       router.push(`/battle/${room.room_code}`);
     } catch (e: any) {
@@ -116,6 +94,41 @@ export default function BattleLobbyPage() {
   const avatarLetter = (playerName.trim()[0] ?? "?").toUpperCase();
   const selectedSubject = SUBJECTS.find((s) => s.slug === subject) ?? SUBJECTS[0];
   const joinNormalized = normalizeRoomCode(joinCode);
+
+  useEffect(() => {
+    if (mode !== "join" || joinNormalized.length !== 6) {
+      setJoinPreview(null);
+      setJoinPreviewLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setJoinPreviewLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data } = await supabase
+          .from("game_rooms")
+          .select("subject, status")
+          .eq("room_code", joinNormalized)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data?.subject != null && data.status) {
+          setJoinPreview({
+            subject: data.subject as string,
+            status: data.status as string,
+          });
+        } else {
+          setJoinPreview(null);
+        }
+      } finally {
+        if (!cancelled) setJoinPreviewLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [mode, joinNormalized]);
 
   const handleModeAction = async (nextMode: Mode) => {
     setError(null);
@@ -230,6 +243,9 @@ export default function BattleLobbyPage() {
                     {selectedSubject?.title ?? "—"}
                   </span>
                 </p>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#888888]/90">
+                  Everyone who joins this room plays this topic.
+                </p>
               </div>
 
               <div>
@@ -252,6 +268,41 @@ export default function BattleLobbyPage() {
                     ? `Enter 6 characters (${joinNormalized.length}/6).`
                     : "Only required when joining a room."}
                 </p>
+                {mode === "join" && joinNormalized.length === 6 && (
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-[#0f0f1a]/55 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#888888]">
+                      Room preview
+                    </p>
+                    {joinPreviewLoading ? (
+                      <p className="mt-1 text-xs text-[#888888]">
+                        Looking up room…
+                      </p>
+                    ) : joinPreview ? (
+                      <>
+                        <p className="mt-2 text-sm text-white">
+                          Subject:{" "}
+                          <span className="font-semibold">
+                            {getSubjectMeta(joinPreview.subject)?.emoji}{" "}
+                            {getSubjectMeta(joinPreview.subject)?.title ??
+                              joinPreview.subject}
+                          </span>
+                        </p>
+                        <p className="mt-1 text-xs text-[#888888]">
+                          Status:{" "}
+                          <span className="font-medium text-[#f59e0b]">
+                            {joinPreview.status === "waiting"
+                              ? "Waiting for players"
+                              : joinPreview.status}
+                          </span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-1 text-xs text-amber-200/85">
+                        No waiting room matches this code.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
