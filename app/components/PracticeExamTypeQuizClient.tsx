@@ -48,7 +48,8 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
       setError('')
       const subjectLower = subject.toLowerCase()
       const isCurrentAffairs = subjectLower === 'current_affairs'
-      const examTypeFilter = isCurrentAffairs ? examType : examType.toUpperCase()
+      const decodedExamType = decodeURIComponent(examType)
+      const examTypeFilter = isCurrentAffairs ? decodedExamType : decodedExamType.toUpperCase()
       const { data, error: err } = await supabase
         .from('questions')
         .select('*')
