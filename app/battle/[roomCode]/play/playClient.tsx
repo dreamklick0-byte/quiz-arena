@@ -164,9 +164,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     return players.find((p) => p.id === playerId) ?? null;
   }, [players, playerId]);
 
-  const subjectTitle = room?.subject
-    ? getSubjectMeta(room.subject)?.title ?? room.subject
-    : "";
+  const subjectMeta = room?.subject ? getSubjectMeta(room.subject) : undefined;
+  const subjectTitle = subjectMeta?.title ?? room?.subject ?? "";
+  const subjectEmoji = subjectMeta?.emoji ? `${subjectMeta.emoji} ` : "";
 
   const submitAnswer = async (answerIndex: number | null) => {
     if (!room?.id || !playerId || !q) return;
@@ -278,6 +278,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
           </Link>
           <div className="min-w-0 text-center">
             <p className="truncate text-sm font-semibold text-white">
+              <span aria-hidden>{subjectEmoji}</span>
               {subjectTitle}
             </p>
             <p className="text-[11px] text-zinc-500 font-mono">

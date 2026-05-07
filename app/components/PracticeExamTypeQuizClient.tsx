@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
+import { safeRecordDailyActivity } from '@/lib/activityRpc'
 
 const supabase = createClient(
   'https://viayjjutczrqxtmvbzwt.supabase.co',
@@ -35,6 +36,11 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
   const [timeLeft, setTimeLeft] = useState(30)
   const [finished, setFinished] = useState(false)
   const [answers, setAnswers] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!finished) return;
+    void safeRecordDailyActivity();
+  }, [finished]);
 
   useEffect(() => {
     async function fetchQuestions() {

@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createBattleRoom } from "@/lib/battleRoom";
+import { getSubjectMeta } from "@/app/data/practiceQuestions";
+import {
+  safeIncrementSubjectWin,
+  safeRecordDailyActivity,
+} from "@/lib/activityRpc";
 import { supabase } from "@/lib/supabase";
 
 type RoomPlayer = {
@@ -11,9 +18,12 @@ type RoomPlayer = {
 };
 
 export function ResultsClient({ roomCode }: { roomCode: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
+  const [roomSubject, setRoomSubject] = useState<string | null>(null);
+  const [rematchBusy, setRematchBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,11 +34,12 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       try {
         const { data: room, error: roomErr } = await supabase
           .from("game_rooms")
-          .select("id")
+          .select("id, subject")
           .eq("room_code", roomCode)
           .single();
 
         if (roomErr) throw roomErr;
+        if (!cancelled) setRoomSubject(room.subject ?? null);
 
         const { data: roomPlayers, error: playersErr } = await supabase
           .from("room_players")
@@ -95,6 +106,77 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     return { type: "winner" as const, id: a.score > b.score ? a.id : b.id };
   }, [normalizedPlayers]);
 
+  const winnerPlayerId =
+    winner?.type === "winner" ? winner.id : null;
+
+  useEffect(() => {
+    if (loading || error || normalizedPlayers.length < 2 || !roomSubject) {
+      return;
+    }
+    const flagKey = `quiz-arena-battle-result-${roomCode}`;
+    if (typeof window !== "undefined") {
+      if (sessionStorage.getItem(flagKey)) return;
+      sessionStorage.setItem(flagKey, "1");
+    }
+    void (async () => {
+      await safeRecordDailyActivity();
+      const myId =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("playerId")
+          : null;
+      if (
+        !myId ||
+        !winnerPlayerId ||
+        winnerPlayerId !== myId ||
+        !roomSubject
+      ) {
+        return;
+      }
+      await safeIncrementSubjectWin(roomSubject);
+    })();
+  }, [
+    loading,
+    error,
+    normalizedPlayers.length,
+    roomSubject,
+    roomCode,
+    winnerPlayerId,
+  ]);
+
+  const subjectLabel = roomSubject
+    ? getSubjectMeta(roomSubject)?.title ?? roomSubject
+    : null;
+  const subjectEmoji =
+    roomSubject && getSubjectMeta(roomSubject)?.emoji
+      ? `${getSubjectMeta(roomSubject)!.emoji} `
+      : "";
+
+  async function handleRematch() {
+    const name =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("playerName")?.trim()
+        : "";
+    const sub = roomSubject ?? "maths";
+    if (!name) {
+      router.push("/battle");
+      return;
+    }
+    setRematchBusy(true);
+    try {
+      const { roomCode: nextCode, playerId } = await createBattleRoom(sub, name);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("playerId", playerId);
+        window.localStorage.setItem("playerName", name);
+        window.localStorage.setItem("createdRoomCode", nextCode);
+      }
+      router.push(`/battle/${nextCode}`);
+    } catch {
+      router.push("/battle");
+    } finally {
+      setRematchBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -113,6 +195,15 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           <p className="mt-2 text-xs font-medium text-zinc-500">
             Room: <span className="text-zinc-300">{roomCode}</span>
           </p>
+          {subjectLabel && (
+            <p className="mt-2 text-sm font-medium text-zinc-400">
+              Subject:{" "}
+              <span className="text-white">
+                {subjectEmoji}
+                {subjectLabel}
+              </span>
+            </p>
+          )}
         </header>
 
         <main className="mt-8 flex-1">
@@ -196,6 +287,16 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
         </main>
 
         <footer className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {!loading && !error && normalizedPlayers.length >= 2 && (
+            <button
+              type="button"
+              onClick={handleRematch}
+              disabled={rematchBusy}
+              className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-5 py-3 text-center text-sm font-semibold text-[#f59e0b] transition hover:bg-[#f59e0b]/25 disabled:opacity-60 sm:col-span-2"
+            >
+              {rematchBusy ? "Creating room…" : "⚔️ Rematch (new room)"}
+            </button>
+          )}
           <Link
             href="/battle"
             className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99]"
