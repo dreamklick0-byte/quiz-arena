@@ -32,13 +32,37 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
 
         const { data: roomPlayers, error: playersErr } = await supabase
           .from("room_players")
-          .select("id, player_name, score")
+          .select("id, player_name")
           .eq("room_id", room.id);
 
         if (playersErr) throw playersErr;
 
+        const { data: answerRows, error: answersErr } = await supabase
+          .from("player_answers")
+          .select("player_id, is_correct")
+          .eq("room_id", room.id);
+
+        if (answersErr) throw answersErr;
+
+        const correctCountByPlayerId = new Map<string, number>();
+        for (const row of answerRows ?? []) {
+          if (row.is_correct === true) {
+            const pid = row.player_id as string;
+            correctCountByPlayerId.set(
+              pid,
+              (correctCountByPlayerId.get(pid) ?? 0) + 1,
+            );
+          }
+        }
+
+        const merged: RoomPlayer[] = (roomPlayers ?? []).map((p) => ({
+          id: p.id,
+          player_name: p.player_name,
+          score: correctCountByPlayerId.get(p.id) ?? 0,
+        }));
+
         if (!cancelled) {
-          setPlayers((roomPlayers ?? []) as RoomPlayer[]);
+          setPlayers(merged);
         }
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? "Failed to load results.");
