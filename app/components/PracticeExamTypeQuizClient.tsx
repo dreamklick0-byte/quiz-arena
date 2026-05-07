@@ -37,6 +37,25 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
   const [finished, setFinished] = useState(false)
   const [answers, setAnswers] = useState<string[]>([])
 
+  const currentQuestionId = questions[current]?.id
+  const decodedSubject = decodeURIComponent(subject)
+  const decodedExamType = decodeURIComponent(examType)
+
+  function toTitleCase(value: string) {
+    const normalized = value.replace(/[_-]+/g, ' ').trim()
+    return normalized
+      .split(/\s+/g)
+      .filter(Boolean)
+      .map((w) => w[0]?.toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ')
+  }
+
+  function formatExamTypeLabel(value: string) {
+    const v = value.trim()
+    if (/^[A-Z]{2,6}$/.test(v)) return v
+    return toTitleCase(v)
+  }
+
   useEffect(() => {
     if (!finished) return;
     void safeRecordDailyActivity();
@@ -75,13 +94,19 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
 
   useEffect(() => {
     if (loading || finished || selected !== null) return
-    if (timeLeft <= 0) {
-      handleAnswer('timeout')
-      return
-    }
-    const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [timeLeft, loading, finished, selected])
+    const TIMER_SECONDS = 30
+    const start = Date.now()
+    const id = window.setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000
+      const left = Math.max(0, TIMER_SECONDS - elapsed)
+      setTimeLeft(left)
+      if (left <= 0) {
+        window.clearInterval(id)
+        handleAnswer('timeout')
+      }
+    }, 200)
+    return () => window.clearInterval(id)
+  }, [loading, finished, selected, current, currentQuestionId])
 
   useEffect(() => {
     setTimeLeft(30)
@@ -175,14 +200,16 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
       <div style={{ maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingTop: '16px' }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>← Back</button>
-          <span style={{ color: '#7c3aed', fontWeight: 700 }}>{subject.toUpperCase()} • {examType.toUpperCase()}</span>
+          <span style={{ color: '#7c3aed', fontWeight: 700 }}>
+            {toTitleCase(decodedSubject)} • {formatExamTypeLabel(decodedExamType)}
+          </span>
           <span style={{ color: '#888' }}>{current + 1}/{questions.length}</span>
         </div>
 
         <div style={{ background: '#1a1a2e', borderRadius: '8px', height: '6px', marginBottom: '8px' }}>
           <div style={{ height: '100%', borderRadius: '8px', background: timeLeft > 15 ? '#10b981' : timeLeft > 7 ? '#f59e0b' : '#ef4444', width: `${(timeLeft / 30) * 100}%`, transition: 'width 1s linear' }} />
         </div>
-        <div style={{ textAlign: 'right', color: '#888', fontSize: '13px', marginBottom: '24px' }}>{timeLeft}s</div>
+        <div style={{ textAlign: 'right', color: '#888', fontSize: '13px', marginBottom: '24px' }}>{Math.ceil(timeLeft)}s</div>
 
         <div style={{ background: '#1a1a2e', borderRadius: '16px', padding: '28px', marginBottom: '20px' }}>
           <p style={{ fontSize: '13px', color: '#7c3aed', marginBottom: '12px', fontWeight: 600 }}>QUESTION {current + 1}</p>
