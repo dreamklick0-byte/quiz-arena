@@ -44,26 +44,23 @@ export default function AuthPage() {
           password,
         });
 
-        if (signUpError?.message?.includes('already registered')) {
-          console.error("Supabase signUp error (already registered):");
-          console.error(signUpError);
-          const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-          if (!signInError) {
-            router.push('/');
-            router.refresh();
-          } else {
-            console.error("Supabase signIn error after failed signUp:");
-            console.error(signInError);
-            setMessage('This email is already registered. Please sign in instead.');
-            setTab('signin');
-          }
-          return; // Exit function after handling
-        }
-
         if (signUpError) {
-          console.error("Supabase signUp error:");
-          console.error(signUpError);
-          throw signUpError;
+          console.error("Supabase signUp error object:", signUpError);
+          if (signUpError?.message?.includes('already registered')) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+            if (!signInError) {
+              router.push('/');
+              router.refresh();
+            } else {
+              console.error("Supabase signIn error after failed signUp (already registered):");
+              console.error(signInError);
+              setMessage('This email is already registered. Please sign in instead.');
+              setTab('signin');
+            }
+            return; // Exit function after handling
+          } else {
+            throw signUpError;
+          }
         }
 
         const user = data.user;
@@ -102,17 +99,16 @@ export default function AuthPage() {
           password,
         });
         if (signInError) {
-          console.error("Supabase signIn error:");
-          console.error(signInError);
+          console.error("Supabase signIn error object:", signInError);
           throw signInError;
         }
         router.push("/account");
         router.refresh();
       }
     } catch (err: unknown) {
-      const m = err instanceof Error ? err.message : "Something went wrong.";
-      console.error("General authentication error (catch block):");
+      console.error("General authentication error caught in main try-catch block:");
       console.error(err);
+      const m = err instanceof Error ? err.message : "Something went wrong.";
       if (tab === "signin" && m.includes("Invalid login credentials")) {
         setMessage("Incorrect email or password. Please try again or use 'Forgot password?'.");
       } else {
