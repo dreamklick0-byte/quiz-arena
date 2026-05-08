@@ -13,6 +13,24 @@ export default function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+
+  const handleForgotPassword = async () => {
+    setBusy(true);
+    setForgotPasswordMessage(null);
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) throw error;
+      setForgotPasswordMessage("Password reset email sent! Check your inbox.");
+    } catch (err: unknown) {
+      const m = err instanceof Error ? err.message : "Something went wrong.";
+      setForgotPasswordMessage(m);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,19 +179,70 @@ export default function AuthPage() {
             />
           </div>
 
+          {tab === "signin" && !showForgotPassword && (
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-[#7c3aed] hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
+
           {message && (
             <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
               {message}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-xl bg-[#7c3aed] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-60"
-          >
-            {busy ? "Working…" : tab === "signin" ? "Sign in" : "Create account"}
-          </button>
+          {showForgotPassword && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
+                  Email for password reset
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
+                  placeholder="you@school.edu"
+                  autoComplete="email"
+                />
+              </div>
+              {forgotPasswordMessage && (
+                <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                  {forgotPasswordMessage}
+                </p>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleForgotPassword}
+                className="w-full rounded-xl bg-[#f59e0b] py-3.5 text-sm font-extrabold text-[#1a1033] shadow-lg shadow-[#f59e0b]/20 transition hover:brightness-105 disabled:opacity-60"
+              >
+                {busy ? "Sending…" : "Send reset link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full text-sm text-zinc-400 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {!showForgotPassword && (
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-xl bg-[#7c3aed] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-60"
+            >
+              {busy ? "Working…" : tab === "signin" ? "Sign in" : "Create account"}
+            </button>
+          )}
         </form>
 
         <div className="mt-8 text-center text-xs">
