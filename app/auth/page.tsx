@@ -21,11 +21,24 @@ export default function AuthPage() {
     try {
       const supabase = getSupabaseClient();
       if (tab === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
         });
-        if (error) throw error;
+
+        if (signUpError?.message?.includes('already registered')) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+          if (!signInError) {
+            router.push('/');
+            router.refresh();
+          } else {
+            setMessage('This email is already registered. Please sign in instead.');
+            setTab('signin');
+          }
+          return; // Exit function after handling
+        }
+
+        if (signUpError) throw signUpError;
 
         const user = data.user;
         if (!user) {
@@ -47,12 +60,7 @@ export default function AuthPage() {
           }
         }
 
-        // Show a brief green success message
-        setMessage("Account created successfully! Signing you in...");
-        // Delay for a moment to show the message, then sign in and redirect
-        await new Promise((resolve) => setTimeout(resolve, 1500)); // 1.5 seconds
-
-        // Immediately call supabase.auth.signInWithPassword()
+        // Immediately sign in and redirect to homepage after successful signup
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
