@@ -84,9 +84,13 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       time_seconds: typeof p.time_seconds === "number" ? p.time_seconds : 120,
     }));
 
+    // STEP 7 — Tiebreaker logic: 
+    // Winner = higher score
+    // If scores equal = faster time wins
+    // If scores AND time equal = Draw
     mapped.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      return a.time_seconds - b.time_seconds; // Lower time is better
+      return a.time_seconds - b.time_seconds; // Lower time is better (faster)
     });
     return mapped.slice(0, 2);
   }, [players]);
@@ -94,12 +98,21 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   const winner = useMemo(() => {
     if (normalizedPlayers.length < 2) return null;
     const [a, b] = normalizedPlayers;
+    
+    // If scores AND time equal = Draw
     if (a.score === b.score && a.time_seconds === b.time_seconds) {
       return { type: "draw" as const };
     }
-    // Since we sorted mapped, a is the winner unless it's a total tie
+    
+    // Since we sorted mapped, a is the winner (either higher score or faster time)
     return { type: "winner" as const, id: a.id };
   }, [normalizedPlayers]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s`;
+  };
 
   const winnerPlayerId =
     winner?.type === "winner" ? winner.id : null;
@@ -224,54 +237,67 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
               <div>
                 <div className="text-center">
                   {winner?.type === "draw" ? (
-                    <p className="text-base font-semibold text-[#f59e0b]">
-                      It&apos;s a Draw!
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-lg font-bold text-[#f59e0b]">🤝 Draw!</p>
+                      <p className="text-xs text-zinc-400">Both players finished with the same score and time.</p>
+                    </div>
                   ) : (
-                    <p className="text-base font-semibold text-[#f59e0b]">
-                      Winner:{" "}
-                      {
-                        normalizedPlayers.find((p) => p.id === winner?.id)
-                          ?.player_name
-                      }{" "}
-                      🏆
-                    </p>
+                    <div className="space-y-1">
+                      {winner?.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null) ? (
+                        <>
+                          <p className="text-lg font-bold text-[#f59e0b]">🏆 You win!</p>
+                          {normalizedPlayers[0].score === normalizedPlayers[1].score && (
+                            <p className="text-xs text-zinc-400">(faster time)</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-zinc-400">Better luck next time!</p>
+                      )}
+                      <p className="text-sm font-semibold text-white">
+                        Winner:{" "}
+                        {
+                          normalizedPlayers.find((p) => p.id === winner?.id)
+                            ?.player_name
+                        }{" "}
+                        🏆
+                      </p>
+                    </div>
                   )}
-                  <p className="mt-2 text-xs text-zinc-400">
-                    Scores are shown out of 10
-                  </p>
+                  <p className="mt-4 text-xs text-zinc-500 uppercase tracking-wider">Final Standings</p>
                 </div>
 
                 <div className="mt-6 grid gap-3">
-                  {normalizedPlayers.map((p) => {
+                  {normalizedPlayers.map((p, idx) => {
                     const isWinner = winner?.type === "winner" && winner.id === p.id;
+                    const isMe = p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null);
                     return (
                       <div
                         key={p.id}
-                        className={`rounded-2xl border bg-[#0f0f1a]/50 p-4 ${
+                        className={`rounded-2xl border bg-[#0f0f1a]/50 p-4 transition-all ${
                           isWinner
-                            ? "border-[#f59e0b]/50 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
+                            ? "border-[#f59e0b]/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] bg-[#f59e0b]/5"
                             : "border-white/10"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <p className="text-sm font-semibold text-white">
-                              {p.player_name} {isWinner ? "🏆" : ""}
-                            </p>
-                            <p className="mt-1 text-xs text-zinc-500">
-                              Final score: <span className="font-bold text-white">{p.score}/10</span>
-                            </p>
-                            <p className="mt-0.5 text-xs text-zinc-500">
-                              Time taken: <span className="font-bold text-white">{p.time_seconds}s</span>
-                            </p>
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                              isWinner ? "bg-[#f59e0b] text-black" : "bg-zinc-800 text-zinc-400"
+                            }`}>
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-white">
+                                {isMe ? "You" : p.player_name} {isWinner ? "🏆" : ""}
+                              </p>
+                              <p className="text-[11px] text-zinc-500">
+                                {p.score}/10 — {formatTime(p.time_seconds)}
+                              </p>
+                            </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-2xl font-bold text-white">
+                            <p className={`text-xl font-black ${isWinner ? "text-[#f59e0b]" : "text-zinc-400"}`}>
                               {p.score}
-                              <span className="text-sm font-semibold text-zinc-400">
-                                /10
-                              </span>
                             </p>
                           </div>
                         </div>

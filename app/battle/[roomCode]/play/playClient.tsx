@@ -131,15 +131,20 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     const supabase = getSupabaseClient();
     const playerKey = myPlayerInRef.id === currentPlayers[0]?.id ? "player1" : "player2";
 
-    // Calculate score from battle_answers
+    // 1. Calculate score from battle_answers for ALL questions
+    // Since we are force finishing, we need to know how many they got right so far
     const { data: answers } = await supabase
       .from("battle_answers")
-      .select("is_correct")
+      .select("is_correct, question_index")
       .eq("room_code", room.room_code)
       .eq("user_id", playerId);
 
     const finalScore = answers?.filter((a) => a.is_correct).length ?? 0;
-    const timeTaken = 120; // Max time since timer expired
+    
+    // 2. Determine time taken
+    // Record finished_at when time runs out
+    const finishedAt = Date.now();
+    const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
     const updateData: Record<string, any> = {};
     updateData[`${playerKey}_finished`] = true;
@@ -147,6 +152,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     updateData[`${playerKey}_time_seconds`] = timeTaken;
 
     try {
+      // 3. Save each player's time and score to battle_rooms
       await supabase
         .from("battle_rooms")
         .update(updateData)
@@ -168,12 +174,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     } catch (e) {
       console.error("Error force finishing:", e);
     }
-  }, [room, playerId]);
+  }, [room, playerId, playerStartedAt]);
 
   const goNext = useCallback(async () => {
     if (!room?.id || !playerId) return;
     
-    // If not answered yet (e.g. timer expired), submit as wrong
+    // If not answered yet (e.g. timer expired or manually skipped), submit as wrong
     if (!answered) {
       setAnswered(true);
       setTimedOut(true);
@@ -197,7 +203,10 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         .eq("user_id", playerId);
       
       const finalScore = answers?.filter(a => a.is_correct).length ?? 0;
-      const timeTaken = playerStartedAt ? Math.round((Date.now() - playerStartedAt) / 1000) : 120;
+      
+      // Record finished_at when player answers last question
+      const finishedAt = Date.now();
+      const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
       const updateData: Record<string, any> = {};
       updateData[`${playerKey}_finished`] = true;
@@ -370,6 +379,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
   useEffect(() => {
     if (room && index === 0 && !playerStartedAt) {
+      // Record started_at when player loads the first question
       setPlayerStartedAt(Date.now());
     }
   }, [index, room, playerStartedAt]);
