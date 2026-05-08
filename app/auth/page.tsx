@@ -99,7 +99,11 @@ export default function AuthPage() {
       }
     } catch (err: unknown) {
       const m = err instanceof Error ? err.message : "Something went wrong.";
-      setMessage(m);
+      if (tab === "signin" && m.includes("Invalid login credentials")) {
+        setMessage("Incorrect email or password. Please try again or use 'Forgot password?'.");
+      } else {
+        setMessage(m);
+      }
     } finally {
       setBusy(false);
     }
