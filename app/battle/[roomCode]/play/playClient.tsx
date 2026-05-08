@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import {
@@ -25,7 +25,7 @@ type RoomRow = {
   player2_time_seconds: number | null;
   player1_score: number | null;
   player2_score: number | null;
-  started_at: string;
+  started_at: string | null;
   ends_at: string | null;
 };
 
@@ -51,6 +51,11 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const [timedOut, setTimedOut] = useState(false);
   const [globalTimeLeft, setGlobalTimeLeft] = useState(TIMER_SECONDS);
   const [playerStartedAt, setPlayerStartedAt] = useState<number | null>(null);
+
+  const playersRef = useRef<PlayerRow[]>([]);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
 
   const playerId = useMemo(() => {
     return typeof window === "undefined" ? null : localStorage.getItem("playerId");
@@ -119,9 +124,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   };
 
   const handleForceFinish = useCallback(async () => {
-    if (!room?.id || !playerId || !myPlayer || myPlayer.finished) return;
+    const currentPlayers = playersRef.current;
+    const myPlayerInRef = playerId ? currentPlayers.find(p => p.id === playerId) : null;
+    
+    if (!room?.id || !playerId || !myPlayerInRef || myPlayerInRef.finished) return;
     const supabase = getSupabaseClient();
-    const playerKey = myPlayer.id === players[0]?.id ? "player1" : "player2";
+    const playerKey = myPlayerInRef.id === currentPlayers[0]?.id ? "player1" : "player2";
 
     // Calculate score from battle_answers
     const { data: answers } = await supabase
@@ -160,7 +168,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     } catch (e) {
       console.error("Error force finishing:", e);
     }
-  }, [room, playerId, myPlayer, players]);
+  }, [room, playerId]);
 
   const goNext = useCallback(async () => {
     if (!room?.id || !playerId) return;
@@ -304,9 +312,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "battle_rooms", filter: `id=eq.${room.id}` },
         (payload) => {
-          const newRoom = payload.new as RoomRow;
-          setRoom(newRoom);
-          if (newRoom.status !== "active" || newRoom.ends_at) {
+          const newRoomData = payload.new as RoomRow;
+          setRoom((prev) => {
+            if (!prev) return newRoomData;
+            return { ...prev, ...newRoomData };
+          });
+          if (newRoomData.status !== "active" || newRoomData.ends_at) {
             router.replace(`/battle/${roomCode}/results`);
           }
         }
@@ -320,14 +331,25 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   }, [room?.id, roomCode, router]);
 
   useEffect(() => {
-    if (!room?.started_at) return;
     let timerId: NodeJS.Timeout;
 
     const calculateTimeLeft = () => {
+      if (!room?.started_at) {
+        setGlobalTimeLeft(TIMER_SECONDS);
+        return;
+      }
+
       const now = new Date();
       const startedAt = new Date(room.started_at);
       const elapsedSeconds = (now.getTime() - startedAt.getTime()) / 1000;
-      const remaining = TIMER_SECONDS - elapsedSeconds;
+      
+      // If elapsedSeconds is NaN or invalid, fallback to TIMER_SECONDS
+      if (isNaN(elapsedSeconds)) {
+        setGlobalTimeLeft(TIMER_SECONDS);
+        return;
+      }
+
+      const remaining = Math.max(0, TIMER_SECONDS - elapsedSeconds);
 
       if (remaining <= 0) {
         setGlobalTimeLeft(0);
@@ -335,13 +357,13 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         if (room.status === "active" && myPlayer && !myPlayer.finished) {
           handleForceFinish();
         }
-        return;
+      } else {
+        setGlobalTimeLeft(remaining);
       }
-      setGlobalTimeLeft(remaining);
     };
 
     calculateTimeLeft();
-    timerId = setInterval(calculateTimeLeft, 100);
+    timerId = setInterval(calculateTimeLeft, 200);
 
     return () => clearInterval(timerId);
   }, [room?.started_at, room?.status, myPlayer?.finished, handleForceFinish]);
