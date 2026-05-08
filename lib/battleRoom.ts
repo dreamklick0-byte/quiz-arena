@@ -19,7 +19,7 @@ export async function createBattleRoom(
   const roomCode = generateRoomCode(6);
 
   const { data: room, error: roomErr } = await supabase
-    .from("game_rooms")
+    .from("battle_rooms")
     .insert({
       room_code: roomCode,
       status: "waiting",

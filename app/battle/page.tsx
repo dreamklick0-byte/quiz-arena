@@ -65,7 +65,7 @@ export default function BattleLobbyPage() {
       const supabase = getSupabaseClient();
       const code = normalizeRoomCode(joinCode);
       const { data: room, error: roomErr } = await supabase
-        .from("game_rooms")
+        .from("battle_rooms")
         .select("id, room_code, status")
         .eq("room_code", code)
         .single();
@@ -105,7 +105,7 @@ export default function BattleLobbyPage() {
       try {
         const supabase = getSupabaseClient();
         const { data } = await supabase
-          .from("game_rooms")
+          .from("battle_rooms")
           .select("subject, status")
           .eq("room_code", joinNormalized)
           .maybeSingle();

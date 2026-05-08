@@ -41,7 +41,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     const load = async () => {
       const supabase = getSupabaseClient();
       const { data: roomRow, error: roomErr } = await supabase
-        .from("game_rooms")
+        .from("battle_rooms")
         .select("id, room_code, status, subject, current_question")
         .eq("room_code", roomCode)
         .single();
@@ -94,13 +94,13 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       .subscribe();
 
     const roomChannel = supabase
-      .channel(`game_rooms:${room.id}`)
+      .channel(`battle_rooms:${room.id}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "game_rooms",
+          table: "battle_rooms",
           filter: `id=eq.${room.id}`,
         },
         (payload) => {
@@ -126,8 +126,8 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     try {
       const supabase = getSupabaseClient();
       const { error: updateErr } = await supabase
-        .from("game_rooms")
-        .update({ status: "active", current_question: 0 })
+        .from("battle_rooms")
+        .update({ status: "active", current_question: 0, started_at: new Date().toISOString() })
         .eq("id", room.id);
       if (updateErr) throw updateErr;
       router.replace(`/battle/${room.room_code}/play`);

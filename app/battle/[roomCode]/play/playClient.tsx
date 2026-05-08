@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import {
@@ -10,7 +10,7 @@ import {
   type Question,
 } from "@/app/data/practiceQuestions";
 
-const TIMER_SECONDS = 20;
+const TIMER_SECONDS = 120; // Global 2-minute timer
 const TOTAL_QUESTIONS = 10;
 
 type RoomRow = {
@@ -19,6 +19,14 @@ type RoomRow = {
   status: string;
   subject: string;
   current_question: number;
+  player1_finished: boolean;
+  player2_finished: boolean;
+  player1_time_seconds: number | null;
+  player2_time_seconds: number | null;
+  player1_score: number | null;
+  player2_score: number | null;
+  started_at: string;
+  ends_at: string | null;
 };
 
 type PlayerRow = {
@@ -41,7 +49,8 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const [answered, setAnswered] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [timedOut, setTimedOut] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(TIMER_SECONDS);
+  const [playerStartedAt, setPlayerStartedAt] = useState<number | null>(null);
 
   const playerId = useMemo(() => {
     return typeof window === "undefined" ? null : localStorage.getItem("playerId");
@@ -53,18 +62,181 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   }, []);
 
   const q = questions[index];
-  const barPct = Math.min(100, (timeLeft / TIMER_SECONDS) * 100);
+  const barPct = Math.min(100, (globalTimeLeft / TIMER_SECONDS) * 100);
   const headerProgress = ((index + 1) / TOTAL_QUESTIONS) * 100;
+
+  const myPlayer = useMemo(() => {
+    if (!playerId) return null;
+    return players.find((p) => p.id === playerId) ?? null;
+  }, [players, playerId]);
+
+  const subjectMeta = room?.subject ? getSubjectMeta(room.subject) : undefined;
+  const subjectTitle = subjectMeta?.title ?? room?.subject ?? "";
+  const subjectEmoji = subjectMeta?.emoji ? `${subjectMeta.emoji} ` : "";
+
+  const submitAnswer = useCallback(async (answerIndex: number | null) => {
+    if (!room?.id || !playerId || !q) return;
+    const supabase = getSupabaseClient();
+    const idx = answerIndex ?? -1;
+    const isCorrect = answerIndex !== null && answerIndex === q.correctIndex;
+
+    // Save to battle_answers
+    const { error: ansErr } = await supabase.from("battle_answers").insert({
+      room_code: room.room_code,
+      user_id: playerId,
+      question_index: index,
+      is_correct: isCorrect,
+    });
+    if (ansErr) throw ansErr;
+
+    // Also update room_players score for live updates
+    if (isCorrect) {
+      const { data: currentPlayer } = await supabase
+        .from("room_players")
+        .select("score")
+        .eq("id", playerId)
+        .single();
+      
+      if (currentPlayer) {
+        await supabase
+          .from("room_players")
+          .update({ score: (currentPlayer.score ?? 0) + 1 })
+          .eq("id", playerId);
+      }
+    }
+  }, [room, playerId, q, index]);
+
+  const pickOption = async (i: number) => {
+    if (answered) return;
+    setSelectedIndex(i);
+    setAnswered(true);
+    setTimedOut(false);
+    try {
+      await submitAnswer(i);
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? "Failed to submit answer.");
+    }
+  };
+
+  const handleForceFinish = useCallback(async () => {
+    if (!room?.id || !playerId || !myPlayer || myPlayer.finished) return;
+    const supabase = getSupabaseClient();
+    const playerKey = myPlayer.id === players[0]?.id ? "player1" : "player2";
+
+    // Calculate score from battle_answers
+    const { data: answers } = await supabase
+      .from("battle_answers")
+      .select("is_correct")
+      .eq("room_code", room.room_code)
+      .eq("user_id", playerId);
+
+    const finalScore = answers?.filter((a) => a.is_correct).length ?? 0;
+    const timeTaken = 120; // Max time since timer expired
+
+    const updateData: Record<string, any> = {};
+    updateData[`${playerKey}_finished`] = true;
+    updateData[`${playerKey}_score`] = finalScore;
+    updateData[`${playerKey}_time_seconds`] = timeTaken;
+
+    try {
+      await supabase
+        .from("battle_rooms")
+        .update(updateData)
+        .eq("room_code", room.room_code);
+
+      // Check if both finished or timer expired
+      const { data: updatedRoom } = await supabase
+        .from("battle_rooms")
+        .select("player1_finished, player2_finished")
+        .eq("room_code", room.room_code)
+        .single();
+
+      if (updatedRoom?.player1_finished && updatedRoom?.player2_finished) {
+        await supabase
+          .from("battle_rooms")
+          .update({ status: "finished", ends_at: new Date().toISOString() })
+          .eq("room_code", room.room_code);
+      }
+    } catch (e) {
+      console.error("Error force finishing:", e);
+    }
+  }, [room, playerId, myPlayer, players]);
+
+  const goNext = useCallback(async () => {
+    if (!room?.id || !playerId) return;
+    
+    // If not answered yet (e.g. timer expired), submit as wrong
+    if (!answered) {
+      setAnswered(true);
+      setTimedOut(true);
+      try {
+        await submitAnswer(null);
+      } catch (e: unknown) {
+        setError((e as Error)?.message ?? "Failed to submit answer.");
+      }
+    }
+
+    if (index >= TOTAL_QUESTIONS - 1) {
+      // Player has finished all questions
+      const supabase = getSupabaseClient();
+      const playerKey = myPlayer?.id === players[0]?.id ? "player1" : "player2";
+      
+      // Calculate score from battle_answers
+      const { data: answers } = await supabase
+        .from("battle_answers")
+        .select("is_correct")
+        .eq("room_code", room.room_code)
+        .eq("user_id", playerId);
+      
+      const finalScore = answers?.filter(a => a.is_correct).length ?? 0;
+      const timeTaken = playerStartedAt ? Math.round((Date.now() - playerStartedAt) / 1000) : 120;
+
+      const updateData: Record<string, any> = {};
+      updateData[`${playerKey}_finished`] = true;
+      updateData[`${playerKey}_score`] = finalScore;
+      updateData[`${playerKey}_time_seconds`] = timeTaken;
+
+      try {
+        const { error: finErr } = await supabase
+          .from("battle_rooms")
+          .update(updateData)
+          .eq("room_code", room.room_code);
+        if (finErr) throw finErr;
+
+        // Check if both finished
+        const { data: updatedRoom } = await supabase
+          .from("battle_rooms")
+          .select("player1_finished, player2_finished")
+          .eq("room_code", room.room_code)
+          .single();
+
+        if (updatedRoom?.player1_finished && updatedRoom?.player2_finished) {
+          await supabase
+            .from("battle_rooms")
+            .update({ status: "finished", ends_at: new Date().toISOString() })
+            .eq("room_code", room.room_code);
+        }
+      } catch (e: unknown) {
+        setError((e as Error)?.message ?? "Failed to finish game.");
+        return;
+      }
+      return;
+    }
+
+    setIndex((v) => v + 1);
+    setAnswered(false);
+    setSelectedIndex(null);
+    setTimedOut(false);
+  }, [room, playerId, answered, index, playerStartedAt, myPlayer, players, submitAnswer]);
 
   useEffect(() => {
     let cancelled = false;
 
-
     const load = async () => {
       const supabase = getSupabaseClient();
       const { data: roomRow, error: roomErr } = await supabase
-        .from("game_rooms")
-        .select("id, room_code, status, subject, current_question")
+        .from("battle_rooms")
+        .select("id, room_code, status, subject, current_question, player1_finished, player2_finished, player1_time_seconds, player2_time_seconds, player1_score, player2_score, started_at, ends_at")
         .eq("room_code", roomCode)
         .single();
       if (roomErr) throw roomErr;
@@ -127,11 +299,17 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       .subscribe();
 
     const roomChannel = supabase
-      .channel(`game_rooms_play:${room.id}`)
+      .channel(`battle_rooms_play:${room.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "game_rooms", filter: `id=eq.${room.id}` },
-        (payload) => setRoom(payload.new as RoomRow)
+        { event: "*", schema: "public", table: "battle_rooms", filter: `id=eq.${room.id}` },
+        (payload) => {
+          const newRoom = payload.new as RoomRow;
+          setRoom(newRoom);
+          if (newRoom.status !== "active" || newRoom.ends_at) {
+            router.replace(`/battle/${roomCode}/results`);
+          }
+        }
       )
       .subscribe();
 
@@ -139,106 +317,40 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       supabase.removeChannel(playersChannel);
       supabase.removeChannel(roomChannel);
     };
-  }, [room?.id]);
+  }, [room?.id, roomCode, router]);
 
   useEffect(() => {
-    if (!q) return;
-    if (answered) return;
-    const start = Date.now();
-    const id = window.setInterval(() => {
-      const elapsed = (Date.now() - start) / 1000;
-      const left = Math.max(0, TIMER_SECONDS - elapsed);
-      setTimeLeft(left);
-      if (left <= 0) {
-        window.clearInterval(id);
-        setAnswered(true);
+    if (!room?.started_at) return;
+    let timerId: NodeJS.Timeout;
+
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const startedAt = new Date(room.started_at);
+      const elapsedSeconds = (now.getTime() - startedAt.getTime()) / 1000;
+      const remaining = TIMER_SECONDS - elapsedSeconds;
+
+      if (remaining <= 0) {
+        setGlobalTimeLeft(0);
         setTimedOut(true);
-        setSelectedIndex(null);
-      }
-    }, 32);
-    return () => window.clearInterval(id);
-  }, [answered, index, q?.id, q]);
-
-  const myPlayer = useMemo(() => {
-    if (!playerId) return null;
-    return players.find((p) => p.id === playerId) ?? null;
-  }, [players, playerId]);
-
-  const subjectMeta = room?.subject ? getSubjectMeta(room.subject) : undefined;
-  const subjectTitle = subjectMeta?.title ?? room?.subject ?? "";
-  const subjectEmoji = subjectMeta?.emoji ? `${subjectMeta.emoji} ` : "";
-
-  const submitAnswer = async (answerIndex: number | null) => {
-    if (!room?.id || !playerId || !q) return;
-    const supabase = getSupabaseClient();
-    const idx = answerIndex ?? -1;
-    const isCorrect = answerIndex !== null && answerIndex === q.correctIndex;
-
-    const { error: ansErr } = await supabase.from("player_answers").insert({
-      room_id: room.id,
-      player_id: playerId,
-      question_index: index,
-      answer_index: idx,
-      is_correct: isCorrect,
-    });
-    if (ansErr) throw ansErr;
-
-    if (isCorrect) {
-      const current = myPlayer?.score ?? 0;
-      const { error: scoreErr } = await supabase
-        .from("room_players")
-        .update({ score: current + 1 })
-        .eq("id", playerId);
-      if (scoreErr) throw scoreErr;
-    }
-  };
-
-  const pickOption = async (i: number) => {
-    if (answered) return;
-    setSelectedIndex(i);
-    setAnswered(true);
-    setTimedOut(false);
-    try {
-      await submitAnswer(i);
-    } catch (e: unknown) {
-      setError((e as Error)?.message ?? "Failed to submit answer.");
-    }
-  };
-
-  const goNext = async () => {
-    if (!room?.id || !playerId) return;
-    if (!answered) return;
-    const supabase = getSupabaseClient();
-
-    if (timedOut) {
-      try {
-        await submitAnswer(null);
-      } catch (e: unknown) {
-        setError((e as Error)?.message ?? "Failed to submit answer.");
-      }
-    }
-
-    if (index >= TOTAL_QUESTIONS - 1) {
-      try {
-        const { error: finErr } = await supabase
-          .from("room_players")
-          .update({ finished: true })
-          .eq("id", playerId);
-        if (finErr) throw finErr;
-      } catch (e: unknown) {
-        setError((e as Error)?.message ?? "Failed to finish game.");
+        if (room.status === "active" && myPlayer && !myPlayer.finished) {
+          handleForceFinish();
+        }
         return;
       }
-      router.replace(`/battle/${roomCode}/results`);
-      return;
-    }
+      setGlobalTimeLeft(remaining);
+    };
 
-    setIndex((v) => v + 1);
-    setAnswered(false);
-    setSelectedIndex(null);
-    setTimedOut(false);
-    setTimeLeft(TIMER_SECONDS);
-  };
+    calculateTimeLeft();
+    timerId = setInterval(calculateTimeLeft, 100);
+
+    return () => clearInterval(timerId);
+  }, [room?.started_at, room?.status, myPlayer?.finished, handleForceFinish]);
+
+  useEffect(() => {
+    if (room && index === 0 && !playerStartedAt) {
+      setPlayerStartedAt(Date.now());
+    }
+  }, [index, room, playerStartedAt]);
 
   const bothPlayers = players.slice(0, 2);
   const meLabel = myPlayer ? " (You)" : "";
@@ -261,6 +373,24 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
               ← Back to room
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (myPlayer?.finished && room.status === "active" && !room.ends_at) {
+    return (
+      <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
+        <div className="mx-auto max-w-lg text-center">
+          <p className="text-3xl">✅</p>
+          <h2 className="mt-4 text-xl font-bold text-white">You finished!</h2>
+          <p className="mt-2 text-zinc-400">Waiting for opponent... ⏳</p>
+          <p className={`mt-4 text-6xl font-extrabold tabular-nums 
+            ${globalTimeLeft <= 15 ? "text-red-500 animate-pulse" : globalTimeLeft <= 30 ? "text-orange-500" : "text-white"}`}
+          >
+            {Math.ceil(globalTimeLeft)}
+          </p>
+          <p className="text-zinc-500">seconds remaining</p>
         </div>
       </div>
     );
@@ -298,8 +428,8 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         <div className="px-4 pb-3 pt-2">
           <div className="mx-auto flex max-w-3xl items-center justify-between text-xs text-zinc-500">
             <span>Time left</span>
-            <span className="tabular-nums text-[#f59e0b]">
-              {answered ? "—" : `${Math.ceil(timeLeft)}s`}
+            <span className={`tabular-nums ${globalTimeLeft <= 15 ? "text-red-500 animate-pulse" : globalTimeLeft <= 30 ? "text-orange-500" : "text-white"}`}>
+              {Math.ceil(globalTimeLeft)}s
             </span>
           </div>
           <div className="mx-auto mt-1.5 h-2 max-w-3xl overflow-hidden rounded-full bg-white/10">
@@ -429,4 +559,3 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     </div>
   );
 }
-

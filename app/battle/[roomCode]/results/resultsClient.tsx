@@ -15,6 +15,7 @@ type RoomPlayer = {
   id: string;
   player_name: string | null;
   score: number | null;
+  time_seconds: number | null;
 };
 
 export function ResultsClient({ roomCode }: { roomCode: string }) {
@@ -33,8 +34,8 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       setError(null);
       try {
         const { data: room, error: roomErr } = await supabase
-          .from("game_rooms")
-          .select("id, subject")
+          .from("battle_rooms")
+          .select("id, subject, player1_score, player2_score, player1_time_seconds, player2_time_seconds")
           .eq("room_code", roomCode)
           .single();
 
@@ -44,33 +45,20 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
         const { data: roomPlayers, error: playersErr } = await supabase
           .from("room_players")
           .select("id, player_name")
-          .eq("room_id", room.id);
+          .eq("room_id", room.id)
+          .order("joined_at", { ascending: true });
 
         if (playersErr) throw playersErr;
 
-        const { data: answerRows, error: answersErr } = await supabase
-          .from("player_answers")
-          .select("player_id, is_correct")
-          .eq("room_id", room.id);
-
-        if (answersErr) throw answersErr;
-
-        const correctCountByPlayerId = new Map<string, number>();
-        for (const row of answerRows ?? []) {
-          if (row.is_correct === true) {
-            const pid = row.player_id as string;
-            correctCountByPlayerId.set(
-              pid,
-              (correctCountByPlayerId.get(pid) ?? 0) + 1,
-            );
-          }
-        }
-
-        const merged: RoomPlayer[] = (roomPlayers ?? []).map((p) => ({
-          id: p.id,
-          player_name: p.player_name,
-          score: correctCountByPlayerId.get(p.id) ?? 0,
-        }));
+        const merged: RoomPlayer[] = (roomPlayers ?? []).map((p, idx) => {
+          const isPlayer1 = idx === 0;
+          return {
+            id: p.id,
+            player_name: p.player_name,
+            score: isPlayer1 ? room.player1_score : room.player2_score,
+            time_seconds: isPlayer1 ? room.player1_time_seconds : room.player2_time_seconds,
+          };
+        });
 
         if (!cancelled) {
           setPlayers(merged);
@@ -93,17 +81,24 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       ...p,
       player_name: p.player_name?.trim() || "Player",
       score: typeof p.score === "number" ? p.score : 0,
+      time_seconds: typeof p.time_seconds === "number" ? p.time_seconds : 120,
     }));
 
-    mapped.sort((a, b) => b.score - a.score);
+    mapped.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time_seconds - b.time_seconds; // Lower time is better
+    });
     return mapped.slice(0, 2);
   }, [players]);
 
   const winner = useMemo(() => {
     if (normalizedPlayers.length < 2) return null;
     const [a, b] = normalizedPlayers;
-    if (a.score === b.score) return { type: "draw" as const };
-    return { type: "winner" as const, id: a.score > b.score ? a.id : b.id };
+    if (a.score === b.score && a.time_seconds === b.time_seconds) {
+      return { type: "draw" as const };
+    }
+    // Since we sorted mapped, a is the winner unless it's a total tie
+    return { type: "winner" as const, id: a.id };
   }, [normalizedPlayers]);
 
   const winnerPlayerId =
@@ -265,7 +260,10 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                               {p.player_name} {isWinner ? "🏆" : ""}
                             </p>
                             <p className="mt-1 text-xs text-zinc-500">
-                              Final score
+                              Final score: <span className="font-bold text-white">{p.score}/10</span>
+                            </p>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                              Time taken: <span className="font-bold text-white">{p.time_seconds}s</span>
                             </p>
                           </div>
                           <div className="text-right">
