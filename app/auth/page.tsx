@@ -45,8 +45,8 @@ export default function AuthPage() {
         });
 
         if (signUpError?.message?.includes('already registered')) {
-          console.log("Supabase signUp error (already registered):");
-          console.log(signUpError);
+          console.error("Supabase signUp error (already registered):");
+          console.error(signUpError);
           const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
           if (!signInError) {
             router.push('/');
@@ -101,8 +101,8 @@ export default function AuthPage() {
       }
     } catch (err: unknown) {
       const m = err instanceof Error ? err.message : "Something went wrong.";
-      console.log("General authentication error:");
-      console.log(err);
+      console.error("General authentication error:");
+      console.error(err);
       if (tab === "signin" && m.includes("Invalid login credentials")) {
         setMessage("Incorrect email or password. Please try again or use 'Forgot password?'.");
       } else {
