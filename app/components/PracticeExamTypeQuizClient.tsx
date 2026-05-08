@@ -100,7 +100,6 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
     if (isCorrect) setScore(s => s + 1)
     setAnswers(prev => [...prev, answer])
   }, [current, questions, selected])
-
   useEffect(() => {
     if (loading || finished || selected !== null) return
     const TIMER_SECONDS = 30
@@ -124,7 +123,6 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
     }, 0)
     return () => clearTimeout(resetTimeout)
   }, [current])
-
   function nextQuestion() {
     if (current + 1 >= questions.length) {
       setFinished(true)

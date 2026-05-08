@@ -85,7 +85,6 @@ export default async function ExamTypeSelectionPage({ params }: PageProps) {
 
   return (
     <PageShell
-
       overlay="rgba(15,15,26,0.90)"
       className="min-h-screen text-white"
     >

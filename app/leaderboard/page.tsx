@@ -49,7 +49,6 @@ export default function LeaderboardPage() {
     const fetchTimeout = setTimeout(() => fetchLeaderboard(), 0);
     return () => clearTimeout(fetchTimeout);
   }, [fetchLeaderboard]);
-
   return (
     <div className="min-h-screen bg-[#0f0f1a] px-4 py-10 text-zinc-100">
       <div className="mx-auto max-w-lg">

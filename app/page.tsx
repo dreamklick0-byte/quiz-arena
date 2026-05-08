@@ -17,7 +17,6 @@ const getSubjectGradient = (subjectSlug: string) => {
 
   return `linear-gradient(to bottom right, ${color1}, ${color2})`;
 };
-
 export default function Home() {
   const homeSubjects = [
     { slug: "maths", title: "Maths", emoji: "🔢" },
