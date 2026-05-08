@@ -183,7 +183,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => setShowForgotPassword(true)}
-              className="text-sm text-[#7c3aed] hover:underline"
+              className="text-sm text-purple-400 hover:text-purple-300 mt-1 text-right w-full"
             >
               Forgot password?
             </button>
