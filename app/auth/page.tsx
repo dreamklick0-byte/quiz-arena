@@ -52,13 +52,19 @@ export default function AuthPage() {
             router.push('/');
             router.refresh();
           } else {
+            console.error("Supabase signIn error after failed signUp:");
+            console.error(signInError);
             setMessage('This email is already registered. Please sign in instead.');
             setTab('signin');
           }
           return; // Exit function after handling
         }
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          console.error("Supabase signUp error:");
+          console.error(signUpError);
+          throw signUpError;
+        }
 
         const user = data.user;
         if (!user) {
@@ -91,17 +97,21 @@ export default function AuthPage() {
         router.push("/");
         router.refresh();
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        if (error) throw error;
+        if (signInError) {
+          console.error("Supabase signIn error:");
+          console.error(signInError);
+          throw signInError;
+        }
         router.push("/account");
         router.refresh();
       }
     } catch (err: unknown) {
       const m = err instanceof Error ? err.message : "Something went wrong.";
-      console.error("General authentication error:");
+      console.error("General authentication error (catch block):");
       console.error(err);
       if (tab === "signin" && m.includes("Invalid login credentials")) {
         setMessage("Incorrect email or password. Please try again or use 'Forgot password?'.");
