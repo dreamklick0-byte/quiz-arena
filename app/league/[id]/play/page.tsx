@@ -1,23 +1,35 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 import { getSubjectMeta } from "@/app/data/practiceQuestions";
 
+interface Question {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+interface League {
+  id: string;
+  name: string;
+  subject: string;
+  questions: Question[];
+}
+
 export default function LeaguePlayPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [league, setLeague] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [league, setLeague] = useState<League | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [answered, setAnswered] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {

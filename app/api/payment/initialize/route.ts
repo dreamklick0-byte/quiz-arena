@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +32,8 @@ export async function POST(req: Request) {
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ status: false, message: err.message }, { status: 500 });
+  } catch (err) {
+    const error = err as Error;
+    return NextResponse.json({ status: false, message: error.message }, { status: 500 });
   }
 }

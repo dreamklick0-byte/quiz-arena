@@ -1,11 +1,29 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/app/components/PageShell";
 
 export default function AdminDashboard() {
   const router = useRouter();
+
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        const data = await res.json();
+        if (data.success) {
+          setAdminRole(data.admin.role);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin info:", err);
+      }
+    };
+    fetchMe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -23,6 +41,9 @@ export default function AdminDashboard() {
     { title: "Import Questions", href: "/admin/import", icon: "📥", desc: "Upload JSON questions to subjects" },
     { title: "Leagues", href: "/admin/leagues", icon: "🏆", desc: "Manage multi-player prize leagues" },
     { title: "Withdrawals", href: "/admin/withdrawals", icon: "🏦", desc: "Process player payout requests" },
+    ...(adminRole === "super_admin" ? [
+      { title: "Manage Admins", href: "/admin/manage-admins", icon: "👥", desc: "Manage admin accounts and roles" }
+    ] : []),
   ];
 
   return (

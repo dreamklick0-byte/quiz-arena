@@ -1,16 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 import { getWalletBalance } from "@/lib/wallet";
 import PaystackPop from "@paystack/inline-js";
 
+import type { User } from "@supabase/supabase-js";
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  created_at: string;
+  status: string;
+}
+
 export default function WalletPage() {
   const [balance, setBalance] = useState<number | null>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [user, setUser] = useState<User | null>(null);
 
   // Deposit Modal State
   const [showDeposit, setShowDeposit] = useState(false);
@@ -29,14 +39,31 @@ export default function WalletPage() {
     "Access Bank", "Zenith Bank", "GTBank", "First Bank", "UBA", "Kuda Bank", "Opay", "Palmpay", "Stanbic IBTC", "Fidelity Bank"
   ];
 
-  const loadData = useCallback(async () => {
-    const supabase = getSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
+  useEffect(() => {
+    const loadData = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const b = await getWalletBalance(user.id);
+        setBalance(b);
+
+        const { data } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (data) setTransactions(data);
+      }
+    };
+    loadData();
+  }, []);
+
+  const refreshData = async () => {
     if (user) {
       const b = await getWalletBalance(user.id);
       setBalance(b);
-
+      const supabase = getSupabaseClient();
       const { data } = await supabase
         .from("transactions")
         .select("*")
@@ -44,12 +71,7 @@ export default function WalletPage() {
         .order("created_at", { ascending: false });
       if (data) setTransactions(data);
     }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleDeposit = async () => {
     if (!user?.email) return;
@@ -81,10 +103,10 @@ export default function WalletPage() {
           email: user.email,
           amount: amount * 100,
           ref: data.data.reference,
-          onSuccess: async (transaction: any) => {
+          onSuccess: async (transaction: { reference: string }) => {
             await fetch(`/api/payment/verify?reference=${transaction.reference}`);
             setShowDeposit(false);
-            loadData();
+            refreshData();
           },
           onCancel: () => {
             setBusy(false);
@@ -149,10 +171,11 @@ export default function WalletPage() {
 
       setShowWithdraw(false);
       setWithdrawAmount("");
-      loadData();
+      refreshData();
       alert("Withdrawal request submitted successfully!");
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message);
     } finally {
       setBusy(false);
     }

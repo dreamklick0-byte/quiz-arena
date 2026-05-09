@@ -86,7 +86,7 @@ export default function BattleLobbyPage() {
         }
       }
 
-      const { roomCode, playerId, roomId } = await createBattleRoom(
+      const { roomCode, playerId } = await createBattleRoom(
         subject,
         playerName,
         stakeAmount,
@@ -178,7 +178,6 @@ export default function BattleLobbyPage() {
     
     try {
       const supabase = getSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
       
       // 1. Check if there's an existing waiting room for this subject
       const { data: rooms } = await supabase
@@ -209,8 +208,9 @@ export default function BattleLobbyPage() {
       const { roomCode, playerId } = await createBattleRoom(subject, playerName, 0, 2);
       persistIdentity(playerId);
       router.push(`/battle/${roomCode}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setBusy(false);
     }
@@ -224,7 +224,6 @@ export default function BattleLobbyPage() {
   };
 
   const avatarLetter = (playerName.trim()[0] ?? "?").toUpperCase();
-  const selectedSubject = SUBJECTS.find((s) => s.slug === subject) ?? SUBJECTS[0];
   const joinNormalized = normalizeRoomCode(joinCode);
 
   useEffect(() => {
@@ -279,18 +278,6 @@ export default function BattleLobbyPage() {
       window.clearTimeout(loadingTimeout);
     };
   }, [mode, joinNormalized]);
-
-  const handleModeAction = async (nextMode: Mode) => {
-    setError(null);
-    if (busy) return;
-    if (mode !== nextMode) {
-      setMode(nextMode);
-      return;
-    }
-    if (!canSubmit) return;
-    if (nextMode === "create") await createRoom();
-    else await joinRoom();
-  };
 
   return (
     <div

@@ -88,7 +88,6 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const submitAnswer = useCallback(async (answerIndex: number | null) => {
     if (!room?.id || !playerId || !q) return;
     const supabase = getSupabaseClient();
-    const idx = answerIndex ?? -1;
     const isCorrect = answerIndex !== null && answerIndex === q.correctIndex;
 
     // Save to battle_answers
@@ -152,7 +151,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     const finishedAt = Date.now();
     const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, boolean | number> = {};
     updateData[`${playerKey}_finished`] = true;
     updateData[`${playerKey}_score`] = finalScore;
     updateData[`${playerKey}_time_seconds`] = timeTaken;
@@ -220,7 +219,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       const finishedAt = Date.now();
       const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, boolean | number> = {};
       updateData[`${playerKey}_finished`] = true;
       updateData[`${playerKey}_score`] = finalScore;
       updateData[`${playerKey}_time_seconds`] = timeTaken;
@@ -300,6 +299,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       if (playersErr) throw playersErr;
       if (cancelled) return;
       setPlayers((playerRows ?? []) as PlayerRow[]);
+      setPlayerStartedAt(Date.now());
     };
 
     load().catch((e: unknown) => {
@@ -360,50 +360,42 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     };
   }, [room?.id, roomCode, router]);
 
+  const calculateTimeLeft = useCallback(() => {
+    if (!room?.started_at) {
+      setGlobalTimeLeft(TIMER_SECONDS);
+      return;
+    }
+
+    const now = new Date();
+    const startedAt = new Date(room.started_at);
+    const elapsedSeconds = (now.getTime() - startedAt.getTime()) / 1000;
+    
+    // If elapsedSeconds is NaN or invalid, fallback to TIMER_SECONDS
+    if (isNaN(elapsedSeconds)) {
+      setGlobalTimeLeft(TIMER_SECONDS);
+      return;
+    }
+
+    const remaining = Math.max(0, TIMER_SECONDS - elapsedSeconds);
+
+    if (remaining <= 0) {
+      setGlobalTimeLeft(0);
+      setTimedOut(true);
+      if (room.status === "active" && myPlayer && !myPlayer.finished) {
+        handleForceFinish();
+      }
+    } else {
+      setGlobalTimeLeft(remaining);
+    }
+  }, [room, myPlayer, handleForceFinish]);
+
   useEffect(() => {
-    let timerId: NodeJS.Timeout;
-
-    const calculateTimeLeft = () => {
-      if (!room?.started_at) {
-        setGlobalTimeLeft(TIMER_SECONDS);
-        return;
-      }
-
-      const now = new Date();
-      const startedAt = new Date(room.started_at);
-      const elapsedSeconds = (now.getTime() - startedAt.getTime()) / 1000;
-      
-      // If elapsedSeconds is NaN or invalid, fallback to TIMER_SECONDS
-      if (isNaN(elapsedSeconds)) {
-        setGlobalTimeLeft(TIMER_SECONDS);
-        return;
-      }
-
-      const remaining = Math.max(0, TIMER_SECONDS - elapsedSeconds);
-
-      if (remaining <= 0) {
-        setGlobalTimeLeft(0);
-        setTimedOut(true);
-        if (room.status === "active" && myPlayer && !myPlayer.finished) {
-          handleForceFinish();
-        }
-      } else {
-        setGlobalTimeLeft(remaining);
-      }
-    };
-
-    calculateTimeLeft();
-    timerId = setInterval(calculateTimeLeft, 200);
+    const timerId = setInterval(calculateTimeLeft, 200);
 
     return () => clearInterval(timerId);
-  }, [room?.started_at, room?.status, myPlayer?.finished, handleForceFinish]);
+  }, [calculateTimeLeft]);
 
-  useEffect(() => {
-    if (room && index === 0 && !playerStartedAt) {
-      // Record started_at when player loads the first question
-      setPlayerStartedAt(Date.now());
-    }
-  }, [index, room, playerStartedAt]);
+
 
   const bothPlayers = players.slice(0, 2);
   const meLabel = myPlayer ? " (You)" : "";

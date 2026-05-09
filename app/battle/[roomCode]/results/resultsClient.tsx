@@ -26,7 +26,11 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   const [roomSubject, setRoomSubject] = useState<string | null>(null);
   const [rematchBusy, setRematchBusy] = useState(false);
   const [prizesPaid, setPrizesPaid] = useState(false);
-  const [prizeResults, setPrizeResults] = useState<any[]>([]);
+  const [prizeResults, setPrizeResults] = useState<{
+    user_id: string;
+    prize: number;
+    rank: number;
+  }[]>([]);
 
   useEffect(() => {
     let cancelled = false;

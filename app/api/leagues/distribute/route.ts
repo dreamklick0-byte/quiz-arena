@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 import { processTransaction } from "@/lib/wallet";
 
-export async function GET(req: Request) {
+export async function GET() {
   // Simple check for cron (you might want a secret header)
   const supabase = getSupabaseClient();
 
@@ -81,8 +81,9 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ success: true, processed: leagues?.length || 0 });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    const error = err as Error;
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 

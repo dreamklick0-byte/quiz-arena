@@ -44,11 +44,20 @@ export async function POST(req: Request) {
     });
 
     const actualPlayers = playersWithTime.length;
-    const totalPool = Number(room.stake_amount) * actualPlayers;
     const playerPool = Number(room.prize_pool);
     
-    const results: any[] = [];
-    const updates: any = { prizes_paid: true };
+    interface BattleResult {
+      id: string;
+      player_name: string;
+      score: number;
+      user_id: string;
+      time_seconds: number;
+      prize: number;
+      rank: number;
+    }
+
+    const results: BattleResult[] = [];
+    const updates: Record<string, string | boolean | number | null> = { prizes_paid: true };
 
     if (actualPlayers >= 2) {
       // 1st Place
@@ -118,7 +127,8 @@ export async function POST(req: Request) {
     if (updateErr) throw updateErr;
 
     return NextResponse.json({ success: true, results });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    const error = err as Error;
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

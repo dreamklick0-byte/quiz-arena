@@ -4,34 +4,45 @@ import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 
+interface WithdrawalRequest {
+  id: string;
+  user_id: string;
+  amount: number;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  status: 'pending' | 'processed' | 'rejected';
+  created_at: string;
+  profiles: { display_name: string } | null;
+}
+
 export default function AdminWithdrawalsPage() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPending, setTotalPending] = useState(0);
 
   useEffect(() => {
+    async function loadRequests() {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from("withdrawal_requests")
+        .select(`
+          *,
+          profiles:user_id (display_name)
+        `)
+        .order("created_at", { ascending: false });
+      
+      if (data) {
+        setRequests(data);
+        const pending = data
+          .filter(r => r.status === 'pending')
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+        setTotalPending(pending);
+      }
+      setLoading(false);
+    }
     loadRequests();
   }, []);
-
-  async function loadRequests() {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase
-      .from("withdrawal_requests")
-      .select(`
-        *,
-        profiles:user_id (display_name)
-      `)
-      .order("created_at", { ascending: false });
-    
-    if (data) {
-      setRequests(data);
-      const pending = data
-        .filter(r => r.status === 'pending')
-        .reduce((sum, r) => sum + Number(r.amount), 0);
-      setTotalPending(pending);
-    }
-    setLoading(false);
-  }
 
   async function updateStatus(id: string, status: 'processed' | 'rejected') {
     const supabase = getSupabaseClient();
@@ -46,7 +57,22 @@ export default function AdminWithdrawalsPage() {
     if (error) {
       alert(error.message);
     } else {
-      loadRequests();
+      // Re-fetch requests after update
+      const { data } = await supabase
+        .from("withdrawal_requests")
+        .select(`
+          *,
+          profiles:user_id (display_name)
+        `)
+        .order("created_at", { ascending: false });
+      
+      if (data) {
+        setRequests(data);
+        const pending = data
+          .filter(r => r.status === 'pending')
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+        setTotalPending(pending);
+      }
     }
   }
 

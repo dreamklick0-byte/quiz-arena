@@ -6,44 +6,66 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { getSubjectMeta } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
 import { getWalletBalance, processTransaction } from "@/lib/wallet";
+import type { User } from "@supabase/supabase-js";
+
+interface League {
+  id: string;
+  name: string;
+  subject: string;
+  entry_fee: number;
+  current_players: number;
+  max_players: number;
+  prize_pool: number;
+  guaranteed_first: number;
+  guaranteed_second: number;
+  status: 'open' | 'active' | 'completed';
+  ends_at: string;
+}
 
 export default function LeaguePage() {
   const router = useRouter();
-  const [leagues, setLeagues] = useState<any[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [userEntries, setUserEntries] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  const [now, setNow] = useState<number>(() => Date.now());
 
   useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000 * 60);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    async function checkUser() {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { data } = await supabase
+          .from("league_entries")
+          .select("league_id")
+          .eq("user_id", user.id);
+        if (data) setUserEntries(data.map(e => e.league_id));
+      }
+    }
+
+    async function loadLeagues() {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from("leagues")
+        .select("*")
+        .neq("status", "completed")
+        .order("starts_at", { ascending: true });
+      if (data) setLeagues(data);
+    }
+
     loadLeagues();
     checkUser();
   }, []);
 
-  async function checkUser() {
-    const supabase = getSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-    if (user) {
-      const { data } = await supabase
-        .from("league_entries")
-        .select("league_id")
-        .eq("user_id", user.id);
-      if (data) setUserEntries(data.map(e => e.league_id));
-    }
-  }
-
-  async function loadLeagues() {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase
-      .from("leagues")
-      .select("*")
-      .neq("status", "completed")
-      .order("starts_at", { ascending: true });
-    if (data) setLeagues(data);
-  }
-
-  async function joinLeague(league: any) {
+  async function joinLeague(league: League) {
     if (!user) {
       alert("Please sign in to join leagues.");
       return;
@@ -96,8 +118,9 @@ export default function LeaguePage() {
 
       setUserEntries([...userEntries, league.id]);
       alert("Joined successfully! Good luck!");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setBusy(null);
     }
@@ -137,7 +160,7 @@ export default function LeaguePage() {
             const isJoined = userEntries.includes(l.id);
             const isFinished = finishedLeagues.includes(l.id);
             const meta = getSubjectMeta(l.subject);
-            const timeRemaining = new Date(l.ends_at).getTime() - Date.now();
+            const timeRemaining = new Date(l.ends_at).getTime() - now;
             const hoursLeft = Math.floor(timeRemaining / (1000 * 60 * 60));
             const minsLeft = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
 

@@ -5,8 +5,19 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { SUBJECTS, getQuestionsForSubject } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
 
+interface League {
+  id: string;
+  name: string;
+  subject: string;
+  entry_fee: number;
+  current_players: number;
+  max_players: number;
+  status: string;
+  created_at: string;
+}
+
 export default function AdminLeaguesPage() {
-  const [leagues, setLeagues] = useState<any[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +25,7 @@ export default function AdminLeaguesPage() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState(SUBJECTS[0].slug);
   const [entryFee, setEntryFee] = useState(100);
-  const [maxPlayers, setMaxPlayers] = useState(5000);
+  const maxPlayers = 5000;
   const [duration, setDuration] = useState(24);
   const [numQuestions, setNumQuestions] = useState(10);
   const [startMode, setStartMode] = useState<"now" | "later">("now");
@@ -42,7 +53,7 @@ export default function AdminLeaguesPage() {
 
   async function loadLeagues() {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("leagues")
       .select("*")
       .order("created_at", { ascending: false });
@@ -89,8 +100,9 @@ export default function AdminLeaguesPage() {
       setName("");
       loadLeagues();
       alert("League created successfully!");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setBusy(false);
     }

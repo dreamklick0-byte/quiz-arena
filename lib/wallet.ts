@@ -29,7 +29,7 @@ export async function getWalletBalance(userId: string): Promise<number> {
 
 export async function ensureWalletExists(userId: string) {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("wallets")
     .select("id")
     .eq("user_id", userId)

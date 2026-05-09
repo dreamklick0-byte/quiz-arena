@@ -6,9 +6,35 @@ export function middleware(request: NextRequest) {
 
   // Protect ALL /admin/* routes except /admin/login
   if (path.startsWith("/admin") && path !== "/admin/login") {
-    const adminSession = request.cookies.get("admin_session")?.value;
+    const adminSessionCookie = request.cookies.get("admin_session")?.value;
 
-    if (!adminSession) {
+    if (!adminSessionCookie) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+
+    try {
+      const sessionData = JSON.parse(adminSessionCookie);
+      const { role } = sessionData;
+
+      // Access control for manage-admins
+      if (path.startsWith("/admin/manage-admins") && role !== "super_admin") {
+        const url = new URL("/admin", request.url);
+        url.searchParams.set("error", "Access denied. Super Admin only.");
+        return NextResponse.redirect(url);
+      }
+
+      // Pass role to pages via header
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-admin-role", role);
+      requestHeaders.set("x-admin-id", sessionData.id);
+
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    } catch {
+      // Invalid session cookie
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
