@@ -1,8 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("CRITICAL: Supabase environment variables are missing! Check your .env.local or Vercel settings.");
+}
+
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://viayjjutczrqxtmvbzwt.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpYXlqanV0Y3pycXh0bXZiend0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDg3OTgsImV4cCI6MjA5MzUyNDc5OH0.-Q3yXLFLYqGbBVSD27bsFJMiMq6XXSIVuWNtUWLiy3M'
+  supabaseUrl || '',
+  supabaseAnonKey || ''
 )
 
 // Use a lazy initializer for the admin client to avoid errors on the client-side
