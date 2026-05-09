@@ -74,7 +74,10 @@ export default function WalletPage() {
   };
 
   const handleDeposit = async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      alert("User not found. Please log in.");
+      return;
+    }
     setBusy(true);
     const amount = depositAmount === -1 ? Number(customAmount) : depositAmount;
     
@@ -123,6 +126,10 @@ export default function WalletPage() {
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      alert("User not found. Please log in.");
+      return;
+    }
     const amount = Number(withdrawAmount);
     if (amount < 500) {
       alert("Minimum withdrawal is ₦500");

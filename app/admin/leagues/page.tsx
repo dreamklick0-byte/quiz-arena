@@ -15,6 +15,7 @@ interface League {
   max_players: number;
   status: string;
   created_at: string;
+  ends_at: string;
 }
 
 export default function AdminLeaguesPage() {

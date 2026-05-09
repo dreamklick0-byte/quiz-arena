@@ -318,8 +318,8 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                               </p>
                               {prizesPaid && (
                                 <p className="text-[10px] font-bold text-emerald-400 mt-1">
-                                  {prizeResults.find(pr => pr.id === p.id)?.prize > 0 
-                                    ? `+₦${Math.floor(prizeResults.find(pr => pr.id === p.id).prize)}` 
+                                  {prizeResults.find(pr => pr.user_id === p.id)?.prize && prizeResults.find(pr => pr.user_id === p.id)!.prize > 0 
+                                    ? `+₦${Math.floor(prizeResults.find(pr => pr.user_id === p.id)!.prize)}` 
                                     : "+₦0"}
                                 </p>
                               )}

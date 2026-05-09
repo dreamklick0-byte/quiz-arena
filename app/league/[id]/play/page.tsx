@@ -114,7 +114,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       <div className="mx-auto max-w-2xl px-4 py-10">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-white">{league.name}</h1>
+            <h1 className="text-xl font-black text-white">{league?.name}</h1>
             <p className="text-xs text-zinc-500 uppercase tracking-widest">{meta?.title} · Question {index + 1}/{questions.length}</p>
           </div>
           <div className="text-right">
