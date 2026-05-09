@@ -3,15 +3,29 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
+import { usePathname } from "next/navigation";
 
 export function SiteHeader() {
+  const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
     
+    // Check for admin session via cookie (simulated client-side check)
+    const checkAdmin = () => {
+      const cookies = document.cookie.split(';');
+      const hasAdminSession = cookies.some(c => c.trim().startsWith('admin_session='));
+      setIsAdmin(hasAdminSession);
+    };
+
+    checkAdmin();
+    // Re-check admin status when pathname changes (navigation)
+    const interval = setInterval(checkAdmin, 2000);
+
     const fetchUserData = async (uid: string) => {
       try {
         // Fetch streak
@@ -50,9 +64,12 @@ export function SiteHeader() {
         setBalance(null);
       }
     });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0f0f1a]/90 backdrop-blur-md">
@@ -73,9 +90,11 @@ export function SiteHeader() {
           <Link href="/league" className="transition hover:text-[#f59e0b]">
             League
           </Link>
-          <Link href="/admin" className="transition hover:text-zinc-300">
-            Admin
-          </Link>
+          {isAdmin && (
+            <Link href="/admin" className="transition hover:text-zinc-300 font-bold text-[#7c3aed]">
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="flex shrink-0 items-center gap-2">
           {typeof balance === "number" && (

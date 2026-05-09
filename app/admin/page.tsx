@@ -1,9 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageShell } from "@/app/components/PageShell";
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/admin/logout", { method: "POST" });
+      if (res.ok) {
+        router.push("/admin/login");
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   const links = [
     { title: "Import Questions", href: "/admin/import", icon: "📥", desc: "Upload JSON questions to subjects" },
     { title: "Leagues", href: "/admin/leagues", icon: "🏆", desc: "Manage multi-player prize leagues" },
@@ -13,8 +28,18 @@ export default function AdminDashboard() {
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-4xl px-4 py-16">
-        <h1 className="text-4xl font-black text-white tracking-tight">Admin Control Panel</h1>
-        <p className="mt-2 text-zinc-500">Manage Quiz Arena game systems and finances.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-black text-white tracking-tight">Admin Control Panel</h1>
+            <p className="mt-2 text-zinc-500">Manage Quiz Arena game systems and finances.</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+          >
+            🚪 Logout
+          </button>
+        </div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {links.map(link => (
