@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://quiz-arena.vercel.app"),
   title: "Quiz Arena — Study Smart • Compete Live • Win Big",
   description:
     "Competitive real-time multiplayer quiz platform. Practice JAMB, WAEC, NECO subjects and win prizes in live leagues.",

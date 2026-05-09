@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 import { getWalletBalance } from "@/lib/wallet";
-import PaystackPop from "@paystack/inline-js";
 
 import type { User } from "@supabase/supabase-js";
 
@@ -100,6 +99,7 @@ export default function WalletPage() {
       const data = await res.json();
       
       if (data.status) {
+        const PaystackPop = (await import("@paystack/inline-js")).default;
         const paystack = new PaystackPop();
         paystack.newTransaction({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
