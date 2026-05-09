@@ -1,13 +1,10 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseClient } from '@/lib/supabase'
 import { safeRecordDailyActivity } from '@/lib/activityRpc'
 
-const supabase = createClient(
-  'https://viayjjutczrqxtmvbzwt.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpYXlqanV0Y3pycXh0bXZiend0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDg3OTgsImV4cCI6MjA5MzUyNDc5OH0.-Q3yXLFLYqGbBVSD27bsFJMiMq6XXSIVuWNtUWLiy3M'
-)
+const supabase = getSupabaseClient()
 
 type Question = {
   id: string
