@@ -19,7 +19,7 @@ const getSubjectGradient = (subjectSlug: string) => {
 };
 export default function Home() {
   const homeSubjects = [
-    { slug: "maths", title: "Maths", emoji: "🔢" },
+    { slug: "maths", title: "Maths", emoji: "🧮" },
     { slug: "english", title: "English", emoji: "📝" },
     { slug: "physics", title: "Physics", emoji: "⚛️" },
     { slug: "chemistry", title: "Chemistry", emoji: "🧪" },

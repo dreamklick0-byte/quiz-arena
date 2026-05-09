@@ -14,7 +14,7 @@ export type SubjectMeta = {
 };
 
 export const SUBJECTS: SubjectMeta[] = [
-  { slug: "maths", title: "Maths", shortLabel: "Maths", emoji: "🔢" },
+  { slug: "maths", title: "Maths", shortLabel: "Maths", emoji: "🧮" },
   { slug: "english", title: "English", shortLabel: "English", emoji: "📖" },
   { slug: "physics", title: "Physics", shortLabel: "Physics", emoji: "⚛️" },
   { slug: "chemistry", title: "Chemistry", shortLabel: "Chemistry", emoji: "🧪" },
