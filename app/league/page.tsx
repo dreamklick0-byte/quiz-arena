@@ -30,101 +30,63 @@ export default function LeaguePage() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
-  const [now, setNow] = useState<number>(() => Date.now());
+  const [now, setNow] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setNow(Date.now());
+    setMounted(true);
     const timer = setInterval(() => setNow(Date.now()), 1000 * 60);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
     async function checkUser() {
-      const supabase = getSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        const { data } = await supabase
-          .from("league_entries")
-          .select("league_id")
-          .eq("user_id", user.id);
-        if (data) setUserEntries(data.map(e => e.league_id));
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.warn("Auth check failed:", userError.message);
+          return;
+        }
+        
+        const user = data?.user;
+        setUser(user);
+        
+        if (user) {
+          const { data: entries, error: entriesError } = await supabase
+            .from("league_entries")
+            .select("league_id")
+            .eq("user_id", user.id);
+          
+          if (entriesError) throw entriesError;
+          if (entries) setUserEntries(entries.map(e => e.league_id));
+        }
+      } catch (err) {
+        console.error("Error checking user:", err);
       }
     }
 
     async function loadLeagues() {
-      const supabase = getSupabaseClient();
-      const { data } = await supabase
-        .from("leagues")
-        .select("*")
-        .neq("status", "completed")
-        .order("starts_at", { ascending: true });
-      if (data) setLeagues(data);
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error: leaguesError } = await supabase
+          .from("leagues")
+          .select("*")
+          .neq("status", "completed")
+          .order("starts_at", { ascending: true });
+        
+        if (leaguesError) throw leaguesError;
+        setLeagues(data || []);
+      } catch (err) {
+        console.error("Error loading leagues:", err);
+        setError("Failed to load leagues. Please check your connection.");
+      }
     }
 
     loadLeagues();
     checkUser();
   }, []);
-
-  async function joinLeague(league: League) {
-    if (!user) {
-      alert("Please sign in to join leagues.");
-      return;
-    }
-    setBusy(league.id);
-    setError(null);
-    try {
-      const balance = await getWalletBalance(user.id);
-      if (balance < league.entry_fee) {
-        throw new Error(`Insufficient balance. You need ₦${league.entry_fee}. Your balance: ₦${balance}.`);
-      }
-
-      await processTransaction(
-        user.id,
-        'stake',
-        league.entry_fee,
-        `league-${league.id}`,
-        `Joined League: ${league.name}`
-      );
-
-      const supabase = getSupabaseClient();
-      const { error: joinError } = await supabase.from("league_entries").insert({
-        league_id: league.id,
-        user_id: user.id,
-        display_name: localStorage.getItem("playerName") || "Anonymous",
-        finished: false
-      });
-
-      if (joinError) throw joinError;
-
-      // Increment player count
-      const { data: currentLeague } = await supabase
-        .from("leagues")
-        .select("current_players, entry_fee")
-        .eq("id", league.id)
-        .single();
-      
-      if (currentLeague) {
-        const newCount = (currentLeague.current_players || 0) + 1;
-        const newPool = newCount * currentLeague.entry_fee;
-        await supabase
-          .from("leagues")
-          .update({ 
-            current_players: newCount,
-            prize_pool: newPool * 0.60,
-            platform_revenue: newPool * 0.40
-          })
-          .eq("id", league.id);
-      }
-
-      setUserEntries([...userEntries, league.id]);
-      alert("Joined successfully! Good luck!");
-    } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message);
-    } finally {
-      setBusy(null);
-    }
-  }
 
   const [finishedLeagues, setFinishedLeagues] = useState<string[]>([]);
   useEffect(() => {
@@ -140,6 +102,78 @@ export default function LeaguePage() {
         });
     }
   }, [user]);
+
+  // Prevent hydration mismatch by only rendering time-sensitive parts on client
+  if (!mounted) {
+    return (
+      <PageShell overlay="rgba(15,15,26,0.85)">
+        <div className="mx-auto max-w-4xl px-4 py-10 text-center">
+          <p className="text-zinc-500">Loading leagues...</p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  async function joinLeague(league: League) {
+     if (!user) {
+       alert("Please sign in to join leagues.");
+       return;
+     }
+     setBusy(league.id);
+     setError(null);
+     try {
+       const balance = await getWalletBalance(user.id);
+       if (balance < league.entry_fee) {
+         throw new Error(`Insufficient balance. You need ₦${league.entry_fee}. Your balance: ₦${balance}.`);
+       }
+
+       await processTransaction(
+         user.id,
+         'stake',
+         league.entry_fee,
+         `league-${league.id}`,
+         `Joined League: ${league.name}`
+       );
+
+       const supabase = getSupabaseClient();
+       const { error: joinError } = await supabase.from("league_entries").insert({
+         league_id: league.id,
+         user_id: user.id,
+         display_name: typeof window !== 'undefined' ? localStorage.getItem("playerName") || "Anonymous" : "Anonymous",
+         finished: false
+       });
+
+       if (joinError) throw joinError;
+
+       // Increment player count
+       const { data: currentLeague } = await supabase
+         .from("leagues")
+         .select("current_players, entry_fee")
+         .eq("id", league.id)
+         .single();
+       
+       if (currentLeague) {
+         const newCount = (currentLeague.current_players || 0) + 1;
+         const newPool = newCount * currentLeague.entry_fee;
+         await supabase
+           .from("leagues")
+           .update({ 
+             current_players: newCount,
+             prize_pool: newPool * 0.60,
+             platform_revenue: newPool * 0.40
+           })
+           .eq("id", league.id);
+       }
+
+       setUserEntries([...userEntries, league.id]);
+       alert("Joined successfully! Good luck!");
+     } catch (err: unknown) {
+       const error = err as Error;
+       setError(error.message);
+     } finally {
+       setBusy(null);
+     }
+   }
 
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
@@ -160,9 +194,12 @@ export default function LeaguePage() {
             const isJoined = userEntries.includes(l.id);
             const isFinished = finishedLeagues.includes(l.id);
             const meta = getSubjectMeta(l.subject);
-            const timeRemaining = new Date(l.ends_at).getTime() - now;
-            const hoursLeft = Math.floor(timeRemaining / (1000 * 60 * 60));
-            const minsLeft = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            
+            // Robust time calculation
+            const endsAt = l.ends_at ? new Date(l.ends_at).getTime() : 0;
+            const timeRemaining = endsAt > 0 ? endsAt - now : 0;
+            const hoursLeft = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)));
+            const minsLeft = Math.max(0, Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60)));
 
             return (
               <div key={l.id} className="relative rounded-3xl border border-white/10 bg-[#161627]/80 p-6 shadow-xl backdrop-blur-sm overflow-hidden">
