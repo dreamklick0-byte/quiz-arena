@@ -274,7 +274,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       const supabase = getSupabaseClient();
       const { data: roomRow, error: roomErr } = await supabase
         .from("battle_rooms")
-        .select("id, room_code, status, subject, current_question, player1_finished, player2_finished, player1_time_seconds, player2_time_seconds, player1_score, player2_score, started_at, ends_at")
+        .select("id, room_code, status, subject, current_question, player1_finished, player2_finished, player3_finished, player4_finished, player1_time_seconds, player2_time_seconds, player3_time_seconds, player4_time_seconds, player1_score, player2_score, player3_score, player4_score, started_at, ends_at")
         .eq("room_code", roomCode)
         .single();
       if (roomErr) throw roomErr;

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { getSubjectMeta } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
 import { getWalletBalance, processTransaction } from "@/lib/wallet";
 
 export default function LeaguePage() {
+  const router = useRouter();
   const [leagues, setLeagues] = useState<any[]>([]);
   const [userEntries, setUserEntries] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
