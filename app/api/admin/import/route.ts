@@ -1,5 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAdminClient } from "@/lib/supabase";
+import { cookies } from "next/headers";
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
@@ -86,70 +87,69 @@ function parseQuestionsCsv(raw: string): Record<string, string | number | null>[
 }
 
 export async function POST(req: NextRequest) {
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    "";
-
-  if (
-    !process.env.ADMIN_IMPORT_SECRET ||
-    secret !== process.env.ADMIN_IMPORT_SECRET
-  ) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const srk = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !srk) {
-    return Response.json(
-      {
-        error:
-          "Server needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
-      },
-      { status: 503 },
-    );
-  }
-
-  let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+    const cookieStore = await cookies();
+    const adminSessionCookie = cookieStore.get("admin_session")?.value;
+    if (!adminSessionCookie) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const csv = typeof body === "object" && body && "csv" in body
-    ? String((body as { csv?: unknown }).csv ?? "")
-    : "";
+    const sessionData = JSON.parse(adminSessionCookie);
+    const supabase = getAdminClient();
 
-  if (!csv.trim()) {
-    return Response.json({ error: "Missing csv field" }, { status: 400 });
-  }
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-  const rows = parseQuestionsCsv(csv);
-  if (rows.length === 0) {
-    return Response.json(
-      { error: "No valid rows (check headers & required columns)" },
-      { status: 400 },
-    );
-  }
+    const csv = typeof body === "object" && body && "csv" in body
+      ? String((body as { csv?: unknown }).csv ?? "")
+      : "";
 
-  const supabase = createClient(url, srk);
-  let inserted = 0;
-  const chunk = 120;
-  for (let i = 0; i < rows.length; i += chunk) {
-    const part = rows.slice(i, i + chunk);
-    const { error } = await supabase.from("questions").insert(part);
-    if (error) {
-      return Response.json(
-        {
-          error: error.message,
-          inserted,
-          failedAtChunk: Math.floor(i / chunk),
-        },
-        { status: 500 },
+    if (!csv.trim()) {
+      return NextResponse.json({ error: "Missing csv field" }, { status: 400 });
+    }
+
+    const rows = parseQuestionsCsv(csv);
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "No valid rows (check headers & required columns)" },
+        { status: 400 },
       );
     }
-    inserted += part.length;
-  }
 
-  return Response.json({ ok: true, inserted });
+    let inserted = 0;
+    const chunk = 120;
+    for (let i = 0; i < rows.length; i += chunk) {
+      const part = rows.slice(i, i + chunk);
+      const { error } = await supabase.from("questions").insert(part);
+      if (error) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            inserted,
+            failedAtChunk: Math.floor(i / chunk),
+          },
+          { status: 500 },
+        );
+      }
+      inserted += part.length;
+    }
+
+    // Log activity
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    await supabase.from("admin_logs").insert({
+      admin_id: sessionData.id,
+      action: "IMPORT_QUESTIONS",
+      details: `Imported ${inserted} questions via CSV`,
+      ip_address: ip
+    });
+
+    return NextResponse.json({ ok: true, inserted });
+  } catch (err) {
+    console.error("Import error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

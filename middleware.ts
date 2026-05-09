@@ -4,8 +4,11 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Protect ALL /admin/* routes except /admin/login
-  if (path.startsWith("/admin") && path !== "/admin/login") {
+  // Protect ALL /admin/* and /api/admin/* routes except auth-related ones
+  const isAuthRoute = path === "/admin/login" || path === "/api/admin/auth";
+  const isAdminRoute = path.startsWith("/admin") || path.startsWith("/api/admin");
+
+  if (isAdminRoute && !isAuthRoute) {
     const adminSessionCookie = request.cookies.get("admin_session")?.value;
 
     if (!adminSessionCookie) {
@@ -44,5 +47,5 @@ export function middleware(request: NextRequest) {
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: "/admin/:path*",
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

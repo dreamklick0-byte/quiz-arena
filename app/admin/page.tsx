@@ -42,7 +42,8 @@ export default function AdminDashboard() {
     { title: "Leagues", href: "/admin/leagues", icon: "🏆", desc: "Manage multi-player prize leagues" },
     { title: "Withdrawals", href: "/admin/withdrawals", icon: "🏦", desc: "Process player payout requests" },
     ...(adminRole === "super_admin" ? [
-      { title: "Manage Admins", href: "/admin/manage-admins", icon: "👥", desc: "Manage admin accounts and roles" }
+      { title: "Manage Admins", href: "/admin/manage-admins", icon: "👥", desc: "Manage admin accounts and roles" },
+      { title: "Activity Logs", href: "/admin/activity-logs", icon: "📜", desc: "View system audit trail" }
     ] : []),
   ];
 
