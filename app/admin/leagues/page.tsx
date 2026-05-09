@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { SUBJECTS, getQuestionsForSubject } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
+import Link from "next/link";
 
 interface League {
   id: string;

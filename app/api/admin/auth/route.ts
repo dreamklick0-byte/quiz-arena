@@ -51,11 +51,13 @@ export async function POST(req: Request) {
       path: "/",
     });
 
-    // 5. Update last_login
-    await supabase
-      .from("admin_accounts")
-      .update({ last_login: new Date().toISOString() })
-      .eq("id", admin.id);
+    // 5. Update last_login (Only if not a first-time login)
+    if (admin.last_login) {
+      await supabase
+        .from("admin_accounts")
+        .update({ last_login: new Date().toISOString() })
+        .eq("id", admin.id);
+    }
 
     // 6. Log the activity
     const ip = req.headers.get("x-forwarded-for") || "unknown";

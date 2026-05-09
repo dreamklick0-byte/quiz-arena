@@ -8,7 +8,9 @@ import { PageShell } from "@/app/components/PageShell";
 export default function AdminDashboard() {
   const router = useRouter();
 
-  const [adminRole, setAdminRole] = useState<string | null>(null);
+  const [adminData, setAdminRole] = useState<{ role: string | null; id: string | null; full_name: string | null }>({ role: null, id: null, full_name: null });
+  const [stats, setStats] = useState({ admins: 0, withdrawals: 0, questions: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -16,7 +18,7 @@ export default function AdminDashboard() {
         const res = await fetch("/api/admin/me");
         const data = await res.json();
         if (data.success) {
-          setAdminRole(data.admin.role);
+          setAdminRole({ role: data.admin.role, id: data.admin.id, full_name: data.admin.full_name });
         }
       } catch (err) {
         console.error("Failed to fetch admin info:", err);
@@ -24,6 +26,23 @@ export default function AdminDashboard() {
     };
     fetchMe();
   }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/admin/stats");
+        const data = await res.json();
+        if (data.success) {
+          setStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    if (adminData.role) fetchStats();
+  }, [adminData.role]);
 
   const handleLogout = async () => {
     try {
@@ -41,7 +60,7 @@ export default function AdminDashboard() {
     { title: "Import Questions", href: "/admin/import", icon: "📥", desc: "Upload JSON questions to subjects" },
     { title: "Leagues", href: "/admin/leagues", icon: "🏆", desc: "Manage multi-player prize leagues" },
     { title: "Withdrawals", href: "/admin/withdrawals", icon: "🏦", desc: "Process player payout requests" },
-    ...(adminRole === "super_admin" ? [
+    ...(adminData.role === "super_admin" ? [
       { title: "Manage Admins", href: "/admin/manage-admins", icon: "👥", desc: "Manage admin accounts and roles" },
       { title: "Activity Logs", href: "/admin/activity-logs", icon: "📜", desc: "View system audit trail" }
     ] : []),
@@ -52,7 +71,9 @@ export default function AdminDashboard() {
       <div className="mx-auto max-w-4xl px-4 py-16">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-tight">Admin Control Panel</h1>
+            <h1 className="text-4xl font-black text-white tracking-tight">
+              Welcome, {adminData.full_name?.split(' ')[0] || 'Admin'}
+            </h1>
             <p className="mt-2 text-zinc-500">Manage Quiz Arena game systems and finances.</p>
           </div>
           <button
@@ -61,6 +82,22 @@ export default function AdminDashboard() {
           >
             🚪 Logout
           </button>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Total Admins</p>
+            <p className="mt-2 text-3xl font-black text-white">{loadingStats ? "..." : stats.admins}</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Pending Payouts</p>
+            <p className="mt-2 text-3xl font-black text-emerald-500">{loadingStats ? "..." : stats.withdrawals}</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Active Questions</p>
+            <p className="mt-2 text-3xl font-black text-[#7c3aed]">{loadingStats ? "..." : stats.questions.toLocaleString()}</p>
+          </div>
         </div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

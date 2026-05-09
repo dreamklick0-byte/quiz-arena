@@ -24,11 +24,12 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
-    // Update password
+    // Update password and set last_login (if first time)
     const { error } = await supabase
       .from("admin_accounts")
       .update({
         password_hash: passwordHash,
+        last_login: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq("id", sessionData.id);

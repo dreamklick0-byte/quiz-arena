@@ -11,27 +11,36 @@ export async function POST(req: Request) {
     }
 
     const sessionData = JSON.parse(adminSessionCookie);
-    if (sessionData.role !== "super_admin") {
-      return NextResponse.json({ error: "Access denied. Super Admin only." }, { status: 403 });
-    }
-
     const { id, fullName, email, role } = await req.json();
 
-    if (!id || !fullName || !role) {
+    if (!id || !fullName) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Security: Only super_admin can update others. Regular admins can only update themselves.
+    const isSelfUpdate = sessionData.id === id;
+    if (sessionData.role !== "super_admin" && !isSelfUpdate) {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
     }
 
     const supabase = getAdminClient();
 
+    // Prepare update data
+    const updateData: Record<string, string | null> = {
+      full_name: fullName,
+      email: email,
+      updated_at: new Date().toISOString()
+    };
+
+    // Security: Only super_admin can change roles
+    if (sessionData.role === "super_admin" && role) {
+      updateData.role = role;
+    }
+
     // Update admin
     const { data: updatedAdmin, error } = await supabase
       .from("admin_accounts")
-      .update({
-        full_name: fullName,
-        email,
-        role,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();
