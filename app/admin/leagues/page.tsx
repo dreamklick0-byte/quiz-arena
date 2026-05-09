@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
-import { SUBJECTS } from "@/app/data/practiceQuestions";
+import { SUBJECTS, getQuestionsForSubject } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
 
 export default function AdminLeaguesPage() {
@@ -58,6 +58,15 @@ export default function AdminLeaguesPage() {
       const startsAt = startMode === "now" ? new Date().toISOString() : new Date(startTime).toISOString();
       const endsAt = new Date(new Date(startsAt).getTime() + duration * 60 * 60 * 1000).toISOString();
 
+      // Get questions for the league
+      const allQuestions = getQuestionsForSubject(subject);
+      if (!allQuestions || allQuestions.length < numQuestions) {
+        throw new Error(`Not enough questions available for ${subject}. Need ${numQuestions}, have ${allQuestions?.length || 0}.`);
+      }
+      const leagueQuestions = allQuestions
+        .sort(() => 0.5 - Math.random())
+        .slice(0, numQuestions);
+
       const { error: insertError } = await supabase.from("leagues").insert({
         name,
         subject,
@@ -71,7 +80,8 @@ export default function AdminLeaguesPage() {
         guaranteed_second: prizePreview.second,
         guaranteed_third: prizePreview.third,
         guaranteed_fourth_tenth: prizePreview.fourthTenth,
-        status: 'open'
+        status: startMode === "now" ? 'open' : 'scheduled',
+        questions: leagueQuestions
       });
 
       if (insertError) throw insertError;

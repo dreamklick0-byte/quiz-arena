@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 import { getWalletBalance } from "@/lib/wallet";
+import PaystackPop from "@paystack/inline-js";
 
 export default function WalletPage() {
   const [balance, setBalance] = useState<number | null>(null);
@@ -11,11 +12,24 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Deposit Modal State
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState<number>(500);
+  const [customAmount, setCustomAmount] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  async function loadData() {
+  // Withdrawal Modal State
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+
+  const NIGERIAN_BANKS = [
+    "Access Bank", "Zenith Bank", "GTBank", "First Bank", "UBA", "Kuda Bank", "Opay", "Palmpay", "Stanbic IBTC", "Fidelity Bank"
+  ];
+
+  const loadData = useCallback(async () => {
     const supabase = getSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
@@ -31,7 +45,118 @@ export default function WalletPage() {
       if (data) setTransactions(data);
     }
     setLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleDeposit = async () => {
+    if (!user?.email) return;
+    setBusy(true);
+    const amount = depositAmount === -1 ? Number(customAmount) : depositAmount;
+    
+    if (isNaN(amount) || amount < 100) {
+      alert("Minimum deposit is ₦100");
+      setBusy(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/payment/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          amount,
+          userId: user.id
+        })
+      });
+      const data = await res.json();
+      
+      if (data.status) {
+        const paystack = new PaystackPop();
+        paystack.newTransaction({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
+          email: user.email,
+          amount: amount * 100,
+          ref: data.data.reference,
+          onSuccess: async (transaction: any) => {
+            await fetch(`/api/payment/verify?reference=${transaction.reference}`);
+            setShowDeposit(false);
+            loadData();
+          },
+          onCancel: () => {
+            setBusy(false);
+          }
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to initialize payment.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(withdrawAmount);
+    if (amount < 500) {
+      alert("Minimum withdrawal is ₦500");
+      return;
+    }
+    if (balance && amount > balance) {
+      alert("Insufficient balance");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const supabase = getSupabaseClient();
+      
+      // 1. Create withdrawal request
+      const { error: reqError } = await supabase.from("withdrawal_requests").insert({
+        user_id: user.id,
+        amount,
+        bank_name: bankName,
+        account_number: accountNumber,
+        account_name: accountName,
+        status: 'pending'
+      });
+
+      if (reqError) throw reqError;
+
+      // 2. Deduct from wallet immediately (as pending withdrawal)
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        type: 'withdrawal',
+        amount,
+        reference: `WD-${Date.now()}`,
+        description: `Withdrawal to ${bankName} (${accountNumber})`,
+        status: 'pending'
+      });
+
+      if (txError) throw txError;
+
+      // Update wallet balance
+      const { error: walletError } = await supabase
+        .from("wallets")
+        .update({ balance: (balance || 0) - amount })
+        .eq("user_id", user.id);
+
+      if (walletError) throw walletError;
+
+      setShowWithdraw(false);
+      setWithdrawAmount("");
+      loadData();
+      alert("Withdrawal request submitted successfully!");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
@@ -44,14 +169,142 @@ export default function WalletPage() {
           <p className="mt-2 text-5xl font-black text-white">₦{balance?.toLocaleString() || "0.00"}</p>
           
           <div className="mt-8 flex gap-4">
-            <button className="rounded-2xl bg-[#7c3aed] px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9]">
+            <button 
+              onClick={() => setShowDeposit(true)}
+              className="rounded-2xl bg-[#7c3aed] px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9]"
+            >
               💳 Add Money
             </button>
-            <button className="rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-black uppercase tracking-widest text-white transition hover:bg-white/10">
+            <button 
+              onClick={() => setShowWithdraw(true)}
+              className="rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-black uppercase tracking-widest text-white transition hover:bg-white/10"
+            >
               🏦 Withdraw
             </button>
           </div>
         </header>
+
+        {/* Deposit Modal */}
+        {showDeposit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#161627] p-8">
+              <h2 className="text-xl font-bold text-white">Deposit Funds</h2>
+              <p className="mt-1 text-sm text-zinc-500">Add money to your wallet via Paystack.</p>
+              
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                {[500, 1000, 2000, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => { setDepositAmount(amt); setCustomAmount(""); }}
+                    className={`rounded-2xl border py-4 text-sm font-bold transition ${depositAmount === amt ? 'border-[#7c3aed] bg-[#7c3aed]/10 text-white' : 'border-white/10 bg-black/20 text-zinc-400'}`}
+                  >
+                    ₦{amt.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="mt-4">
+                <input
+                  type="number"
+                  placeholder="Custom amount (min ₦100)"
+                  value={customAmount}
+                  onChange={(e) => { setCustomAmount(e.target.value); setDepositAmount(-1); }}
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-sm text-white outline-none focus:border-[#7c3aed]"
+                />
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button 
+                  onClick={() => setShowDeposit(false)}
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 py-4 text-xs font-bold uppercase tracking-widest text-zinc-400 transition hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={busy}
+                  onClick={handleDeposit}
+                  className="flex-1 rounded-2xl bg-[#7c3aed] py-4 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-[#6d28d9] disabled:opacity-50"
+                >
+                  {busy ? "Processing..." : "Continue"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Withdraw Modal */}
+        {showWithdraw && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#161627] p-8">
+              <h2 className="text-xl font-bold text-white">Withdraw Funds</h2>
+              <p className="mt-1 text-sm text-zinc-500">Withdraw to your Nigerian bank account.</p>
+              
+              <form onSubmit={handleWithdraw} className="mt-8 space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Amount (min ₦500)</label>
+                  <input
+                    required
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white outline-none focus:border-[#7c3aed]"
+                    placeholder="e.g. 1000"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Bank Name</label>
+                  <select
+                    required
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="mt-2 w-full appearance-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white outline-none focus:border-[#7c3aed]"
+                  >
+                    <option value="">Select Bank</option>
+                    {NIGERIAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Account Number</label>
+                  <input
+                    required
+                    maxLength={10}
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white outline-none focus:border-[#7c3aed]"
+                    placeholder="10-digit number"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Account Name</label>
+                  <input
+                    required
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white outline-none focus:border-[#7c3aed]"
+                    placeholder="Name on bank account"
+                  />
+                </div>
+
+                <div className="mt-8 flex gap-3 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowWithdraw(false)}
+                    className="flex-1 rounded-2xl border border-white/10 bg-white/5 py-4 text-xs font-bold uppercase tracking-widest text-zinc-400 transition hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    disabled={busy}
+                    type="submit"
+                    className="flex-1 rounded-2xl bg-[#7c3aed] py-4 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-[#6d28d9] disabled:opacity-50"
+                  >
+                    {busy ? "Processing..." : "Withdraw"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="mt-16">
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Transaction History</h2>

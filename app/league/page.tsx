@@ -66,7 +66,8 @@ export default function LeaguePage() {
       const { error: joinError } = await supabase.from("league_entries").insert({
         league_id: league.id,
         user_id: user.id,
-        display_name: localStorage.getItem("playerName") || "Anonymous"
+        display_name: localStorage.getItem("playerName") || "Anonymous",
+        finished: false
       });
 
       if (joinError) throw joinError;
@@ -100,6 +101,21 @@ export default function LeaguePage() {
     }
   }
 
+  const [finishedLeagues, setFinishedLeagues] = useState<string[]>([]);
+  useEffect(() => {
+    if (user) {
+      const supabase = getSupabaseClient();
+      supabase
+        .from("league_entries")
+        .select("league_id")
+        .eq("user_id", user.id)
+        .eq("finished", true)
+        .then(({ data }) => {
+          if (data) setFinishedLeagues(data.map(e => e.league_id));
+        });
+    }
+  }, [user]);
+
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-4xl px-4 py-10">
@@ -117,6 +133,7 @@ export default function LeaguePage() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {leagues.map(l => {
             const isJoined = userEntries.includes(l.id);
+            const isFinished = finishedLeagues.includes(l.id);
             const meta = getSubjectMeta(l.subject);
             const timeRemaining = new Date(l.ends_at).getTime() - Date.now();
             const hoursLeft = Math.floor(timeRemaining / (1000 * 60 * 60));
@@ -125,7 +142,9 @@ export default function LeaguePage() {
             return (
               <div key={l.id} className="relative rounded-3xl border border-white/10 bg-[#161627]/80 p-6 shadow-xl backdrop-blur-sm overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-[#7c3aed]/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
+                  <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
+                    l.status === 'open' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#f59e0b]/20 text-[#f59e0b]'
+                  }`}>
                     {l.status}
                   </span>
                   <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-500">
@@ -163,17 +182,26 @@ export default function LeaguePage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => joinLeague(l)}
-                  disabled={busy === l.id || isJoined}
-                  className={`mt-6 w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest transition shadow-lg ${
-                    isJoined 
-                      ? "bg-zinc-800 text-zinc-500 cursor-default" 
-                      : "bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-[#7c3aed]/20"
-                  }`}
-                >
-                  {isJoined ? "✓ ALREADY JOINED" : busy === l.id ? "JOINING..." : `JOIN FOR ₦${l.entry_fee}`}
-                </button>
+                {isFinished ? (
+                  <div className="mt-6 w-full rounded-2xl bg-zinc-800 py-4 text-center text-xs font-black uppercase tracking-widest text-zinc-500">
+                    ✓ COMPLETED
+                  </div>
+                ) : isJoined ? (
+                  <button
+                    onClick={() => router.push(`/league/${l.id}/play`)}
+                    className="mt-6 w-full rounded-2xl bg-emerald-500 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                  >
+                    🚀 PLAY NOW
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => joinLeague(l)}
+                    disabled={busy === l.id}
+                    className="mt-6 w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9] disabled:opacity-50"
+                  >
+                    {busy === l.id ? "JOINING..." : `JOIN FOR ₦${l.entry_fee}`}
+                  </button>
+                )}
               </div>
             );
           })}

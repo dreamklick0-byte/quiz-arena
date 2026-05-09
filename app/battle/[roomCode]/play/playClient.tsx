@@ -21,10 +21,16 @@ type RoomRow = {
   current_question: number;
   player1_finished: boolean;
   player2_finished: boolean;
+  player3_finished: boolean;
+  player4_finished: boolean;
   player1_time_seconds: number | null;
   player2_time_seconds: number | null;
+  player3_time_seconds: number | null;
+  player4_time_seconds: number | null;
   player1_score: number | null;
   player2_score: number | null;
+  player3_score: number | null;
+  player4_score: number | null;
   started_at: string | null;
   ends_at: string | null;
 };
@@ -129,10 +135,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     
     if (!room?.id || !playerId || !myPlayerInRef || myPlayerInRef.finished) return;
     const supabase = getSupabaseClient();
-    const playerKey = myPlayerInRef.id === currentPlayers[0]?.id ? "player1" : "player2";
+    
+    // Find player index (1, 2, 3, or 4)
+    const myIdx = currentPlayers.findIndex(p => p.id === playerId) + 1;
+    const playerKey = `player${myIdx}`;
 
     // 1. Calculate score from battle_answers for ALL questions
-    // Since we are force finishing, we need to know how many they got right so far
     const { data: answers } = await supabase
       .from("battle_answers")
       .select("is_correct, question_index")
@@ -141,8 +149,6 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
     const finalScore = answers?.filter((a) => a.is_correct).length ?? 0;
     
-    // 2. Determine time taken
-    // Record finished_at when time runs out
     const finishedAt = Date.now();
     const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
@@ -152,24 +158,33 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     updateData[`${playerKey}_time_seconds`] = timeTaken;
 
     try {
-      // 3. Save each player's time and score to battle_rooms
       await supabase
         .from("battle_rooms")
         .update(updateData)
         .eq("room_code", room.room_code);
 
-      // Check if both finished or timer expired
+      // Check if ALL players finished
       const { data: updatedRoom } = await supabase
         .from("battle_rooms")
-        .select("player1_finished, player2_finished")
+        .select("*")
         .eq("room_code", room.room_code)
         .single();
 
-      if (updatedRoom?.player1_finished && updatedRoom?.player2_finished) {
-        await supabase
-          .from("battle_rooms")
-          .update({ status: "finished", ends_at: new Date().toISOString() })
-          .eq("room_code", room.room_code);
+      if (updatedRoom) {
+        let allDone = true;
+        for (let i = 1; i <= currentPlayers.length; i++) {
+          if (!updatedRoom[`player${i}_finished`]) {
+            allDone = false;
+            break;
+          }
+        }
+
+        if (allDone) {
+          await supabase
+            .from("battle_rooms")
+            .update({ status: "finished", ends_at: new Date().toISOString() })
+            .eq("room_code", room.room_code);
+        }
       }
     } catch (e) {
       console.error("Error force finishing:", e);
@@ -179,7 +194,6 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const goNext = useCallback(async () => {
     if (!room?.id || !playerId) return;
     
-    // If not answered yet (e.g. timer expired or manually skipped), submit as wrong
     if (!answered) {
       setAnswered(true);
       setTimedOut(true);
@@ -191,11 +205,11 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     }
 
     if (index >= TOTAL_QUESTIONS - 1) {
-      // Player has finished all questions
       const supabase = getSupabaseClient();
-      const playerKey = myPlayer?.id === players[0]?.id ? "player1" : "player2";
+      const currentPlayers = playersRef.current;
+      const myIdx = currentPlayers.findIndex(p => p.id === playerId) + 1;
+      const playerKey = `player${myIdx}`;
       
-      // Calculate score from battle_answers
       const { data: answers } = await supabase
         .from("battle_answers")
         .select("is_correct")
@@ -203,8 +217,6 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         .eq("user_id", playerId);
       
       const finalScore = answers?.filter(a => a.is_correct).length ?? 0;
-      
-      // Record finished_at when player answers last question
       const finishedAt = Date.now();
       const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
 
@@ -220,18 +232,27 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
           .eq("room_code", room.room_code);
         if (finErr) throw finErr;
 
-        // Check if both finished
         const { data: updatedRoom } = await supabase
           .from("battle_rooms")
-          .select("player1_finished, player2_finished")
+          .select("*")
           .eq("room_code", room.room_code)
           .single();
 
-        if (updatedRoom?.player1_finished && updatedRoom?.player2_finished) {
-          await supabase
-            .from("battle_rooms")
-            .update({ status: "finished", ends_at: new Date().toISOString() })
-            .eq("room_code", room.room_code);
+        if (updatedRoom) {
+          let allDone = true;
+          for (let i = 1; i <= currentPlayers.length; i++) {
+            if (!updatedRoom[`player${i}_finished`]) {
+              allDone = false;
+              break;
+            }
+          }
+
+          if (allDone) {
+            await supabase
+              .from("battle_rooms")
+              .update({ status: "finished", ends_at: new Date().toISOString() })
+              .eq("room_code", room.room_code);
+          }
         }
       } catch (e: unknown) {
         setError((e as Error)?.message ?? "Failed to finish game.");
@@ -244,7 +265,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     setAnswered(false);
     setSelectedIndex(null);
     setTimedOut(false);
-  }, [room, playerId, answered, index, playerStartedAt, myPlayer, players, submitAnswer]);
+  }, [room, playerId, answered, index, playerStartedAt, submitAnswer]);
 
   useEffect(() => {
     let cancelled = false;

@@ -167,6 +167,55 @@ export default function BattleLobbyPage() {
     }
   };
 
+  const handleQuickMatch = async () => {
+    if (!playerName.trim()) {
+      setError("Please enter your name first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMode("quick");
+    
+    try {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 1. Check if there's an existing waiting room for this subject
+      const { data: rooms } = await supabase
+        .from("battle_rooms")
+        .select("id, room_code, max_players")
+        .eq("subject", subject)
+        .eq("status", "waiting")
+        .eq("stake_amount", 0) // Quick match is free for now
+        .order("created_at", { ascending: false });
+
+      if (rooms && rooms.length > 0) {
+        for (const room of rooms) {
+          const { count } = await supabase
+            .from("room_players")
+            .select("*", { count: 'exact', head: true })
+            .eq("room_id", room.id);
+          
+          if (count && count < room.max_players) {
+            const player = await insertRoomPlayer(room.id, playerName);
+            persistIdentity(player.id);
+            router.push(`/battle/${room.room_code}`);
+            return;
+          }
+        }
+      }
+
+      // 2. If no room found, create one
+      const { roomCode, playerId } = await createBattleRoom(subject, playerName, 0, 2);
+      persistIdentity(playerId);
+      router.push(`/battle/${roomCode}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || busy) return;
@@ -286,6 +335,13 @@ export default function BattleLobbyPage() {
             onClick={() => setMode("join")}
           >
             🔗 Join
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "quick" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={handleQuickMatch}
+          >
+            ⚡ Quick
           </button>
           <button
             type="button"
