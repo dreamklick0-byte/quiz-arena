@@ -8,41 +8,43 @@ import { PageShell } from "@/app/components/PageShell";
 export default function AdminDashboard() {
   const router = useRouter();
 
-  const [adminData, setAdminRole] = useState<{ role: string | null; id: string | null; full_name: string | null }>({ role: null, id: null, full_name: null });
-  const [stats, setStats] = useState({ admins: 0, withdrawals: 0, questions: 0 });
-  const [loadingStats, setLoadingStats] = useState(true);
+  const [adminData, setAdminData] = useState<{ 
+    role: string | null; 
+    id: string | null; 
+    full_name: string | null;
+    last_login: string | null;
+  }>({ 
+    role: null, 
+    id: null, 
+    full_name: null,
+    last_login: null 
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMe = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/admin/me");
-        const data = await res.json();
-        if (data.success) {
-          setAdminRole({ role: data.admin.role, id: data.admin.id, full_name: data.admin.full_name });
-        }
-      } catch (err) {
-        console.error("Failed to fetch admin info:", err);
-      }
-    };
-    fetchMe();
-  }, []);
+        const meRes = await fetch("/api/admin/me");
+        const meData = await meRes.json();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch("/api/admin/stats");
-        const data = await res.json();
-        if (data.success) {
-          setStats(data.stats);
+        if (meData.success) {
+          setAdminData({ 
+            role: meData.admin.role, 
+            id: meData.admin.id, 
+            full_name: meData.admin.full_name,
+            last_login: meData.admin.last_login
+          });
+        } else {
+          router.push("/admin/login");
         }
       } catch (err) {
-        console.error("Failed to fetch stats:", err);
+        console.error("Failed to fetch dashboard data:", err);
       } finally {
-        setLoadingStats(false);
+        setLoading(false);
       }
     };
-    if (adminData.role) fetchStats();
-  }, [adminData.role]);
+    fetchData();
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -57,61 +59,104 @@ export default function AdminDashboard() {
   };
 
   const links = [
-    { title: "Import Questions", href: "/admin/import", icon: "📥", desc: "Upload JSON questions to subjects" },
-    { title: "Leagues", href: "/admin/leagues", icon: "🏆", desc: "Manage multi-player prize leagues" },
-    { title: "Withdrawals", href: "/admin/withdrawals", icon: "🏦", desc: "Process player payout requests" },
+    { 
+      title: "Import Questions", 
+      href: "/admin/import", 
+      icon: "📥", 
+      desc: "Upload JSON questions" 
+    },
+    { 
+      title: "Leagues", 
+      href: "/admin/leagues", 
+      icon: "🏆", 
+      desc: "Manage multi-player prize leagues" 
+    },
+    { 
+      title: "Withdrawals", 
+      href: "/admin/withdrawals", 
+      icon: "💸", 
+      desc: "Process player payout requests" 
+    },
     ...(adminData.role === "super_admin" ? [
-      { title: "Manage Admins", href: "/admin/manage-admins", icon: "👥", desc: "Manage admin accounts and roles" },
-      { title: "Activity Logs", href: "/admin/activity-logs", icon: "📜", desc: "View system audit trail" }
+      { 
+        title: "Manage Admins", 
+        href: "/admin/manage-admins", 
+        icon: "👥", 
+        desc: "Create and manage admin accounts" 
+      }
     ] : []),
   ];
 
+  if (loading) {
+    return (
+      <PageShell overlay="rgba(15,15,26,0.85)">
+        <div className="flex min-h-screen flex-col items-center justify-center space-y-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#7c3aed] border-t-transparent"></div>
+          <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Loading Dashboard</p>
+        </div>
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
-      <div className="mx-auto max-w-4xl px-4 py-16">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black text-white tracking-tight">
-              Welcome, {adminData.full_name?.split(' ')[0] || 'Admin'}
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        {/* Header Section */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-white tracking-tight sm:text-4xl">
+              Welcome back, {adminData.full_name || 'Admin'}
             </h1>
-            <p className="mt-2 text-zinc-500">Manage Quiz Arena game systems and finances.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              {adminData.role === "super_admin" ? (
+                <span className="rounded-full bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-purple-400 border border-purple-500/20">
+                  Super Admin
+                </span>
+              ) : (
+                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-400 border border-blue-500/20">
+                  Admin
+                </span>
+              )}
+              {adminData.last_login && (
+                <span className="text-xs text-zinc-500">
+                  Last login: {new Date(adminData.last_login).toLocaleString()}
+                </span>
+              )}
+            </div>
           </div>
+          
           <button
             onClick={handleLogout}
-            className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+            className="group flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white transition hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
           >
-            🚪 Logout
+            <span>Logout</span>
+            <span className="text-lg transition-transform group-hover:translate-x-1">🚪</span>
           </button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Total Admins</p>
-            <p className="mt-2 text-3xl font-black text-white">{loadingStats ? "..." : stats.admins}</p>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Pending Payouts</p>
-            <p className="mt-2 text-3xl font-black text-emerald-500">{loadingStats ? "..." : stats.withdrawals}</p>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-[#161627]/50 p-6 backdrop-blur-xl">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Active Questions</p>
-            <p className="mt-2 text-3xl font-black text-[#7c3aed]">{loadingStats ? "..." : stats.questions.toLocaleString()}</p>
-          </div>
-        </div>
-
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {links.map(link => (
+        {/* Dashboard Cards */}
+        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {links.map((link) => (
             <Link 
               key={link.href} 
               href={link.href}
-              className="group rounded-3xl border border-white/10 bg-[#161627]/80 p-6 transition hover:border-[#7c3aed]/50 hover:bg-[#1c1c30]"
+              className="group relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#161627]/80 p-8 transition-all duration-300 hover:-translate-y-1 hover:border-[#7c3aed]/50 hover:bg-[#1c1c30] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7c3aed]/10 text-2xl transition group-hover:scale-110 group-hover:bg-[#7c3aed]/20">
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#7c3aed]/10 text-3xl transition-all duration-300 group-hover:scale-110 group-hover:bg-[#7c3aed]/20 group-hover:shadow-[0_0_20px_rgba(124,58,237,0.3)]">
                 {link.icon}
               </div>
-              <h2 className="mt-4 text-lg font-bold text-white">{link.title}</h2>
-              <p className="mt-1 text-sm text-zinc-500 leading-relaxed">{link.desc}</p>
+              
+              <div className="mt-8">
+                <h2 className="text-xl font-black text-white tracking-tight">{link.title}</h2>
+                <p className="mt-2 text-sm text-zinc-400 leading-relaxed font-medium">
+                  {link.desc}
+                </p>
+              </div>
+
+              {/* Decorative background element */}
+              <div className="absolute -right-4 -bottom-4 text-8xl opacity-[0.03] grayscale transition-all duration-500 group-hover:scale-125 group-hover:opacity-[0.07] group-hover:rotate-12 pointer-events-none">
+                {link.icon}
+              </div>
             </Link>
           ))}
         </div>
