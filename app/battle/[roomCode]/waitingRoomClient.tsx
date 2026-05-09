@@ -12,6 +12,7 @@ type PlayerRow = {
   player_name: string;
   score: number;
   finished: boolean;
+  is_ready: boolean;
   joined_at: string;
 };
 
@@ -51,7 +52,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
 
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
-        .select("id, room_id, player_name, score, finished, joined_at")
+        .select("id, room_id, player_name, score, finished, is_ready, joined_at")
         .eq("room_id", roomRow.id)
         .order("joined_at", { ascending: true });
       if (playersErr) throw playersErr;
@@ -85,7 +86,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         async () => {
           const { data } = await supabase
             .from("room_players")
-            .select("id, room_id, player_name, score, finished, joined_at")
+            .select("id, room_id, player_name, score, finished, is_ready, joined_at")
             .eq("room_id", room.id)
             .order("joined_at", { ascending: true });
           setPlayers((data ?? []) as PlayerRow[]);
@@ -138,10 +139,35 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     }
   };
 
+  const toggleReady = async () => {
+    if (!room || busy) return;
+    const playerId = localStorage.getItem(`player_id_${room.room_code}`);
+    if (!playerId) return;
+
+    const currentPlayer = players.find(p => p.id === playerId);
+    if (!currentPlayer) return;
+
+    setBusy(true);
+    try {
+      const supabase = getSupabaseClient();
+      const { error: updateErr } = await supabase
+        .from("room_players")
+        .update({ is_ready: !currentPlayer.is_ready })
+        .eq("id", playerId);
+      if (updateErr) throw updateErr;
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? "Failed to update ready status.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const subjectTitle =
     room?.subject ? getSubjectMeta(room.subject)?.title ?? room.subject : "";
 
-  const readyToStart = players.length >= 2 && room?.status === "waiting";
+  const currentPlayerId = typeof window !== 'undefined' ? localStorage.getItem(`player_id_${roomCode}`) : null;
+  const allReady = players.length >= 2 && players.every(p => p.is_ready);
+  const readyToStart = allReady && room?.status === "waiting";
 
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
@@ -193,8 +219,10 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
                       {p.player_name}
                     </span>
                   </div>
-                  <span className="text-xs text-zinc-500">
-                    {p.finished ? "Finished" : "Ready"}
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${
+                    p.is_ready ? "text-emerald-400" : "text-zinc-500"
+                  }`}>
+                    {p.is_ready ? "● Ready" : "○ Waiting"}
                   </span>
                 </li>
               ))
@@ -207,25 +235,44 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
             </div>
           )}
 
-          <div className="mt-5">
+          <div className="mt-6 flex flex-col gap-3">
+            {/* Ready Toggle for Current Player */}
+            {currentPlayerId && players.find(p => p.id === currentPlayerId) && (
+              <button
+                type="button"
+                onClick={toggleReady}
+                disabled={busy}
+                className={`w-full rounded-xl py-3 text-sm font-bold transition ${
+                  players.find(p => p.id === currentPlayerId)?.is_ready
+                    ? "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                }`}
+              >
+                {players.find(p => p.id === currentPlayerId)?.is_ready ? "Not Ready" : "Ready Up"}
+              </button>
+            )}
+
+            {/* Start Button or Status Message */}
             {readyToStart ? (
               isCreator ? (
                 <button
                   type="button"
                   onClick={startGame}
                   disabled={busy}
-                  className="w-full rounded-xl bg-[#7c3aed] py-3.5 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-50"
+                  className="w-full rounded-xl bg-[#7c3aed] py-4 text-center text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-50"
                 >
-                  {busy ? "Starting…" : "Start Game"}
+                  {busy ? "Starting…" : "Start Battle"}
                 </button>
               ) : (
-                <div className="rounded-xl border border-white/10 bg-[#0f0f1a]/60 px-4 py-3 text-center text-sm text-zinc-300">
-                  Waiting for the creator to start the game…
+                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-3 text-center text-sm text-emerald-400 font-bold">
+                  Everyone is ready! Waiting for creator...
                 </div>
               )
             ) : (
-              <div className="rounded-xl border border-white/10 bg-[#0f0f1a]/60 px-4 py-3 text-center text-sm text-zinc-300">
-                Need 2 players to start.
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center text-sm text-zinc-500">
+                {players.length < 2 
+                  ? "Waiting for more players..." 
+                  : "Waiting for everyone to ready up..."}
               </div>
             )}
           </div>

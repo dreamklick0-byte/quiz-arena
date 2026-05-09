@@ -19,7 +19,14 @@ export default function AdminDashboard() {
     full_name: null,
     last_login: null 
   });
-  const [stats, setStats] = useState({ admins: 0, withdrawals: 0, questions: 0, leagues: 0 });
+  const [stats, setStats] = useState({ 
+    admins: 0, 
+    withdrawals: 0, 
+    questions: 0, 
+    leagues: 0,
+    totalRevenue: 0,
+    totalPayouts: 0 
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,6 +94,12 @@ export default function AdminDashboard() {
       href: "/admin/withdrawals", 
       icon: "💸", 
       desc: "Process player payout requests" 
+    },
+    { 
+      title: "Question Bank", 
+      href: "/admin/questions", 
+      icon: "📚", 
+      desc: "View and manage quiz questions" 
     },
     ...(adminData.role === "super_admin" ? [
       { 
@@ -182,6 +195,22 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Financial Overview (Visible to Super Admin) */}
+        {adminData.role === 'super_admin' && (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl border border-emerald-500/10 bg-emerald-500/[0.02] p-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Total Platform Revenue</p>
+              <p className="mt-2 text-3xl font-black text-white">₦{stats.totalRevenue.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-emerald-900">From completed leagues (40% cut)</p>
+            </div>
+            <div className="rounded-3xl border border-rose-500/10 bg-rose-500/[0.02] p-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Total Player Payouts</p>
+              <p className="mt-2 text-3xl font-black text-white">₦{stats.totalPayouts.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-rose-900">Successfully processed withdrawals</p>
+            </div>
+          </div>
+        )}
 
         {/* Dashboard Cards */}
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

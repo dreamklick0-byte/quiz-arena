@@ -14,9 +14,33 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quiz Arena — Practice Zone",
+  title: "Quiz Arena — Study Smart • Compete Live • Win Big",
   description:
-    "Timed multiple-choice practice for Maths, Sciences, and more. Quiz Arena.",
+    "Competitive real-time multiplayer quiz platform. Practice JAMB, WAEC, NECO subjects and win prizes in live leagues.",
+  keywords: ["quiz", "competition", "JAMB", "WAEC", "NECO", "study", "prizes", "multiplayer"],
+  authors: [{ name: "Quiz Arena Team" }],
+  openGraph: {
+    title: "Quiz Arena — Study Smart • Compete Live • Win Big",
+    description: "Practice subjects and compete in live prize leagues. Join the arena now!",
+    url: "https://quiz-arena.vercel.app",
+    siteName: "Quiz Arena",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Quiz Arena Preview",
+      },
+    ],
+    locale: "en_NG",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Quiz Arena — Study Smart • Compete Live • Win Big",
+    description: "Practice subjects and compete in live prize leagues. Join the arena now!",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
