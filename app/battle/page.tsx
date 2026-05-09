@@ -194,19 +194,28 @@ export default function BattleLobbyPage() {
           .maybeSingle();
         if (cancelled) return;
         if (data?.subject != null && data.status) {
-          // Get current players count
-          const { count } = await supabase
-            .from("room_players")
-            .select("*", { count: 'exact', head: true })
-            .eq("room_code", joinNormalized); // This might be wrong if room_code is not in room_players, need to join with battle_rooms
+          // Get current players count by joining with battle_rooms to get room_id
+          const { data: roomData } = await supabase
+            .from("battle_rooms")
+            .select("id")
+            .eq("room_code", joinNormalized)
+            .single();
 
-          // Actually, let's just use what we have for now and fix the count later if needed.
+          let count = 0;
+          if (roomData) {
+            const { count: playerCount } = await supabase
+              .from("room_players")
+              .select("*", { count: 'exact', head: true })
+              .eq("room_id", roomData.id);
+            count = playerCount || 0;
+          }
+
           setJoinPreview({
             subject: data.subject as string,
             status: data.status as string,
             stake_amount: data.stake_amount as number,
             max_players: data.max_players as number,
-            current_players: 0 // Will update if I can get the count reliably
+            current_players: count
           });
         } else {
           setJoinPreview(null);
