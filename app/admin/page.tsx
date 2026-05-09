@@ -42,6 +42,7 @@ export default function AdminDashboard() {
           });
         } else {
           router.push("/admin/login");
+          return;
         }
 
         if (statsData.success) {
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
 
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
-      <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="mx-auto max-w-6xl px-6 py-12">
         {/* Header Section */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">

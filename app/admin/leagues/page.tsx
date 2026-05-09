@@ -22,6 +22,7 @@ export default function AdminLeaguesPage() {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Form State
   const [name, setName] = useState("");
@@ -49,26 +50,25 @@ export default function AdminLeaguesPage() {
     return { minPool, platformRevenue, prizePool, first, second, third, fourthTenth };
   }, [entryFee]);
 
-  useEffect(() => {
-    const loadLeagues = async () => {
+  const loadLeagues = async () => {
+    try {
       const supabase = getSupabaseClient();
-      const { data } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("leagues")
         .select("*")
         .order("created_at", { ascending: false });
+      if (fetchError) throw fetchError;
       if (data) setLeagues(data);
-    };
+    } catch (err) {
+      console.error("Failed to load leagues:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadLeagues();
   }, []);
-
-  const refreshLeagues = async () => {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase
-      .from("leagues")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (data) setLeagues(data);
-  };
 
   async function createLeague(e: React.FormEvent) {
     e.preventDefault();
@@ -108,7 +108,7 @@ export default function AdminLeaguesPage() {
       if (insertError) throw insertError;
       
       setName("");
-      refreshLeagues();
+      loadLeagues();
       alert("League created successfully!");
     } catch (err: unknown) {
       const error = err as Error;
@@ -290,23 +290,43 @@ export default function AdminLeaguesPage() {
                 <th className="px-6 py-4">Players</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Ends</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {leagues.map(l => (
+              {loading ? (
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-zinc-500">Loading leagues...</td></tr>
+              ) : leagues.length === 0 ? (
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-zinc-500">No leagues found.</td></tr>
+              ) : leagues.map(l => (
                 <tr key={l.id} className="text-zinc-300">
                   <td className="px-6 py-4 font-bold text-white">{l.name}</td>
-                  <td className="px-6 py-4 capitalize">{l.subject}</td>
+                  <td className="px-6 py-4 capitalize">{l.subject.replace('_', ' ')}</td>
                   <td className="px-6 py-4">₦{l.entry_fee}</td>
                   <td className="px-6 py-4">{l.current_players} / {l.max_players}</td>
                   <td className="px-6 py-4">
                     <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                      l.status === 'open' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'
+                      l.status === 'open' ? 'bg-emerald-500/20 text-emerald-400' : 
+                      l.status === 'scheduled' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-zinc-500/20 text-zinc-400'
                     }`}>
                       {l.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-xs">{new Date(l.ends_at).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={async () => {
+                        if(!confirm("Delete this league?")) return;
+                        const supabase = getSupabaseClient();
+                        await supabase.from("leagues").delete().eq("id", l.id);
+                        loadLeagues();
+                      }}
+                      className="text-xs font-bold text-red-400 hover:text-red-300 transition"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
