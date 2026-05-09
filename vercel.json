@@ -1,11 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/leagues/distribute",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/leagues/start",
+      "path": "/api/cron/admin-tasks",
       "schedule": "*/5 * * * *"
     }
   ]
