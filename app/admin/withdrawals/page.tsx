@@ -85,7 +85,7 @@ export default function AdminWithdrawalsPage() {
           <div>
             <div className="flex items-center gap-3">
               <Link href="/admin" className="text-zinc-500 hover:text-white transition">← Back</Link>
-              <h1 className="text-4xl font-black text-white tracking-tight">🏦 WITHDRAWALS</h1>
+              <h1 className="text-4xl font-black text-white tracking-tight">💸 WITHDRAWALS</h1>
             </div>
             <p className="mt-2 text-zinc-500">Review and process player payout requests.</p>
           </div>

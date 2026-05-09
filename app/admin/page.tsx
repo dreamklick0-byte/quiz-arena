@@ -19,13 +19,19 @@ export default function AdminDashboard() {
     full_name: null,
     last_login: null 
   });
+  const [stats, setStats] = useState({ admins: 0, withdrawals: 0, questions: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const meRes = await fetch("/api/admin/me");
+        const [meRes, statsRes] = await Promise.all([
+          fetch("/api/admin/me"),
+          fetch("/api/admin/stats")
+        ]);
+        
         const meData = await meRes.json();
+        const statsData = await statsRes.json();
 
         if (meData.success) {
           setAdminData({ 
@@ -36,6 +42,10 @@ export default function AdminDashboard() {
           });
         } else {
           router.push("/admin/login");
+        }
+
+        if (statsData.success) {
+          setStats(statsData.stats);
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -132,6 +142,31 @@ export default function AdminDashboard() {
             <span>Logout</span>
             <span className="text-lg transition-transform group-hover:translate-x-1">🚪</span>
           </button>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="mt-12 grid gap-4 sm:grid-cols-3">
+          <div className="group rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition hover:bg-white/[0.04] hover:border-white/10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">System Admins</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-3xl font-black text-white">{stats.admins}</p>
+              <span className="text-[10px] font-bold text-zinc-600 uppercase">Accounts</span>
+            </div>
+          </div>
+          <div className="group rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition hover:bg-white/[0.04] hover:border-white/10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Pending Payouts</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-3xl font-black text-emerald-500">{stats.withdrawals}</p>
+              <span className="text-[10px] font-bold text-emerald-900 uppercase">Requests</span>
+            </div>
+          </div>
+          <div className="group rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition hover:bg-white/[0.04] hover:border-white/10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Active Questions</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-3xl font-black text-[#7c3aed]">{stats.questions.toLocaleString()}</p>
+              <span className="text-[10px] font-bold text-purple-900 uppercase">Database</span>
+            </div>
+          </div>
         </div>
 
         {/* Dashboard Cards */}

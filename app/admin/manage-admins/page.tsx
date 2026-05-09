@@ -30,20 +30,21 @@ export default function ManageAdminsPage() {
     role: "admin"
   });
 
-  useEffect(() => {
-    const fetchAdmins = async () => {
-      try {
-        const res = await fetch("/api/admin/list-admins");
-        const data = await res.json();
-        if (data.success) {
-          setAdmins(data.admins);
-        }
-      } catch (err) {
-        console.error("Failed to fetch admins:", err);
-      } finally {
-        setLoading(false);
+  const fetchAdmins = async () => {
+    try {
+      const res = await fetch("/api/admin/list-admins");
+      const data = await res.json();
+      if (data.success) {
+        setAdmins(data.admins);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch admins:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAdmins();
   }, []);
 
@@ -54,7 +55,6 @@ export default function ManageAdminsPage() {
       pass += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setFormData(prev => ({ ...prev, password: pass }));
-    setGeneratedPassword(pass);
   };
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
@@ -71,7 +71,6 @@ export default function ManageAdminsPage() {
         fetchAdmins();
         alert(`Admin created! Share this password with them: ${formData.password}`);
         setFormData({ username: "", password: "", fullName: "", email: "", role: "admin" });
-        setGeneratedPassword("");
       } else {
         alert(data.error || "Failed to create admin");
       }
