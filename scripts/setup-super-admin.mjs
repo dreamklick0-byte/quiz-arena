@@ -18,13 +18,13 @@ async function setupSuperAdmin() {
 
   const { data, error } = await supabase 
     .from('admin_accounts') 
-    .insert({ 
+    .upsert({ 
       username: 'superadmin', 
       password_hash: hash, 
       full_name: 'Super Administrator', 
       role: 'super_admin', 
       is_active: true 
-    }); 
+    }, { onConflict: 'username' }); 
 
   if (error) {
     console.error('Error:', error.message); 
