@@ -70,6 +70,9 @@ export function SiteHeader() {
           <Link href="/leaderboard" className="transition hover:text-[#f59e0b]">
             Leaderboard
           </Link>
+          <Link href="/league" className="transition hover:text-[#f59e0b]">
+            League
+          </Link>
           <Link href="/admin" className="transition hover:text-zinc-300">
             Admin
           </Link>
