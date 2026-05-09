@@ -26,7 +26,7 @@ export default function Home() {
     { slug: "biology", title: "Biology", emoji: "🌿" },
     { slug: "government", title: "Government", emoji: "🏛️" },
     { slug: "economics", title: "Economics", emoji: "📊" },
-    { slug: "agricultural-science", title: "Agricultural Science", emoji: "🌾" },
+    { slug: "agricultural_science", title: "Agricultural Science", emoji: "🌾" },
     { slug: "current_affairs", title: "Current Affairs", emoji: "📰" },
   ] as const;
 
