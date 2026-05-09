@@ -50,6 +50,14 @@ export default function AdminWithdrawalsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="flex h-screen items-center justify-center text-white">Loading withdrawals...</div>
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell>
       <div className="mx-auto max-w-6xl px-4 py-10">
