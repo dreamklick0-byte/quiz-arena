@@ -128,6 +128,9 @@ export default function AdminDashboard() {
     );
   }
 
+  const revenueFormatted = stats.totalRevenue ? stats.totalRevenue.toLocaleString() : "0";
+  const payoutsFormatted = stats.totalPayouts ? stats.totalPayouts.toLocaleString() : "0";
+
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-6xl px-6 py-12">
@@ -201,12 +204,12 @@ export default function AdminDashboard() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border border-emerald-500/10 bg-emerald-500/[0.02] p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Total Platform Revenue</p>
-              <p className="mt-2 text-3xl font-black text-white">₦{stats.totalRevenue.toLocaleString()}</p>
+              <p className="mt-2 text-3xl font-black text-white">₦{revenueFormatted}</p>
               <p className="mt-1 text-xs text-emerald-900">From completed leagues (40% cut)</p>
             </div>
             <div className="rounded-3xl border border-rose-500/10 bg-rose-500/[0.02] p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Total Player Payouts</p>
-              <p className="mt-2 text-3xl font-black text-white">₦{stats.totalPayouts.toLocaleString()}</p>
+              <p className="mt-2 text-3xl font-black text-white">₦{payoutsFormatted}</p>
               <p className="mt-1 text-xs text-rose-900">Successfully processed withdrawals</p>
             </div>
           </div>
