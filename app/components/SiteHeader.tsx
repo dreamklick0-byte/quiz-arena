@@ -13,19 +13,19 @@ export function SiteHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const supabase = getSupabaseClient();
-    
-    // Check for admin session via cookie (simulated client-side check)
-    const checkAdmin = () => {
-      const cookies = document.cookie.split(';');
-      const hasAdminSession = cookies.some(c => c.trim().startsWith('admin_session='));
-      setIsAdmin(hasAdminSession);
+    const checkMe = async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        const data = await res.json();
+        setIsAdmin(data.success === true);
+      } catch {
+        setIsAdmin(false);
+      }
     };
 
-    checkAdmin();
-    // Re-check admin status when pathname changes (navigation)
-    const interval = setInterval(checkAdmin, 2000);
-
+    checkMe();
+    
+    const supabase = getSupabaseClient();
     const fetchUserData = async (uid: string) => {
       try {
         // Fetch streak
@@ -67,7 +67,6 @@ export function SiteHeader() {
     
     return () => {
       subscription.unsubscribe();
-      clearInterval(interval);
     };
   }, [pathname]);
 

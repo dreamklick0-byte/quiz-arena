@@ -39,11 +39,12 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
-    // Update password
+    // Update password and reset last_login to force password change on next login
     const { error } = await supabase
       .from("admin_accounts")
       .update({
         password_hash: passwordHash,
+        last_login: null,
         updated_at: new Date().toISOString()
       })
       .eq("id", id);

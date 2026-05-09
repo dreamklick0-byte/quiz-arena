@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { PageShell } from "@/app/components/PageShell";
+import Link from "next/link";
 
 const SAMPLE_HEADERS = [
   "subject",
@@ -66,7 +67,6 @@ const emptyManual = (): ManualForm => ({
 });
 
 export default function AdminImportPage() {
-  const [secret, setSecret] = useState("");
   const [csv, setCsv] = useState("");
   const [busy, setBusy] = useState(false);
   const [manualBusy, setManualBusy] = useState(false);
@@ -80,10 +80,7 @@ export default function AdminImportPage() {
     try {
       const res = await fetch("/api/admin/import", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-secret": secret.trim(),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ csv }),
       });
       const data = await res.json();
@@ -92,6 +89,7 @@ export default function AdminImportPage() {
         return;
       }
       setMsg(`Inserted ${data.inserted} rows.`);
+      setCsv("");
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : "Import failed.");
     } finally {
@@ -129,10 +127,7 @@ export default function AdminImportPage() {
 
       const res = await fetch("/api/admin/question", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-secret": secret.trim(),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -150,245 +145,170 @@ export default function AdminImportPage() {
   };
 
   const inputClass =
-    "mt-2 w-full rounded-xl border border-white/10 bg-[#161627] px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-[#7c3aed]/55";
+    "mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-[#7c3aed]";
   const labelClass =
-    "text-xs font-semibold uppercase tracking-wide text-[#f59e0b]";
+    "text-xs font-bold uppercase tracking-widest text-zinc-500";
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] px-4 py-10 text-zinc-100">
-      <div className="mx-auto max-w-3xl space-y-12">
-        <header>
-          <h1 className="text-3xl font-extrabold text-white">
-            Admin · Questions
-          </h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Manual entry or CSV bulk import. Requires{" "}
-            <code className="text-[#f59e0b]">ADMIN_IMPORT_SECRET</code> and{" "}
-            <code className="text-zinc-300">SUPABASE_SERVICE_ROLE_KEY</code> on
-            the server.
-          </p>
+    <PageShell overlay="rgba(15,15,26,0.95)">
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <header className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <Link href="/admin" className="text-zinc-500 hover:text-white transition">← Back</Link>
+              <h1 className="text-4xl font-black text-white tracking-tight">📥 IMPORT QUESTIONS</h1>
+            </div>
+            <p className="mt-2 text-zinc-500">Manual entry or CSV bulk import.</p>
+          </div>
         </header>
 
-        <div>
-          <label className={labelClass}>Admin secret</label>
-          <input
-            type="password"
-            autoComplete="off"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            className={inputClass}
-            placeholder="Same value as ADMIN_IMPORT_SECRET env"
-          />
-        </div>
-
-        <section className="rounded-3xl border border-white/10 bg-[#161627]/40 p-6 shadow-xl">
-          <h2 className="text-lg font-extrabold text-white">
-            Enter question manually
-          </h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Saves one row to the{" "}
-            <code className="text-zinc-400">questions</code> table.
-          </p>
-
-          <form onSubmit={saveManual} className="mt-6 grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={labelClass}>Subject</label>
-                <select
-                  value={manual.subject}
-                  onChange={(e) =>
-                    setManual((m) => ({ ...m, subject: e.target.value }))
-                  }
-                  className={inputClass}
-                >
-                  {SUBJECT_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Exam Type</label>
-                <select
-                  value={manual.exam_type}
-                  onChange={(e) =>
-                    setManual((m) => ({ ...m, exam_type: e.target.value }))
-                  }
-                  className={inputClass}
-                >
-                  {EXAM_TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Question</label>
-              <textarea
-                required
-                value={manual.question}
-                onChange={(e) =>
-                  setManual((m) => ({ ...m, question: e.target.value }))
-                }
-                rows={4}
-                className={inputClass}
-                placeholder="Question text…"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {(
-                ["option_a", "option_b", "option_c", "option_d"] as const
-              ).map((key, i) => (
-                <div key={key}>
-                  <label className={labelClass}>Option {String.fromCharCode(65 + i)}</label>
-                  <input
-                    required
-                    value={manual[key]}
-                    onChange={(e) =>
-                      setManual((m) => ({ ...m, [key]: e.target.value }))
-                    }
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_350px]">
+          {/* Manual Entry */}
+          <section className="rounded-3xl border border-white/10 bg-[#161627] p-8 shadow-xl">
+            <h2 className="text-xl font-bold text-white">Manual Question Entry</h2>
+            <form onSubmit={saveManual} className="mt-8 grid gap-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Subject</label>
+                  <select
+                    value={manual.subject}
+                    onChange={(e) => setManual((m) => ({ ...m, subject: e.target.value }))}
                     className={inputClass}
-                  />
+                  >
+                    {SUBJECT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={labelClass}>Correct Answer</label>
-                <select
-                  value={manual.correct_answer}
-                  onChange={(e) =>
-                    setManual((m) => ({
-                      ...m,
-                      correct_answer: e.target.value,
-                    }))
-                  }
-                  className={inputClass}
-                >
-                  {CORRECT_OPTIONS.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className={labelClass}>Exam Type</label>
+                  <select
+                    value={manual.exam_type}
+                    onChange={(e) => setManual((m) => ({ ...m, exam_type: e.target.value }))}
+                    className={inputClass}
+                  >
+                    {EXAM_TYPE_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
               <div>
-                <label className={labelClass}>Year</label>
-                <input
-                  type="number"
-                  value={manual.year}
-                  onChange={(e) =>
-                    setManual((m) => ({ ...m, year: e.target.value }))
-                  }
+                <label className={labelClass}>Question Text</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={manual.question}
+                  onChange={(e) => setManual((m) => ({ ...m, question: e.target.value }))}
                   className={inputClass}
-                  placeholder="Optional (e.g. 2024)"
-                  min={1990}
-                  max={2100}
+                  placeholder="What is the capital of..."
                 />
               </div>
-            </div>
 
-            <div>
-              <label className={labelClass}>Explanation</label>
-              <textarea
-                value={manual.explanation}
-                onChange={(e) =>
-                  setManual((m) => ({ ...m, explanation: e.target.value }))
-                }
-                rows={3}
-                className={inputClass}
-                placeholder="Optional explanation…"
-              />
-            </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(["a", "b", "c", "d"] as const).map((key) => (
+                  <div key={key}>
+                    <label className={labelClass}>Option {key.toUpperCase()}</label>
+                    <input
+                      required
+                      type="text"
+                      value={manual[`option_${key}`]}
+                      onChange={(e) => setManual((m) => ({ ...m, [`option_${key}`]: e.target.value }))}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+              </div>
 
-            {manualMsg && (
-              <p
-                className={`rounded-xl border px-4 py-3 text-sm ${
-                  manualMsg.startsWith("Question saved")
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100"
-                    : "border-red-500/35 bg-red-500/10 text-red-100"
-                }`}
-              >
-                {manualMsg}
-              </p>
-            )}
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Correct Answer</label>
+                  <select
+                    value={manual.correct_answer}
+                    onChange={(e) => setManual((m) => ({ ...m, correct_answer: e.target.value }))}
+                    className={inputClass}
+                  >
+                    {CORRECT_OPTIONS.map((o) => (
+                      <option key={o} value={o}>Option {o}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Year (Optional)</label>
+                  <input
+                    type="text"
+                    value={manual.year}
+                    onChange={(e) => setManual((m) => ({ ...m, year: e.target.value }))}
+                    className={inputClass}
+                    placeholder="2024"
+                  />
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={manualBusy || !secret.trim()}
-              className="rounded-xl bg-[#7c3aed] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-50"
-            >
-              {manualBusy ? "Saving…" : "Save Question"}
-            </button>
-          </form>
-        </section>
+              <div>
+                <label className={labelClass}>Explanation (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={manual.explanation}
+                  onChange={(e) => setManual((m) => ({ ...m, explanation: e.target.value }))}
+                  className={inputClass}
+                />
+              </div>
 
-        <section className="rounded-3xl border border-white/10 bg-[#161627]/40 p-6 shadow-xl">
-          <h2 className="text-lg font-extrabold text-white">
-            Bulk import (CSV)
-          </h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Paste CSV with header row.
-          </p>
+              {manualMsg && (
+                <p className={`text-sm font-bold ${manualMsg.includes("success") ? "text-emerald-500" : "text-rose-500"}`}>
+                  {manualMsg}
+                </p>
+              )}
 
-          <div className="mt-6 space-y-4">
-            <div>
               <button
-                type="button"
-                onClick={() =>
-                  setCsv(
-                    SAMPLE_HEADERS +
-                      "\nmaths,JAMB,Sample?,1,2,3,4,B,Because.,2024",
-                  )
-                }
-                className="text-xs font-semibold text-[#7c3aed] underline"
+                disabled={manualBusy}
+                type="submit"
+                className="rounded-2xl bg-[#7c3aed] py-4 text-sm font-black uppercase tracking-widest text-white transition hover:bg-[#6d28d9] disabled:opacity-50"
               >
-                Load sample header row
+                {manualBusy ? "Saving..." : "Save Question"}
               </button>
-              <textarea
-                value={csv}
-                onChange={(e) => setCsv(e.target.value)}
-                rows={14}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a]/80 px-4 py-3 font-mono text-xs leading-relaxed text-zinc-200 outline-none focus:border-[#7c3aed]/55"
-                spellCheck={false}
-              />
-            </div>
+            </form>
+          </section>
 
-            {msg && (
-              <p
-                className={`rounded-xl border px-4 py-3 text-sm ${
-                  msg.startsWith("Inserted")
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100"
-                    : "border-red-500/35 bg-red-500/10 text-red-100"
-                }`}
+          {/* CSV Import */}
+          <section className="space-y-8">
+            <div className="rounded-3xl border border-white/10 bg-[#161627] p-8 shadow-xl">
+              <h2 className="text-xl font-bold text-white">Bulk CSV Import</h2>
+              <div className="mt-6">
+                <label className={labelClass}>CSV Content</label>
+                <textarea
+                  rows={10}
+                  value={csv}
+                  onChange={(e) => setCsv(e.target.value)}
+                  className={`${inputClass} font-mono text-[10px]`}
+                  placeholder={`header1,header2...\nvalue1,value2...`}
+                />
+              </div>
+              
+              <div className="mt-4 rounded-xl bg-white/5 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Expected Headers:</p>
+                <code className="mt-1 block break-all text-[9px] text-zinc-400">{SAMPLE_HEADERS}</code>
+              </div>
+
+              {msg && (
+                <p className={`mt-4 text-sm font-bold ${msg.includes("Inserted") ? "text-emerald-500" : "text-rose-500"}`}>
+                  {msg}
+                </p>
+              )}
+
+              <button
+                disabled={busy || !csv.trim()}
+                onClick={runImport}
+                className="mt-6 w-full rounded-2xl border border-[#7c3aed]/30 bg-[#7c3aed]/10 py-4 text-sm font-black uppercase tracking-widest text-[#7c3aed] transition hover:bg-[#7c3aed] hover:text-white disabled:opacity-50"
               >
-                {msg}
-              </p>
-            )}
-
-            <button
-              type="button"
-              disabled={busy || !secret.trim() || !csv.trim()}
-              onClick={runImport}
-              className="w-full rounded-xl bg-[#f59e0b] py-3.5 text-sm font-extrabold text-[#1a1033] shadow-lg shadow-[#f59e0b]/20 transition hover:brightness-105 disabled:opacity-50"
-            >
-              {busy ? "Importing…" : "Upload to Supabase"}
-            </button>
-          </div>
-        </section>
-
-        <p className="text-center text-xs text-zinc-500">
-          <Link href="/" className="hover:text-white">
-            Home
-          </Link>
-        </p>
+                {busy ? "Importing..." : "Run Bulk Import"}
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

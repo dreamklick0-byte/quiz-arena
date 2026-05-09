@@ -48,17 +48,25 @@ export default function AdminLeaguesPage() {
   }, [entryFee]);
 
   useEffect(() => {
+    const loadLeagues = async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from("leagues")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setLeagues(data);
+    };
     loadLeagues();
   }, []);
 
-  async function loadLeagues() {
+  const refreshLeagues = async () => {
     const supabase = getSupabaseClient();
     const { data } = await supabase
       .from("leagues")
       .select("*")
       .order("created_at", { ascending: false });
     if (data) setLeagues(data);
-  }
+  };
 
   async function createLeague(e: React.FormEvent) {
     e.preventDefault();
@@ -98,7 +106,7 @@ export default function AdminLeaguesPage() {
       if (insertError) throw insertError;
       
       setName("");
-      loadLeagues();
+      refreshLeagues();
       alert("League created successfully!");
     } catch (err: unknown) {
       const error = err as Error;
@@ -108,74 +116,85 @@ export default function AdminLeaguesPage() {
     }
   }
 
+  const labelClass = "text-xs font-bold uppercase tracking-widest text-zinc-500";
+  const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]";
+
   return (
-    <PageShell overlay="rgba(15,15,26,0.85)">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-3xl font-black text-white">League Management</h1>
+    <PageShell overlay="rgba(15,15,26,0.95)">
+      <div className="mx-auto max-w-6xl px-4 py-16">
+        <header className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <Link href="/admin" className="text-zinc-500 hover:text-white transition">← Back</Link>
+              <h1 className="text-4xl font-black text-white tracking-tight">🏆 LEAGUE MANAGEMENT</h1>
+            </div>
+            <p className="mt-2 text-zinc-500">Create and manage multi-player prize leagues.</p>
+          </div>
+        </header>
         
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_400px]">
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_400px]">
           {/* Create League Form */}
-          <div className="rounded-3xl border border-white/10 bg-[#161627] p-8">
+          <div className="rounded-3xl border border-white/10 bg-[#161627] p-8 shadow-xl">
             <h2 className="text-xl font-bold text-white">Create New League</h2>
-            <form onSubmit={createLeague} className="mt-6 space-y-6">
+            <form onSubmit={createLeague} className="mt-8 space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">League Name</label>
+                  <label className={labelClass}>League Name</label>
                   <input
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                    className={inputClass}
                     placeholder="e.g. Bronze Weekly Battle"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Subject</label>
+                  <label className={labelClass}>Subject</label>
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                    className={inputClass}
                   >
                     {SUBJECTS.map(s => <option key={s.slug} value={s.slug}>{s.emoji} {s.title}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Entry Fee</label>
+                  <label className={labelClass}>Entry Fee</label>
                   <select
                     value={entryFee}
                     onChange={(e) => setEntryFee(Number(e.target.value))}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                    className={inputClass}
                   >
                     {STAKE_OPTIONS.map(amt => <option key={amt} value={amt}>₦{amt}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Duration (Hours)</label>
+                  <label className={labelClass}>Duration (Hours)</label>
                   <select
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                    className={inputClass}
                   >
                     {[6, 12, 24, 48, 72].map(h => <option key={h} value={h}>{h} Hours</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Questions</label>
+                  <label className={labelClass}>Questions</label>
                   <select
                     value={numQuestions}
                     onChange={(e) => setNumQuestions(Number(e.target.value))}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                    className={inputClass}
                   >
                     {[10, 20, 30, 40, 50].map(q => <option key={q} value={q}>{q} Questions</option>)}
                   </select>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Start Time</label>
+                  <label className={labelClass}>Start Time</label>
                   <div className="mt-2 flex gap-4">
                     <label className="flex items-center gap-2 text-sm text-white">
                       <input type="radio" checked={startMode === "now"} onChange={() => setStartMode("now")} />
@@ -192,7 +211,7 @@ export default function AdminLeaguesPage() {
                       required
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="mt-3 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none focus:border-[#7c3aed]"
+                      className={inputClass}
                     />
                   )}
                 </div>

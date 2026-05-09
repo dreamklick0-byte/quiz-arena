@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
+import Link from "next/link";
 
 interface WithdrawalRequest {
   id: string;
@@ -22,130 +22,133 @@ export default function AdminWithdrawalsPage() {
   const [totalPending, setTotalPending] = useState(0);
 
   useEffect(() => {
-    async function loadRequests() {
-      const supabase = getSupabaseClient();
-      const { data } = await supabase
-        .from("withdrawal_requests")
-        .select(`
-          *,
-          profiles:user_id (display_name)
-        `)
-        .order("created_at", { ascending: false });
-      
-      if (data) {
-        setRequests(data);
-        const pending = data
-          .filter(r => r.status === 'pending')
-          .reduce((sum, r) => sum + Number(r.amount), 0);
-        setTotalPending(pending);
+    const fetchRequests = async () => {
+      try {
+        const res = await fetch("/api/admin/list-withdrawals");
+        const data = await res.json();
+        if (data.success) {
+          setRequests(data.requests);
+          const pending = data.requests
+            .filter((r: WithdrawalRequest) => r.status === 'pending')
+            .reduce((sum: number, r: WithdrawalRequest) => sum + Number(r.amount), 0);
+          setTotalPending(pending);
+        }
+      } catch (err) {
+        console.error("Failed to fetch withdrawals:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }
-    loadRequests();
+    };
+    fetchRequests();
   }, []);
 
-  async function updateStatus(id: string, status: 'processed' | 'rejected') {
-    const supabase = getSupabaseClient();
-    const { error } = await supabase
-      .from("withdrawal_requests")
-      .update({ 
-        status,
-        processed_at: status === 'processed' ? new Date().toISOString() : null
-      })
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      // Re-fetch requests after update
-      const { data } = await supabase
-        .from("withdrawal_requests")
-        .select(`
-          *,
-          profiles:user_id (display_name)
-        `)
-        .order("created_at", { ascending: false });
-      
-      if (data) {
-        setRequests(data);
-        const pending = data
-          .filter(r => r.status === 'pending')
-          .reduce((sum, r) => sum + Number(r.amount), 0);
+  const refreshRequests = async () => {
+    try {
+      const res = await fetch("/api/admin/list-withdrawals");
+      const data = await res.json();
+      if (data.success) {
+        setRequests(data.requests);
+        const pending = data.requests
+          .filter((r: WithdrawalRequest) => r.status === 'pending')
+          .reduce((sum: number, r: WithdrawalRequest) => sum + Number(r.amount), 0);
         setTotalPending(pending);
       }
+    } catch (err) {
+      console.error("Failed to fetch withdrawals:", err);
     }
-  }
+  };
 
-  if (loading) {
-    return (
-      <PageShell overlay="rgba(15,15,26,0.85)">
-        <div className="flex h-screen items-center justify-center text-white">Loading withdrawals...</div>
-      </PageShell>
-    );
-  }
+  const updateStatus = async (id: string, status: 'processed' | 'rejected') => {
+    if (!confirm(`Are you sure you want to mark this as ${status}?`)) return;
+
+    try {
+      const res = await fetch("/api/admin/process-withdrawal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        refreshRequests();
+      } else {
+        alert(data.error || "Failed to update status");
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
 
   return (
-    <PageShell overlay="rgba(15,15,26,0.85)">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <PageShell overlay="rgba(15,15,26,0.95)">
+      <div className="mx-auto max-w-6xl px-4 py-16">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-black text-white">Withdrawal Requests</h1>
-            <p className="mt-1 text-zinc-500 text-sm">Review and process player payouts.</p>
+            <div className="flex items-center gap-3">
+              <Link href="/admin" className="text-zinc-500 hover:text-white transition">← Back</Link>
+              <h1 className="text-4xl font-black text-white tracking-tight">🏦 WITHDRAWALS</h1>
+            </div>
+            <p className="mt-2 text-zinc-500">Review and process player payout requests.</p>
           </div>
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-4 text-right">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Total Pending</p>
-            <p className="text-2xl font-black text-white">₦{totalPending.toLocaleString()}</p>
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-8 py-4 text-right shadow-lg shadow-emerald-500/5">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Total Pending</p>
+            <p className="text-3xl font-black text-white">₦{totalPending.toLocaleString()}</p>
           </div>
         </header>
 
-        <div className="mt-12 overflow-hidden rounded-3xl border border-white/10 bg-[#161627]">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/40 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <div className="mt-12 overflow-hidden rounded-3xl border border-white/10 bg-[#161627]/80 backdrop-blur-xl">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
               <tr>
-                <th className="px-6 py-4">Player</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Bank Details</th>
-                <th className="px-6 py-4">Requested</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Actions</th>
+                <th className="px-6 py-5">Player</th>
+                <th className="px-6 py-5">Amount</th>
+                <th className="px-6 py-5">Bank Details</th>
+                <th className="px-6 py-5">Requested</th>
+                <th className="px-6 py-5">Status</th>
+                <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {requests.map(r => (
-                <tr key={r.id} className="text-zinc-300">
-                  <td className="px-6 py-4">
+              {loading ? (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-zinc-500">Loading requests...</td></tr>
+              ) : requests.length === 0 ? (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-zinc-500">No withdrawal requests found.</td></tr>
+              ) : requests.map(r => (
+                <tr key={r.id} className="text-zinc-300 hover:bg-white/5 transition">
+                  <td className="px-6 py-5">
                     <p className="font-bold text-white">{r.profiles?.display_name || "Unknown"}</p>
-                    <p className="text-[10px] text-zinc-500 font-mono">{r.user_id}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">ID: {r.user_id.slice(0, 8)}...</p>
                   </td>
-                  <td className="px-6 py-4 font-black text-white">₦{Number(r.amount).toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    <p className="text-white font-medium">{r.bank_name}</p>
+                  <td className="px-6 py-5 font-black text-white text-lg">₦{Number(r.amount).toLocaleString()}</td>
+                  <td className="px-6 py-5">
+                    <p className="text-white font-bold">{r.bank_name}</p>
                     <p className="text-xs text-zinc-500">{r.account_number} · {r.account_name}</p>
                   </td>
-                  <td className="px-6 py-4 text-xs">
-                    {new Date(r.created_at).toLocaleString()}
+                  <td className="px-6 py-5 text-xs text-zinc-500">
+                    {new Date(r.created_at).toLocaleString("en-GB", {
+                      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+                    })}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
-                      r.status === 'pending' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' :
-                      r.status === 'processed' ? 'bg-emerald-500/20 text-emerald-400' :
-                      'bg-red-500/20 text-red-400'
+                  <td className="px-6 py-5">
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
+                      r.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                      r.status === 'processed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                      'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5 text-right">
                     {r.status === 'pending' && (
-                      <div className="flex gap-2">
+                      <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => updateStatus(r.id, 'processed')}
-                          className="rounded-lg bg-emerald-500 px-3 py-1.5 text-[10px] font-black uppercase text-white hover:bg-emerald-600"
+                          className="rounded-xl bg-emerald-500 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20"
                         >
-                          Mark Paid
+                          Approve
                         </button>
                         <button 
                           onClick={() => updateStatus(r.id, 'rejected')}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-[10px] font-black uppercase text-white hover:bg-red-600"
+                          className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-white transition"
                         >
                           Reject
                         </button>
@@ -156,9 +159,6 @@ export default function AdminWithdrawalsPage() {
               ))}
             </tbody>
           </table>
-          {requests.length === 0 && (
-            <div className="p-10 text-center text-zinc-500">No withdrawal requests found.</div>
-          )}
         </div>
       </div>
     </PageShell>
