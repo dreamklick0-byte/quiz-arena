@@ -4,12 +4,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("CRITICAL: Supabase environment variables are missing! Check your .env.local or Vercel settings.");
+  // In production, we don't want to crash the whole app, but we should log clearly
+  if (typeof window !== 'undefined') {
+    console.error("Supabase environment variables are missing! Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
 }
 
 export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder'
 )
 
 // Use a lazy initializer for the admin client to avoid errors on the client-side
@@ -25,11 +28,11 @@ export function getAdminClient() {
   }
   
   if (!adminClient) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://viayjjutczrqxtmvbzwt.supabase.co';
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!key) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for the admin client.');
+    if (!url || !key) {
+      throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for the admin client.');
     }
     
     adminClient = createClient(url, key);

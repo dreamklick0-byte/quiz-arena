@@ -52,13 +52,13 @@ export default function AdminLeaguesPage() {
 
   const loadLeagues = async () => {
     try {
-      const supabase = getSupabaseClient();
-      const { data, error: fetchError } = await supabase
-        .from("leagues")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (fetchError) throw fetchError;
-      if (data) setLeagues(data);
+      const res = await fetch("/api/admin/leagues");
+      const data = await res.json();
+      if (data.success) {
+        setLeagues(data.leagues || []);
+      } else {
+        throw new Error(data.error);
+      }
     } catch (err) {
       console.error("Failed to load leagues:", err);
     } finally {
@@ -72,10 +72,11 @@ export default function AdminLeaguesPage() {
 
   async function createLeague(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
+
     try {
-      const supabase = getSupabaseClient();
       const startsAt = startMode === "now" ? new Date().toISOString() : new Date(startTime).toISOString();
       const endsAt = new Date(new Date(startsAt).getTime() + duration * 60 * 60 * 1000).toISOString();
 
@@ -88,24 +89,29 @@ export default function AdminLeaguesPage() {
         .sort(() => 0.5 - Math.random())
         .slice(0, numQuestions);
 
-      const { error: insertError } = await supabase.from("leagues").insert({
-        name,
-        subject,
-        entry_fee: entryFee,
-        max_players: maxPlayers,
-        duration_hours: duration,
-        num_questions: numQuestions,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        guaranteed_first: prizePreview.first,
-        guaranteed_second: prizePreview.second,
-        guaranteed_third: prizePreview.third,
-        guaranteed_fourth_tenth: prizePreview.fourthTenth,
-        status: startMode === "now" ? 'open' : 'scheduled',
-        questions: leagueQuestions
+      const res = await fetch("/api/admin/leagues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          subject,
+          entry_fee: entryFee,
+          max_players: maxPlayers,
+          duration_hours: duration,
+          num_questions: numQuestions,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          guaranteed_first: prizePreview.first,
+          guaranteed_second: prizePreview.second,
+          guaranteed_third: prizePreview.third,
+          guaranteed_fourth_tenth: prizePreview.fourthTenth,
+          status: startMode === "now" ? 'open' : 'scheduled',
+          questions: leagueQuestions
+        })
       });
 
-      if (insertError) throw insertError;
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
       
       setName("");
       loadLeagues();
@@ -317,10 +323,18 @@ export default function AdminLeaguesPage() {
                   <td className="px-6 py-4 text-right">
                     <button 
                       onClick={async () => {
-                        if(!confirm("Delete this league?")) return;
-                        const supabase = getSupabaseClient();
-                        await supabase.from("leagues").delete().eq("id", l.id);
-                        loadLeagues();
+                        if (!confirm("Delete this league?")) return;
+                        const res = await fetch("/api/admin/leagues", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: l.id })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          loadLeagues();
+                        } else {
+                          alert(data.error || "Failed to delete league");
+                        }
                       }}
                       className="text-xs font-bold text-red-400 hover:text-red-300 transition"
                     >
