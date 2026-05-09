@@ -11,7 +11,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <PageShell>
+    <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-4xl px-4 py-16">
         <h1 className="text-4xl font-black text-white tracking-tight">Admin Control Panel</h1>
         <p className="mt-2 text-zinc-500">Manage Quiz Arena game systems and finances.</p>

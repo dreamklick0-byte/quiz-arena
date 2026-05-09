@@ -52,14 +52,14 @@ export default function AdminWithdrawalsPage() {
 
   if (loading) {
     return (
-      <PageShell>
+      <PageShell overlay="rgba(15,15,26,0.85)">
         <div className="flex h-screen items-center justify-center text-white">Loading withdrawals...</div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell>
+    <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-6xl px-4 py-10">
         <header className="flex items-center justify-between">
           <div>

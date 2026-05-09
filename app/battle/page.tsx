@@ -471,8 +471,6 @@ export default function BattleLobbyPage() {
             <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
               ⚡ Quick Match auto-connects you with online opponents
             </p>
-          </form>
-        </div>
 
             {/* keep existing submit behavior for Enter key */}
             <button type="submit" className="sr-only" aria-hidden tabIndex={-1}>

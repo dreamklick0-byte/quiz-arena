@@ -34,7 +34,7 @@ export default function WalletPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-4xl px-4 py-10">
         <header className="flex flex-col items-center text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#7c3aed]/10 text-3xl">
