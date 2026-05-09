@@ -68,6 +68,15 @@ export default function AuthPage() {
           throw new Error("User not created during signup.");
         }
 
+        // Auto-create wallet for the new user
+        const { error: walletError } = await supabase.from("wallets").insert({
+          user_id: user.id,
+          balance: 0,
+        });
+        if (walletError) {
+          console.error("Error creating wallet during signup:", walletError);
+        }
+
         // Save the display name to profiles table
         if (displayName.trim()) {
           const { error: profileError } = await supabase.from("profiles").upsert(

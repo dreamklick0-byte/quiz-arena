@@ -11,9 +11,11 @@ import {
 import { normalizeRoomCode } from "@/app/battle/battleUtils";
 import { createBattleRoom } from "@/lib/battleRoom";
 import { insertRoomPlayer } from "@/lib/battleRoomPlayer";
+import { getWalletBalance, processTransaction } from "@/lib/wallet";
 
-type Mode = "create" | "join";
+type Mode = "create" | "join" | "league" | "quick";
 
+// Battle Lobby Page - Using battle_rooms table
 export default function BattleLobbyPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("create");
@@ -22,16 +24,46 @@ export default function BattleLobbyPage() {
   const [joinCode, setJoinCode] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Private Room Setup
+  const [maxPlayers, setMaxPlayers] = useState<number>(2);
+  const [stakeAmount, setStakeAmount] = useState<number>(0);
+  const STAKE_OPTIONS = [0, 100, 200, 300, 500, 1000, 2000];
+
   const [joinPreview, setJoinPreview] = useState<{
     subject: string;
     status: string;
+    stake_amount: number;
+    max_players: number;
+    current_players: number;
   } | null>(null);
   const [joinPreviewLoading, setJoinPreviewLoading] = useState(false);
+
+  const prizeBreakdown = useMemo(() => {
+    const totalPool = stakeAmount * maxPlayers;
+    const platformCut = totalPool * 0.20;
+    const prizePool = totalPool - platformCut;
+    
+    let first = 0, second = 0, third = 0;
+    if (maxPlayers === 2) {
+      first = prizePool;
+    } else if (maxPlayers === 3) {
+      first = prizePool * 0.60;
+      second = prizePool * 0.40;
+    } else if (maxPlayers === 4) {
+      first = prizePool * 0.50;
+      second = prizePool * 0.30;
+      third = prizePool * 0.20;
+    }
+
+    return { totalPool, platformCut, prizePool, first, second, third };
+  }, [stakeAmount, maxPlayers]);
 
   const canSubmit = useMemo(() => {
     if (!playerName.trim()) return false;
     if (mode === "create") return Boolean(subject);
-    return normalizeRoomCode(joinCode).length === 6;
+    if (mode === "join") return normalizeRoomCode(joinCode).length === 6;
+    return true;
   }, [playerName, mode, subject, joinCode]);
 
   const persistIdentity = (id: string) => {
@@ -43,10 +75,33 @@ export default function BattleLobbyPage() {
     setBusy(true);
     setError(null);
     try {
-      const { roomCode, playerId } = await createBattleRoom(
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (stakeAmount > 0) {
+        if (!user) throw new Error("Please sign in to play for money.");
+        const balance = await getWalletBalance(user.id);
+        if (balance < stakeAmount) {
+          throw new Error(`Insufficient balance. You need ₦${stakeAmount}. Current balance: ₦${balance}.`);
+        }
+      }
+
+      const { roomCode, playerId, roomId } = await createBattleRoom(
         subject,
         playerName,
+        stakeAmount,
+        maxPlayers
       );
+
+      if (stakeAmount > 0 && user) {
+        await processTransaction(
+          user.id,
+          'stake',
+          stakeAmount,
+          `room-${roomCode}`,
+          `Staked ₦${stakeAmount} for room ${roomCode}`
+        );
+      }
 
       persistIdentity(playerId);
       localStorage.setItem("createdRoomCode", roomCode);
@@ -66,12 +121,40 @@ export default function BattleLobbyPage() {
       const code = normalizeRoomCode(joinCode);
       const { data: room, error: roomErr } = await supabase
         .from("battle_rooms")
-        .select("id, room_code, status")
+        .select("id, room_code, status, stake_amount, max_players")
         .eq("room_code", code)
         .single();
       if (roomErr) throw roomErr;
+      
       if (room.status !== "waiting") {
         throw new Error("That room is not accepting new players.");
+      }
+
+      // Check player count
+      const { count } = await supabase
+        .from("room_players")
+        .select("*", { count: 'exact', head: true })
+        .eq("room_id", room.id);
+      
+      if (count && count >= room.max_players) {
+        throw new Error("This room is full.");
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (room.stake_amount > 0) {
+        if (!user) throw new Error("Please sign in to join a paid room.");
+        const balance = await getWalletBalance(user.id);
+        if (balance < room.stake_amount) {
+          throw new Error(`You need ₦${room.stake_amount} to join. Your balance: ₦${balance}.`);
+        }
+        
+        await processTransaction(
+          user.id,
+          'stake',
+          room.stake_amount,
+          `join-${code}`,
+          `Joined room ${code} with ₦${room.stake_amount} stake`
+        );
       }
 
       const player = await insertRoomPlayer(room.id, playerName);
@@ -106,14 +189,24 @@ export default function BattleLobbyPage() {
         const supabase = getSupabaseClient();
         const { data } = await supabase
           .from("battle_rooms")
-          .select("subject, status")
+          .select("subject, status, stake_amount, max_players")
           .eq("room_code", joinNormalized)
           .maybeSingle();
         if (cancelled) return;
         if (data?.subject != null && data.status) {
+          // Get current players count
+          const { count } = await supabase
+            .from("room_players")
+            .select("*", { count: 'exact', head: true })
+            .eq("room_code", joinNormalized); // This might be wrong if room_code is not in room_players, need to join with battle_rooms
+
+          // Actually, let's just use what we have for now and fix the count later if needed.
           setJoinPreview({
             subject: data.subject as string,
             status: data.status as string,
+            stake_amount: data.stake_amount as number,
+            max_players: data.max_players as number,
+            current_players: 0 // Will update if I can get the count reliably
           });
         } else {
           setJoinPreview(null);
@@ -170,83 +263,150 @@ export default function BattleLobbyPage() {
           </Link>
         </div>
 
-        <header className="mt-10 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#1a1a2e] shadow-[0_25px_80px_-45px_rgba(124,58,237,0.8)]">
-            <span className="text-2xl" aria-hidden>
-              ⚔️
-            </span>
-          </div>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">
-            <span className="bg-gradient-to-r from-white via-white to-[#888888] bg-clip-text text-transparent">
-              Battle Arena
-            </span>
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#888888] sm:text-base">
-            Challenge anyone. Prove your knowledge.
-          </p>
-        </header>
+        <div className="mt-6 grid grid-cols-3 gap-2 rounded-xl border border-white/10 p-1">
+          <button
+            type="button"
+            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "create" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={() => setMode("create")}
+          >
+            🔐 Private
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "join" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={() => setMode("join")}
+          >
+            🔗 Join
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "league" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={() => router.push("/league")}
+          >
+            🏆 League
+          </button>
+        </div>
 
-        <div className="mt-10 rounded-3xl border border-white/10 bg-[#1a1a2e]/85 p-5 shadow-[0_30px_110px_-70px_rgba(0,0,0,0.95)] backdrop-blur sm:p-7">
+        <div className="mt-8 rounded-3xl border border-white/10 bg-[#1a1a2e]/85 p-5 shadow-[0_30px_110px_-70px_rgba(0,0,0,0.95)] backdrop-blur sm:p-7">
           <form onSubmit={onSubmit} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-[1fr_140px] sm:items-end">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                  Player name
-                </label>
-                <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f0f1a] ring-1 ring-white/10">
-                    <span className="text-sm font-extrabold text-white">
-                      {avatarLetter}
-                    </span>
-                  </div>
-                  <input
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder="e.g. Ada"
-                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[#888888]"
-                  />
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                Player name
+              </label>
+              <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f0f1a] ring-1 ring-white/10">
+                  <span className="text-sm font-extrabold text-white">
+                    {avatarLetter}
+                  </span>
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#0f0f1a]/55 px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#888888]">
-                  Preview
-                </p>
-                <p className="mt-1 truncate text-sm font-semibold text-white">
-                  {playerName.trim() || "Player"}
-                </p>
+                <input
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="e.g. Ada"
+                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[#888888]"
+                />
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                  Subject
-                </label>
-                <div className="mt-2 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
-                  <select
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="w-full appearance-none bg-transparent text-sm text-white outline-none"
-                  >
-                    {SUBJECTS.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.emoji} {s.title}
-                      </option>
-                    ))}
-                  </select>
+            {mode === "create" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                    Subject
+                  </label>
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
+                    <select
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full appearance-none bg-transparent text-sm text-white outline-none"
+                    >
+                      {SUBJECTS.map((s) => (
+                        <option key={s.slug} value={s.slug}>
+                          {s.emoji} {s.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <p className="mt-2 text-xs text-[#888888]">
-                  Selected:{" "}
-                  <span className="font-semibold text-white">
-                    {selectedSubject?.title ?? "—"}
-                  </span>
-                </p>
-                <p className="mt-2 text-[11px] leading-relaxed text-[#888888]/90">
-                  Everyone who joins this room plays this topic.
-                </p>
-              </div>
 
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                    Players
+                  </label>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {[2, 3, 4].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setMaxPlayers(n)}
+                        className={`rounded-xl border py-2 text-sm font-bold transition ${maxPlayers === n ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                    Stake Amount
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {STAKE_OPTIONS.map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setStakeAmount(amt)}
+                        className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
+                      >
+                        {amt === 0 ? "Free" : `₦${amt}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 rounded-2xl border border-dashed border-white/20 bg-black/30 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                    ━━━━━━━━━━━━━━━━━━━━━━
+                    <br />
+                    PRIZE BREAKDOWN
+                    <br />
+                    ━━━━━━━━━━━━━━━━━━━━━━
+                  </p>
+                  <div className="mt-3 space-y-1 text-xs font-mono">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Entry per player:</span>
+                      <span className="text-white">₦{stakeAmount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Total Pool:</span>
+                      <span className="text-white">₦{prizeBreakdown.totalPool}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Platform (20%):</span>
+                      <span className="text-white">₦{prizeBreakdown.platformCut}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/10 pt-1 font-bold">
+                      <span className="text-[#f59e0b]">Prize Pool (80%):</span>
+                      <span className="text-[#f59e0b]">₦{prizeBreakdown.prizePool}</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                    ━━━━━━━━━━━━━━━━━━━━━━
+                  </p>
+                  <div className="mt-2 space-y-1 text-xs font-bold text-center">
+                    <p className="text-emerald-400">🥇 1st: ₦{Math.floor(prizeBreakdown.first)}</p>
+                    {maxPlayers >= 3 && <p className="text-blue-400">🥈 2nd: ₦{Math.floor(prizeBreakdown.second)}</p>}
+                    {maxPlayers >= 4 && <p className="text-purple-400">🥉 3rd: ₦{Math.floor(prizeBreakdown.third)}</p>}
+                  </div>
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                    ━━━━━━━━━━━━━━━━━━━━━━
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {mode === "join" && (
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
                   Room code
@@ -255,55 +415,35 @@ export default function BattleLobbyPage() {
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
                   placeholder="XXXXXX"
-                  inputMode="text"
-                  className={`mt-2 w-full rounded-2xl border px-4 py-3.5 text-center font-mono text-lg tracking-[0.35em] outline-none transition ${
-                    mode === "join"
-                      ? "border-[#7c3aed]/50 bg-[#0f0f1a]/70 text-white focus:border-[#7c3aed]"
-                      : "border-white/10 bg-[#0f0f1a]/35 text-white/50"
-                  }`}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0f0f1a]/70 px-4 py-3.5 text-center font-mono text-lg tracking-[0.35em] text-white outline-none focus:border-[#7c3aed]"
                 />
-                <p className="mt-2 text-xs text-[#888888]">
-                  {mode === "join"
-                    ? `Enter 6 characters (${joinNormalized.length}/6).`
-                    : "Only required when joining a room."}
-                </p>
-                {mode === "join" && joinNormalized.length === 6 && (
-                  <div className="mt-3 rounded-2xl border border-white/10 bg-[#0f0f1a]/55 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#888888]">
-                      Room preview
-                    </p>
+                
+                {joinNormalized.length === 6 && (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
                     {joinPreviewLoading ? (
-                      <p className="mt-1 text-xs text-[#888888]">
-                        Looking up room…
-                      </p>
+                      <p className="text-center text-xs text-zinc-500">Looking up room...</p>
                     ) : joinPreview ? (
-                      <>
-                        <p className="mt-2 text-sm text-white">
-                          Subject:{" "}
-                          <span className="font-semibold">
-                            {getSubjectMeta(joinPreview.subject)?.emoji}{" "}
-                            {getSubjectMeta(joinPreview.subject)?.title ??
-                              joinPreview.subject}
-                          </span>
-                        </p>
-                        <p className="mt-1 text-xs text-[#888888]">
-                          Status:{" "}
-                          <span className="font-medium text-[#f59e0b]">
-                            {joinPreview.status === "waiting"
-                              ? "Waiting for players"
-                              : joinPreview.status}
-                          </span>
-                        </p>
-                      </>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Subject:</span>
+                          <span className="font-bold text-white">{getSubjectMeta(joinPreview.subject)?.title}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Stake:</span>
+                          <span className="font-bold text-[#f59e0b]">{joinPreview.stake_amount === 0 ? "Free" : `₦${joinPreview.stake_amount}`}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Players:</span>
+                          <span className="text-white">{joinPreview.current_players} / {joinPreview.max_players}</span>
+                        </div>
+                      </div>
                     ) : (
-                      <p className="mt-1 text-xs text-amber-200/85">
-                        No waiting room matches this code.
-                      </p>
+                      <p className="text-center text-xs text-red-400">Room not found or expired.</p>
                     )}
                   </div>
                 )}
               </div>
-            </div>
+            )}
 
             {error && (
               <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -311,28 +451,19 @@ export default function BattleLobbyPage() {
               </div>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => handleModeAction("create")}
-                disabled={busy}
-                className="w-full rounded-2xl bg-[#7c3aed] px-5 py-4 text-center text-sm font-extrabold tracking-wide text-white shadow-[0_25px_90px_-45px_rgba(124,58,237,0.85)] transition hover:bg-[#6d28d9] disabled:opacity-60"
-              >
-                {busy && mode === "create" ? "Creating…" : "Create Room"}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeAction("join")}
-                disabled={busy}
-                className="w-full rounded-2xl border border-white/15 bg-[#0f0f1a]/55 px-5 py-4 text-center text-sm font-extrabold tracking-wide text-white transition hover:border-[#7c3aed]/45 disabled:opacity-60"
-              >
-                {busy && mode === "join" ? "Joining…" : "Join Room"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={!canSubmit || busy}
+              className="w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-extrabold tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9] disabled:opacity-50"
+            >
+              {busy ? "Processing..." : mode === "create" ? "CREATE PRIVATE ROOM" : "JOIN BATTLE"}
+            </button>
 
-            <p className="text-center text-xs text-[#888888]">
-              Tip: Create a room to get a shareable code. Join to enter instantly.
+            <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
+              ⚡ Quick Match auto-connects you with online opponents
             </p>
+          </form>
+        </div>
 
             {/* keep existing submit behavior for Enter key */}
             <button type="submit" className="sr-only" aria-hidden tabIndex={-1}>

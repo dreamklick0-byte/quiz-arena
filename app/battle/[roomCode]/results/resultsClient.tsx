@@ -25,6 +25,8 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [roomSubject, setRoomSubject] = useState<string | null>(null);
   const [rematchBusy, setRematchBusy] = useState(false);
+  const [prizesPaid, setPrizesPaid] = useState(false);
+  const [prizeResults, setPrizeResults] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +37,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       try {
         const { data: room, error: roomErr } = await supabase
           .from("battle_rooms")
-          .select("id, subject, player1_score, player2_score, player1_time_seconds, player2_time_seconds")
+          .select("*")
           .eq("room_code", roomCode)
           .single();
 
@@ -44,24 +46,41 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
 
         const { data: roomPlayers, error: playersErr } = await supabase
           .from("room_players")
-          .select("id, player_name")
+          .select("id, player_name, user_id")
           .eq("room_id", room.id)
           .order("joined_at", { ascending: true });
 
         if (playersErr) throw playersErr;
 
         const merged: RoomPlayer[] = (roomPlayers ?? []).map((p, idx) => {
-          const isPlayer1 = idx === 0;
+          const pIdx = idx + 1;
           return {
             id: p.id,
             player_name: p.player_name,
-            score: isPlayer1 ? room.player1_score : room.player2_score,
-            time_seconds: isPlayer1 ? room.player1_time_seconds : room.player2_time_seconds,
+            score: room[`player${pIdx}_score`],
+            time_seconds: room[`player${pIdx}_time_seconds`],
           };
         });
 
         if (!cancelled) {
           setPlayers(merged);
+          
+          // Trigger prize distribution if not paid
+          if (!room.prizes_paid && room.status === 'finished') {
+            const res = await fetch('/api/battle/distribute-prizes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roomCode })
+            });
+            const prizeData = await res.json();
+            if (prizeData.success && prizeData.results) {
+              setPrizeResults(prizeData.results);
+              setPrizesPaid(true);
+            }
+          } else if (room.prizes_paid) {
+            setPrizesPaid(true);
+            // We could fetch prize details here if needed, but for now just show +₦
+          }
         }
       } catch (e: unknown) {
         if (!cancelled) setError((e as Error)?.message ?? "Failed to load results.");
@@ -291,8 +310,15 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                                 {isMe ? "You" : p.player_name} {isWinner ? "🏆" : ""}
                               </p>
                               <p className="text-[11px] text-zinc-500">
-                                {p.score}/10 — {formatTime(p.time_seconds)}
+                                {p.score}/10 — {formatTime(p.time_seconds || 0)}
                               </p>
+                              {prizesPaid && (
+                                <p className="text-[10px] font-bold text-emerald-400 mt-1">
+                                  {prizeResults.find(pr => pr.id === p.id)?.prize > 0 
+                                    ? `+₦${Math.floor(prizeResults.find(pr => pr.id === p.id).prize)}` 
+                                    : "+₦0"}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">

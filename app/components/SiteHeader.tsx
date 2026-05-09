@@ -7,53 +7,50 @@ import { getSupabaseClient } from "@/lib/supabase";
 export function SiteHeader() {
   const [email, setEmail] = useState<string | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
+    
+    const fetchUserData = async (uid: string) => {
+      try {
+        // Fetch streak
+        const { data: streakRow } = await supabase
+          .from("user_streaks")
+          .select("current_streak")
+          .eq("user_id", uid)
+          .maybeSingle();
+        setStreak(typeof streakRow?.current_streak === "number" ? streakRow.current_streak : 0);
+
+        // Fetch balance
+        const { data: walletRow } = await supabase
+          .from("wallets")
+          .select("balance")
+          .eq("user_id", uid)
+          .maybeSingle();
+        setBalance(typeof walletRow?.balance === "number" ? walletRow.balance : 0);
+      } catch (err) {
+        console.error("Error fetching user header data:", err);
+      }
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      setEmail(data.session?.user.email ?? null);
-      const uid = data.session?.user.id;
-      if (uid) {
-        void (async () => {
-          try {
-            const { data: row } = await supabase
-              .from("user_streaks")
-              .select("current_streak")
-              .eq("user_id", uid)
-              .maybeSingle();
-            const n = row?.current_streak;
-            setStreak(typeof n === "number" ? n : 0);
-          } catch {
-            setStreak(null);
-          }
-        })();
+      const user = data.session?.user;
+      setEmail(user?.email ?? null);
+      if (user?.id) fetchUserData(user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
+      const user = session?.user;
+      setEmail(user?.email ?? null);
+      if (user?.id) {
+        fetchUserData(user.id);
       } else {
         setStreak(null);
+        setBalance(null);
       }
     });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_evt, session) => {
-      setEmail(session?.user.email ?? null);
-      const uid = session?.user.id;
-      if (!uid) {
-        setStreak(null);
-        return;
-      }
-      void (async () => {
-        try {
-          const { data: row } = await supabase
-            .from("user_streaks")
-            .select("current_streak")
-            .eq("user_id", uid)
-            .maybeSingle();
-          const n = row?.current_streak;
-          setStreak(typeof n === "number" ? n : 0);
-        } catch {
-          setStreak(null);
-        }
-      })();
-    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -78,6 +75,14 @@ export function SiteHeader() {
           </Link>
         </nav>
         <div className="flex shrink-0 items-center gap-2">
+          {typeof balance === "number" && (
+            <Link
+              href="/account/wallet"
+              className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400 transition hover:bg-emerald-500/25"
+            >
+              ₦{balance.toLocaleString()}
+            </Link>
+          )}
           {typeof streak === "number" && streak > 0 && (
             <Link
               href="/account"

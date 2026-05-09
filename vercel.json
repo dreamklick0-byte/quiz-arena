@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/leagues/distribute",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/leagues/start",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
