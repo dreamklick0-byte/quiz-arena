@@ -93,6 +93,12 @@ export default function AdminDashboard() {
         href: "/admin/manage-admins", 
         icon: "👥", 
         desc: "Create and manage admin accounts" 
+      },
+      { 
+        title: "Activity Logs", 
+        href: "/admin/activity-logs", 
+        icon: "📜", 
+        desc: "View system audit trail" 
       }
     ] : []),
   ];

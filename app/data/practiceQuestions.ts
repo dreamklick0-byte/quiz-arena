@@ -22,7 +22,7 @@ export const SUBJECTS: SubjectMeta[] = [
   { slug: "government", title: "Government", shortLabel: "Govt", emoji: "🏛️" },
   { slug: "economics", title: "Economics", shortLabel: "Economics", emoji: "📊" },
   {
-    slug: "agricultural-science",
+    slug: "agricultural_science",
     title: "Agricultural Science",
     shortLabel: "Agri Sci",
     emoji: "🌾" },
@@ -820,6 +820,79 @@ const AGRICULTURAL: Question[] = [
   },
 ];
 
+const CURRENT_AFFAIRS: Question[] = [
+  {
+    id: "ca1",
+    question: "Who was the first President of Nigeria?",
+    options: ["Nnamdi Azikiwe", "Obafemi Awolowo", "Tafawa Balewa", "Shehu Shagari"],
+    correctIndex: 0,
+    explanation: "Dr. Nnamdi Azikiwe served as the first President of Nigeria from 1963 to 1966.",
+  },
+  {
+    id: "ca2",
+    question: "Which city is the current capital of Nigeria?",
+    options: ["Lagos", "Kano", "Abuja", "Ibadan"],
+    correctIndex: 2,
+    explanation: "Abuja officially became Nigeria's capital on December 12, 1991.",
+  },
+  {
+    id: "ca3",
+    question: "What is the official currency of Nigeria?",
+    options: ["Dollar", "Cedi", "Naira", "Pound"],
+    correctIndex: 2,
+    explanation: "The Naira is the currency of Nigeria, introduced in 1973.",
+  },
+  {
+    id: "ca4",
+    question: "Nigeria gained independence from which country?",
+    options: ["France", "USA", "United Kingdom", "Portugal"],
+    correctIndex: 2,
+    explanation: "Nigeria gained independence from the United Kingdom on October 1, 1960.",
+  },
+  {
+    id: "ca5",
+    question: "How many states are in Nigeria?",
+    options: ["30", "36", "42", "25"],
+    correctIndex: 1,
+    explanation: "Nigeria is a federation of 36 states and 1 Federal Capital Territory.",
+  },
+  {
+    id: "ca6",
+    question: "Which of these is the largest river in Nigeria?",
+    options: ["River Benue", "River Niger", "River Cross", "River Ogun"],
+    correctIndex: 1,
+    explanation: "The River Niger is the longest and largest river in Nigeria.",
+  },
+  {
+    id: "ca7",
+    question: "What does the green color on the Nigerian flag represent?",
+    options: ["Peace", "Agriculture", "Unity", "Strength"],
+    correctIndex: 1,
+    explanation: "The green bands represent Nigeria's natural wealth and agriculture.",
+  },
+  {
+    id: "ca8",
+    question: "Who is the 'Father of Nigerian Nationalism'?",
+    options: ["Herbert Macaulay", "Nnamdi Azikiwe", "Obafemi Awolowo", "Ahmadu Bello"],
+    correctIndex: 0,
+    explanation: "Herbert Macaulay is often referred to as the founder of Nigerian nationalism.",
+  },
+  {
+    id: "ca9",
+    question: "What is the highest peak in Nigeria?",
+    options: ["Mount Patti", "Chappal Waddi", "Zuma Rock", "Olumo Rock"],
+    correctIndex: 1,
+    explanation: "Chappal Waddi (Gangirwal) is the highest point in Nigeria at 2,419m.",
+  },
+  {
+    id: "ca10",
+    question: "Which Nigerian won the Nobel Prize in Literature?",
+    options: ["Chinua Achebe", "Wole Soyinka", "Chimamanda Ngozi Adichie", "Ben Okri"],
+    correctIndex: 1,
+    explanation: "Wole Soyinka won the Nobel Prize in Literature in 1986.",
+  },
+];
+
 export const QUESTIONS_BY_SLUG: Record<string, Question[]> = {
   maths: MATHS,
   english: ENGLISH,
@@ -828,7 +901,8 @@ export const QUESTIONS_BY_SLUG: Record<string, Question[]> = {
   biology: BIOLOGY,
   government: GOVERNMENT,
   economics: ECONOMICS,
-  "agricultural-science": AGRICULTURAL,
+  agricultural_science: AGRICULTURAL,
+  current_affairs: CURRENT_AFFAIRS,
 };
 
 export function getQuestionsForSubject(slug: string): Question[] | null {
