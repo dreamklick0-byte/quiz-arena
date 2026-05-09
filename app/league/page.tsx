@@ -103,6 +103,67 @@ export default function LeaguePage() {
     }
   }, [user]);
 
+  async function joinLeague(league: League) {
+     if (!user) {
+       alert("Please sign in to join leagues.");
+       return;
+     }
+     setBusy(league.id);
+     setError(null);
+     try {
+       const balance = await getWalletBalance(user.id);
+       if (balance < league.entry_fee) {
+         throw new Error(`Insufficient balance. You need ₦${league.entry_fee}. Your balance: ₦${balance}.`);
+       }
+
+       await processTransaction(
+         user.id,
+         'stake',
+         league.entry_fee,
+         `league-${league.id}`,
+         `Joined League: ${league.name}`
+       );
+
+       const supabase = getSupabaseClient();
+       const { error: joinError } = await supabase.from("league_entries").insert({
+         league_id: league.id,
+         user_id: user.id,
+         display_name: typeof window !== 'undefined' ? localStorage.getItem("playerName") || "Anonymous" : "Anonymous",
+         finished: false
+       });
+
+       if (joinError) throw joinError;
+
+       // Increment player count
+       const { data: currentLeague } = await supabase
+         .from("leagues")
+         .select("current_players, entry_fee")
+         .eq("id", league.id)
+         .single();
+       
+       if (currentLeague) {
+         const newCount = (currentLeague.current_players || 0) + 1;
+         const newPool = newCount * currentLeague.entry_fee;
+         await supabase
+           .from("leagues")
+           .update({ 
+             current_players: newCount,
+             prize_pool: newPool * 0.60,
+             platform_revenue: newPool * 0.40
+           })
+           .eq("id", league.id);
+       }
+
+       setUserEntries([...userEntries, league.id]);
+       alert("Joined successfully! Good luck!");
+     } catch (err: unknown) {
+       const error = err as Error;
+       setError(error.message);
+     } finally {
+       setBusy(null);
+     }
+   }
+
   // ALL HOOKS MUST BE DECLARED ABOVE THIS LINE
   // Prevent hydration mismatch by only rendering time-sensitive parts on client
   const content = !mounted ? (
@@ -203,67 +264,6 @@ export default function LeaguePage() {
       </div>
     </div>
   );
-
-  async function joinLeague(league: League) {
-     if (!user) {
-       alert("Please sign in to join leagues.");
-       return;
-     }
-     setBusy(league.id);
-     setError(null);
-     try {
-       const balance = await getWalletBalance(user.id);
-       if (balance < league.entry_fee) {
-         throw new Error(`Insufficient balance. You need ₦${league.entry_fee}. Your balance: ₦${balance}.`);
-       }
-
-       await processTransaction(
-         user.id,
-         'stake',
-         league.entry_fee,
-         `league-${league.id}`,
-         `Joined League: ${league.name}`
-       );
-
-       const supabase = getSupabaseClient();
-       const { error: joinError } = await supabase.from("league_entries").insert({
-         league_id: league.id,
-         user_id: user.id,
-         display_name: typeof window !== 'undefined' ? localStorage.getItem("playerName") || "Anonymous" : "Anonymous",
-         finished: false
-       });
-
-       if (joinError) throw joinError;
-
-       // Increment player count
-       const { data: currentLeague } = await supabase
-         .from("leagues")
-         .select("current_players, entry_fee")
-         .eq("id", league.id)
-         .single();
-       
-       if (currentLeague) {
-         const newCount = (currentLeague.current_players || 0) + 1;
-         const newPool = newCount * currentLeague.entry_fee;
-         await supabase
-           .from("leagues")
-           .update({ 
-             current_players: newCount,
-             prize_pool: newPool * 0.60,
-             platform_revenue: newPool * 0.40
-           })
-           .eq("id", league.id);
-       }
-
-       setUserEntries([...userEntries, league.id]);
-       alert("Joined successfully! Good luck!");
-     } catch (err: unknown) {
-       const error = err as Error;
-       setError(error.message);
-     } finally {
-       setBusy(null);
-     }
-   }
 
   return (
     <PageShell overlay="rgba(15,15,26,0.85)">
