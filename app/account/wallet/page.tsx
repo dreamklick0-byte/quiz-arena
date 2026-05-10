@@ -107,7 +107,7 @@ export default function WalletPage() {
           amount: amount * 100,
           ref: data.data.reference,
           onSuccess: async (transaction: { reference: string }) => {
-            await fetch(`/api/payment/verify?reference=${transaction.reference}`);
+            await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`);
             setShowDeposit(false);
             refreshData();
           },
