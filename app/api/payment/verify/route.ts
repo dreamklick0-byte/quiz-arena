@@ -10,9 +10,8 @@ export async function GET(request: NextRequest) {
   try { 
     const { searchParams } = new URL(request.url) 
     const reference = searchParams.get('reference') 
-    const userId = searchParams.get('userId') 
  
-    if (!reference || !userId) { 
+    if (!reference) { 
       return NextResponse.redirect( 
         new URL('/account/wallet?status=error&message=Missing+parameters', request.url) 
       ) 
@@ -23,6 +22,14 @@ export async function GET(request: NextRequest) {
       { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } } 
     ) 
     const paystackData = await paystackRes.json() 
+ 
+    const userId = searchParams.get('userId') || paystackData?.data?.metadata?.user_id 
+ 
+    if (!userId) { 
+      return NextResponse.redirect( 
+        new URL('/account/wallet?status=error&message=Missing+user+ID', request.url) 
+      ) 
+    } 
  
     if (!paystackData.status || paystackData.data.status !== 'success') { 
       return NextResponse.redirect( 

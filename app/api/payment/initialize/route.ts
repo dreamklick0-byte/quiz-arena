@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         email,
         amount: amountInKobo,
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/wallet`,
+        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/verify?userId=${userId}`,
         metadata: {
           user_id: userId,
           custom_fields: [
