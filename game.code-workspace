@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../game"
+		},
+		{
+			"path": "../../../Users/user/Downloads/config"
+		},
+		{
+			"path": "../../../Users/user/Downloads/controllers"
+		},
+		{
+			"path": "../../../Users/user/Downloads/middleware"
+		},
+		{
+			"path": "../../../Users/user/Downloads/models"
+		},
+		{
+			"path": "../../../Users/user/Downloads/routes"
+		}
+	],
+	"settings": {}
+}
