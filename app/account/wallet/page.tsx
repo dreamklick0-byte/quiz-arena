@@ -109,17 +109,15 @@ export default function WalletPage() {
           onSuccess: async (transaction: { reference: string }) => { 
             try { 
               const verifyRes = await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`); 
-              const verifyData = await verifyRes.json(); 
-              console.log('Verify response:', verifyData); 
-              if (verifyData.status === true || verifyRes.redirected) { 
-                alert('Payment successful! Refreshing wallet...'); 
+              if (verifyRes.ok || verifyRes.redirected) { 
+                alert('Payment successful! Your wallet has been updated.'); 
                 window.location.reload(); 
               } else { 
-                alert('Payment verify failed: ' + JSON.stringify(verifyData)); 
+                const text = await verifyRes.text(); 
+                alert('Payment verify failed: ' + verifyRes.status + ' ' + text.substring(0, 100)); 
               } 
             } catch (err) { 
-              console.error('Verify error:', err); 
-              alert('Error verifying payment: ' + err); 
+              alert('Error: ' + err); 
             } 
           }, 
           onCancel: () => {

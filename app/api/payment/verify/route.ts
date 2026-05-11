@@ -10,11 +10,10 @@ export async function GET(request: NextRequest) {
   try { 
     const { searchParams } = new URL(request.url) 
     const reference = searchParams.get('reference') 
+    const userId = searchParams.get('userId') 
  
-    if (!reference) { 
-      return NextResponse.redirect( 
-        new URL('/account/wallet?status=error&message=Missing+parameters', request.url) 
-      ) 
+    if (!reference || !userId) { 
+      return NextResponse.json({ status: false, message: 'Missing parameters' }) 
     } 
  
     const paystackRes = await fetch( 
@@ -23,18 +22,8 @@ export async function GET(request: NextRequest) {
     ) 
     const paystackData = await paystackRes.json() 
  
-    const userId = searchParams.get('userId') || paystackData?.data?.metadata?.user_id 
- 
-    if (!userId) { 
-      return NextResponse.redirect( 
-        new URL('/account/wallet?status=error&message=Missing+user+ID', request.url) 
-      ) 
-    } 
- 
     if (!paystackData.status || paystackData.data.status !== 'success') { 
-      return NextResponse.redirect( 
-        new URL('/account/wallet?status=error&message=Payment+verification+failed', request.url) 
-      ) 
+      return NextResponse.json({ status: false, message: 'Payment verification failed' }) 
     } 
  
     const amount = paystackData.data.amount / 100 
@@ -46,9 +35,7 @@ export async function GET(request: NextRequest) {
       .single() 
  
     if (existingTx) { 
-      return NextResponse.redirect( 
-        new URL('/account/wallet?status=success&amount=' + amount, request.url) 
-      ) 
+      return NextResponse.json({ status: true, message: 'Already processed', amount }) 
     } 
  
     const { data: wallet } = await supabase 
@@ -72,14 +59,10 @@ export async function GET(request: NextRequest) {
       status: 'completed' 
     }) 
  
-    return NextResponse.redirect( 
-      new URL('/account/wallet?status=success&amount=' + amount, request.url) 
-    ) 
+    return NextResponse.json({ status: true, message: 'Wallet updated', amount }) 
  
   } catch (err) { 
     console.error('Payment verify error:', err) 
-    return NextResponse.redirect( 
-      new URL('/account/wallet?status=error&message=Server+error', request.url) 
-    ) 
+    return NextResponse.json({ status: false, message: 'Server error: ' + err }, { status: 500 }) 
   } 
 } 
