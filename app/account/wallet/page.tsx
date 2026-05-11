@@ -106,11 +106,22 @@ export default function WalletPage() {
           email: user.email,
           amount: amount * 100,
           ref: data.data.reference,
-          onSuccess: async (transaction: { reference: string }) => {
-            await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`);
-            setShowDeposit(false);
-            refreshData();
-          },
+          onSuccess: async (transaction: { reference: string }) => { 
+            try { 
+              const verifyRes = await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`); 
+              const verifyData = await verifyRes.json(); 
+              console.log('Verify response:', verifyData); 
+              if (verifyData.status === true || verifyRes.redirected) { 
+                alert('Payment successful! Refreshing wallet...'); 
+                window.location.reload(); 
+              } else { 
+                alert('Payment verify failed: ' + JSON.stringify(verifyData)); 
+              } 
+            } catch (err) { 
+              console.error('Verify error:', err); 
+              alert('Error verifying payment: ' + err); 
+            } 
+          }, 
           onCancel: () => {
             setBusy(false);
           }
