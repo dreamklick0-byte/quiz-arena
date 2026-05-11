@@ -119,7 +119,7 @@ export default function WalletPage() {
             } catch (err) { 
               alert('Error: ' + err); 
             } 
-          }, 
+          },
           onCancel: () => {
             setBusy(false);
           }
