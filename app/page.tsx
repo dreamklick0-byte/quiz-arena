@@ -20,19 +20,19 @@ export default function LandingPage() {
       id: i,
       size: Math.random() * 2 + 2,
       left: Math.random() * 100,
+      bottom: "-10px",
       delay: Math.random() * 10,
       duration: Math.random() * 12 + 8,
       color: i % 2 === 0 ? "#7c3aed" : "#f59e0b",
       opacity: Math.random() * 0.5 + 0.3,
     }));
     setParticles(newParticles);
+  }, []);
 
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [slides.length]);
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentSlide(prev => (prev + 1) % 5), 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const features = [
     { title: "Live Battle Arena", icon: "⚔️", desc: "Challenge real students in real-time. Stake money. Winner takes all.", color: "border-purple-500/30 bg-purple-500/5" },
@@ -138,7 +138,7 @@ export default function LandingPage() {
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center px-6 md:px-16 z-10">
-          <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center gap-8 w-full max-w-7xl mx-auto">
             {/* LEFT COLUMN */}
             <div className="flex-1 text-center md:text-left">
               <div className="border border-purple-500/30 bg-purple-500/10 backdrop-blur rounded-full px-4 py-2 text-purple-300 text-sm font-semibold mb-6 inline-block">
@@ -199,44 +199,25 @@ export default function LandingPage() {
 
             {/* RIGHT COLUMN — SLIDESHOW */}
             <div className="flex-1 hidden md:flex items-center justify-center">
-              <div
-                className="relative w-full max-w-lg mx-auto rounded-3xl overflow-hidden"
-                style={{
-                  aspectRatio: "4/3",
-                  boxShadow: "0 0 40px rgba(124,58,237,0.4), 0 0 80px rgba(124,58,237,0.15)",
-                  border: "2px solid rgba(124,58,237,0.3)"
-                }}
-              >
-                {slides.map((slide, idx) => (
-                  <div
-                    key={idx}
-                    className={`absolute inset-0 transition-opacity duration-700 ${idx === currentSlide ? "opacity-100" : "opacity-0"}`}
-                  >
-                    <img
-                      src={slide.url}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      alt={slide.badge}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                  </div>
-                ))}
-
-                {/* Floating Badge */}
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 text-white text-xs font-bold z-20">
-                  {slides[currentSlide].badge}
-                </div>
-
-                {/* Dot Indicators */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-                  {slides.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentSlide(idx)}
-                      className={`transition-all duration-300 ${idx === currentSlide ? "w-6 h-2 bg-white rounded-full" : "w-2 h-2 bg-white/40 rounded-full"}`}
-                    />
-                  ))}
-                </div>
-              </div>
+              <div className="relative w-full max-w-md mx-auto rounded-3xl overflow-hidden"
+                style={{ aspectRatio:"4/3", boxShadow:"0 0 40px rgba(124,58,237,0.4),0 0 80px rgba(124,58,237,0.15)", border:"2px solid rgba(124,58,237,0.3)" }}> 
+                {slides.map((slide, i) => ( 
+                  <img key={i} src={slide.url} alt="" 
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700" 
+                    style={{ opacity: i === currentSlide ? 1 : 0 }} /> 
+                ))} 
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" /> 
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 text-white text-xs font-bold"> 
+                  {slides[currentSlide].badge} 
+                </div> 
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2"> 
+                  {slides.map((_, i) => ( 
+                    <button key={i} onClick={() => setCurrentSlide(i)} 
+                      className="rounded-full transition-all duration-300" 
+                      style={{ width: i === currentSlide ? "24px" : "8px", height:"8px", backgroundColor: i === currentSlide ? "white" : "rgba(255,255,255,0.4)" }} /> 
+                  ))} 
+                </div> 
+              </div> 
             </div>
           </div>
         </div>
@@ -283,7 +264,7 @@ export default function LandingPage() {
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 0.25 }}
         />
-        <div className="absolute inset-0" style={{ background: "rgba(15,5,32,0.75)" }} />
+        <div className="absolute inset-0" style={{ background: "rgba(15,5,32,0.72)" }} />
         <div className="relative z-10">
           <h2 className="text-white text-4xl font-black text-center mb-2">How It Works</h2>
           <p className="text-zinc-400 text-center mb-16">Get started in under 2 minutes</p>
@@ -297,7 +278,7 @@ export default function LandingPage() {
             ].map((item, i) => (
               <div
                 key={i}
-                className="text-center bg-white/8 backdrop-blur-md border border-white/15 rounded-2xl p-6"
+                className="text-center bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-6"
                 style={{ boxShadow: "0 4px 24px rgba(124,58,237,0.15)" }}
               >
                 <div
