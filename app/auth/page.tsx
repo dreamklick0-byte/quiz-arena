@@ -1,0 +1,279 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getSupabaseClient } from "@/lib/supabase";
+
+export default function AuthPage() {
+  const router = useRouter();
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+
+  const handleForgotPassword = async () => {
+    setBusy(true);
+    setForgotPasswordMessage(null);
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) throw error;
+      setForgotPasswordMessage("Password reset email sent! Check your inbox.");
+    } catch (err: unknown) {
+      const m = err instanceof Error ? err.message : "Something went wrong.";
+      setForgotPasswordMessage(m);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    try {
+      const supabase = getSupabaseClient();
+      if (tab === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+
+        if (signUpError) {
+          console.error("Supabase signUp error object:", signUpError);
+          if (signUpError?.message?.includes('already registered')) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+            if (!signInError) {
+              router.push('/');
+              router.refresh();
+            } else {
+              console.error("Supabase signIn error after failed signUp (already registered):");
+              console.error(signInError);
+              setMessage('This email is already registered. Please sign in instead.');
+              setTab('signin');
+            }
+            return; // Exit function after handling
+          } else {
+            throw signUpError;
+          }
+        }
+
+        const user = data.user;
+        if (!user) {
+          throw new Error("User not created during signup.");
+        }
+
+        // Auto-create wallet for the new user
+        const { error: walletError } = await supabase.from("wallets").insert({
+          user_id: user.id,
+          balance: 0,
+        });
+        if (walletError) {
+          console.error("Error creating wallet during signup:", walletError);
+        }
+
+        // Save the display name to profiles table
+        if (displayName.trim()) {
+          const { error: profileError } = await supabase.from("profiles").upsert(
+            {
+              id: user.id,
+              display_name: displayName.trim(),
+            },
+            { onConflict: "id" },
+          );
+          if (profileError) {
+            console.error("Error upserting profile:", profileError);
+            // Continue signup flow even if profile upsert fails, it's optional per previous comment.
+          }
+        }
+
+        // Immediately sign in and redirect to homepage after successful signup
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (signInError) throw signInError;
+
+        // Redirect to homepage /
+        router.push("/");
+        router.refresh();
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (signInError) {
+          console.error("Supabase signIn error object:", signInError);
+          throw signInError;
+        }
+        router.push("/account");
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      console.error("General authentication error caught in main try-catch block:");
+      console.error(err);
+      const m = err instanceof Error ? err.message : "Something went wrong.";
+      if (tab === "signin" && m.includes("Invalid login credentials")) {
+        setMessage("Incorrect email or password. Please try again or use 'Forgot password?'.");
+      } else {
+        setMessage(m);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0f0f1a] px-4 py-10 text-zinc-100">
+      <div className="relative mx-auto max-w-md rounded-3xl border border-white/10 bg-[#161627]/90 p-8 shadow-xl">
+        <h1 className="text-center text-2xl font-extrabold tracking-tight text-white">
+          Student login
+        </h1>
+        <p className="mt-2 text-center text-sm text-zinc-400">
+          Save streaks and appear on leaderboards.
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl border border-white/10 p-1">
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${tab === "signin" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={() => setTab("signin")}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${tab === "signup" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+            onClick={() => setTab("signup")}
+          >
+            Register
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="mt-6 space-y-4">
+          {tab === "signup" && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
+                Display name
+              </label>
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
+                placeholder="How others see you on leaderboards"
+                autoComplete="nickname"
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
+              placeholder="you@school.edu"
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
+              placeholder="••••••••"
+              autoComplete={
+                tab === "signup" ? "new-password" : "current-password"
+              }
+            />
+          </div>
+
+          {tab === "signin" && !showForgotPassword && (
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-purple-400 hover:text-purple-300 mt-1 text-right w-full"
+            >
+              Forgot password?
+            </button>
+          )}
+
+          {message && (
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              {message}
+            </p>
+          )}
+
+          {showForgotPassword && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
+                  Email for password reset
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
+                  placeholder="you@school.edu"
+                  autoComplete="email"
+                />
+              </div>
+              {forgotPasswordMessage && (
+                <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                  {forgotPasswordMessage}
+                </p>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleForgotPassword}
+                className="w-full rounded-xl bg-[#f59e0b] py-3.5 text-sm font-extrabold text-[#1a1033] shadow-lg shadow-[#f59e0b]/20 transition hover:brightness-105 disabled:opacity-60"
+              >
+                {busy ? "Sending…" : "Send reset link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full text-sm text-zinc-400 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {!showForgotPassword && (
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-xl bg-[#7c3aed] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-60"
+            >
+              {busy ? "Working…" : tab === "signin" ? "Sign in" : "Create account"}
+            </button>
+          )}
+        </form>
+
+        <div className="mt-8 text-center text-xs">
+          <Link href="/" className="text-zinc-400 transition hover:text-white">
+            ← Back home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
