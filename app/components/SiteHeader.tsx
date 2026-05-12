@@ -89,6 +89,15 @@ export function SiteHeader() {
           <Link href="/league" className="transition hover:text-[#f59e0b]">
             League
           </Link>
+          <Link href="/players" className="transition hover:text-[#f59e0b]">
+            Players Online
+          </Link>
+          <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">
+            💰 Refer & Earn
+          </Link>
+          <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">
+            🎡 Daily Spin
+          </Link>
           {isAdmin && (
             <Link href="/admin" className="transition hover:text-zinc-300 font-bold text-[#7c3aed]">
               Admin

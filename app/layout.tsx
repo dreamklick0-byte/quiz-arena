@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/app/components/SiteHeader";
 import "./globals.css";
+import BattleRequestListener from "@/components/BattleRequestListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +57,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-[#0f0f1a] text-zinc-100">
         <SiteHeader />
+        <BattleRequestListener />
         {children}
       </body>
     </html>

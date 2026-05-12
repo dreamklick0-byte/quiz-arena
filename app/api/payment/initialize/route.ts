@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { email, amount, userId } = await req.json();
-    
+    const { email, amount, userId, referralCode } = await req.json();
+
     // Paystack expects amount in kobo
     const amountInKobo = amount * 100;
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
         callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/verify?userId=${userId}`,
         metadata: {
           user_id: userId,
+          referral_code: referralCode || null,
           custom_fields: [
             {
               display_name: "Deposit Amount",
