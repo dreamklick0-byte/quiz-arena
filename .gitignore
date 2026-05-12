@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -40,5 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+>>>>>>> 8badd9c034b3f6ff263188e1206ee697c2ccdc6f
 .vercel
 .env*.local
