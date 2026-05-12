@@ -45,17 +45,17 @@ export default function LandingPage() {
     { title: "Players Online", icon: "🟢", desc: "See who is live. Send battle challenges instantly.", color: "border-violet-500/30 bg-violet-500/5" },
   ];
 
-  const subjects = [
-    { name: "Maths", icon: "🔢", from: "from-blue-600", to: "to-indigo-800", image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80" },
-    { name: "English", icon: "📝", from: "from-purple-600", to: "to-pink-800", image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&q=80" },
-    { name: "Physics", icon: "⚡", from: "from-cyan-600", to: "to-blue-800", image: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80" },
-    { name: "Chemistry", icon: "🧪", from: "from-orange-600", to: "to-red-800", image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&q=80" },
-    { name: "Biology", icon: "🧬", from: "from-green-600", to: "to-emerald-800", image: "https://images.unsplash.com/photo-1530026405186-ed1f139313f3?w=400&q=80" },
-    { name: "Government", icon: "⚖️", from: "from-amber-600", to: "to-yellow-800", image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80" },
-    { name: "Economics", icon: "📊", from: "from-teal-600", to: "to-cyan-800", image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80" },
-    { name: "Agricultural Science", icon: "🌱", from: "from-lime-600", to: "to-green-800", image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&q=80" },
-    { name: "Current Affairs", icon: "🌍", from: "from-rose-600", to: "to-red-800", image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80" },
-  ];
+  const subjects = [ 
+   { name:"Maths", icon:"🔢", gradient:"from-blue-600 to-indigo-800", slug:"maths", img:"https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80" }, 
+   { name:"English", icon:"📝", gradient:"from-purple-600 to-pink-800", slug:"english", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&q=80" }, 
+   { name:"Physics", icon:"⚡", gradient:"from-cyan-600 to-blue-800", slug:"physics", img:"https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80" }, 
+   { name:"Chemistry", icon:"🧪", gradient:"from-orange-600 to-red-800", slug:"chemistry", img:"https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&q=80" }, 
+   { name:"Biology", icon:"🧬", gradient:"from-green-600 to-emerald-800", slug:"biology", img:"https://images.unsplash.com/photo-1530026405186-ed1f139313f3?w=400&q=80" }, 
+   { name:"Government", icon:"⚖️", gradient:"from-amber-600 to-yellow-800", slug:"government", img:"https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80" }, 
+   { name:"Economics", icon:"📊", gradient:"from-teal-600 to-cyan-800", slug:"economics", img:"https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80" }, 
+   { name:"Agricultural Science", icon:"🌱", gradient:"from-lime-600 to-green-800", slug:"agricultural-science", img:"https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&q=80" }, 
+   { name:"Current Affairs", icon:"🌍", gradient:"from-rose-600 to-red-800", slug:"current-affairs", img:"https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80" }, 
+ ]; 
 
   const tickerItems = [
     "Ahmed just won N500",
@@ -309,40 +309,19 @@ export default function LandingPage() {
           <p className="text-zinc-400 text-center mb-12">JAMB - WAEC - NECO all in one place</p>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 max-w-7xl mx-auto px-4">
-            {subjects.map((subject, i) => (
-              <Link
-                key={i}
-                href="/practice"
-                className="relative rounded-2xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 block"
-                style={{ minHeight: "160px" }}
-              >
-                {/* Real subject image */}
-                <img
-                  src={subject.image}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ opacity: 0.35 }}
-                  alt={subject.name}
-                />
-                {/* Gradient overlay */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${subject.from} ${subject.to}`}
-                  style={{ opacity: 0.80 }}
-                />
-                {/* Dark overlay at bottom for text clarity */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 p-6">
-                  <div className="text-4xl">{subject.icon}</div>
-                  <h3
-                    className="text-white font-extrabold text-lg mt-3"
-                    style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}
-                  >
-                    {subject.name}
-                  </h3>
-                  <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full mt-2 inline-block">10 Qs</div>
-                  <div className="text-white/90 text-sm mt-2 font-semibold">Start →</div>
-                </div>
+            {subjects.map((s) => (
+              <Link key={s.slug} href="/practice" 
+                className="relative rounded-2xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 block" 
+                style={{ minHeight:"160px" }}> 
+                <img src={s.img} alt={s.name} className="absolute inset-0 w-full h-full object-cover" style={{ opacity:0.35 }} /> 
+                <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient}`} style={{ opacity:0.80 }} /> 
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" /> 
+                <div className="relative z-10 p-5"> 
+                  <div className="text-4xl">{s.icon}</div> 
+                  <div className="text-white font-extrabold text-lg mt-3" style={{ textShadow:"0 2px 8px rgba(0,0,0,0.8)" }}>{s.name}</div> 
+                  <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full mt-2 inline-block">10 Qs</div> 
+                  <div className="text-white/90 text-sm mt-2 font-semibold">Start →</div> 
+                </div> 
               </Link>
             ))}
           </div>
@@ -401,35 +380,17 @@ export default function LandingPage() {
 
       {/* SECTION 7 — CTA */}
       <section className="relative overflow-hidden py-24 text-center px-4">
-        {/* Layer 1 (bottom) */}
-        <img
-          src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1920&q=80"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.20 }}
-        />
-        {/* Layer 2 (on top) */}
-        <img
-          src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.10, mixBlendMode: "screen" }}
-        />
+        <img src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1920&q=80" 
+          className="absolute inset-0 w-full h-full object-cover" style={{ opacity:0.20 }} />
         <div
           className="absolute inset-0"
           style={{ background: "radial-gradient(ellipse at center, rgba(30,10,60,0.85) 0%, rgba(5,5,8,0.92) 70%)" }}
         />
 
-        {/* Decorative Element */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)", filter: "blur(40px)" }}
-        />
-
         <div className="relative z-10">
           <h2
             className="text-white text-5xl font-black mb-4"
-            style={{ textShadow: "0 0 60px rgba(124,58,237,0.5), 0 2px 8px rgba(0,0,0,0.8)" }}
+            style={{ textShadow:"0 0 60px rgba(124,58,237,0.5), 0 2px 8px rgba(0,0,0,0.8)" }}
           >
             Ready to Start Winning?
           </h2>
@@ -438,7 +399,7 @@ export default function LandingPage() {
             <Link
               href="/auth"
               className="bg-[#f59e0b] text-black font-black px-10 py-4 rounded-2xl text-lg hover:bg-[#e6950a] transition-colors"
-              style={{ boxShadow: "0 0 30px rgba(245,158,11,0.5), 0 4px 16px rgba(0,0,0,0.4)" }}
+              style={{ boxShadow:"0 0 30px rgba(245,158,11,0.5)" }}
             >
               Create Free Account
             </Link>
