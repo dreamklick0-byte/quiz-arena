@@ -31,7 +31,7 @@ export default function PlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // ── Load current user and start presence heartbeat ──────────────────────────
+  // ΓöÇΓöÇ Load current user and start presence heartbeat ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   useEffect(() => {
     let heartbeatInterval: ReturnType<typeof setInterval>;
 
@@ -75,7 +75,7 @@ export default function PlayersPage() {
     };
   }, []);
 
-  // ── Fetch online players (active in last 60 seconds) ────────────────────────
+  // ΓöÇΓöÇ Fetch online players (active in last 60 seconds) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const fetchOnlinePlayers = useCallback(async () => {
     if (!currentUser) return;
     const cutoff = new Date(Date.now() - 60000).toISOString();
@@ -89,7 +89,7 @@ export default function PlayersPage() {
     if (data) setOnlinePlayers(data);
   }, [currentUser]);
 
-  // ── Poll every 10 seconds + live realtime updates ───────────────────────────
+  // ΓöÇΓöÇ Poll every 10 seconds + live realtime updates ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   useEffect(() => {
     if (!currentUser) return;
 
@@ -111,7 +111,7 @@ export default function PlayersPage() {
     };
   }, [currentUser, fetchOnlinePlayers]);
 
-  // ── Open challenge modal ─────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Open challenge modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const openChallengeModal = (opponent: OnlinePlayer) => {
     setError(null);
     setChallengeModal({
@@ -121,7 +121,7 @@ export default function PlayersPage() {
     });
   };
 
-  // ── Send challenge ───────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Send challenge ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const sendChallenge = async () => {
     if (!challengeModal || !currentUser) return;
     setBusy(true);
@@ -134,7 +134,7 @@ export default function PlayersPage() {
       const balance = await getWalletBalance(currentUser.id);
       if (balance < stakeAmount) {
         throw new Error(
-          `Insufficient balance. You need ₦${stakeAmount} but your wallet has ₦${balance}.`
+          `Insufficient balance. You need Γéª${stakeAmount} but your wallet has Γéª${balance}.`
         );
       }
 
@@ -152,7 +152,7 @@ export default function PlayersPage() {
 
       setChallengeModal(null);
       setSuccessMsg(
-        `⚔️ Challenge sent to ${opponent.display_name}! Waiting for their response…`
+        `ΓÜö∩╕Å Challenge sent to ${opponent.display_name}! Waiting for their responseΓÇª`
       );
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: unknown) {
@@ -162,7 +162,7 @@ export default function PlayersPage() {
     }
   };
 
-  // ── UI ───────────────────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ UI ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   return (
     <div className="min-h-screen text-white bg-[#0f0f1a]">
       <div className="py-16 text-center" style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%)" }}>
@@ -200,7 +200,7 @@ export default function PlayersPage() {
               onClick={() => router.push("/")}
               className="text-xs font-medium text-[#888888] hover:text-[#7c3aed] transition"
             >
-              ← Back to Home
+              ΓåÉ Back to Home
             </button>
           </div>
 
@@ -224,7 +224,7 @@ export default function PlayersPage() {
         <div className="space-y-3">
           {onlinePlayers.length === 0 ? (
             <div className="rounded-3xl border border-white/10 bg-[#1a1a2e]/85 p-12 text-center">
-              <p className="text-5xl mb-3">👀</p>
+              <p className="text-5xl mb-3">≡ƒæÇ</p>
               <p className="text-zinc-300 font-bold text-sm">No other players online right now.</p>
               <p className="text-zinc-500 text-xs mt-1">Check back in a few minutes!</p>
             </div>
@@ -255,7 +255,7 @@ export default function PlayersPage() {
                   onClick={() => openChallengeModal(player)}
                   className="rounded-xl bg-[#7c3aed] px-4 py-2 text-xs font-extrabold tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 hover:bg-[#6d28d9] transition"
                 >
-                  ⚔️ CHALLENGE
+                  ΓÜö∩╕Å CHALLENGE
                 </button>
               </div>
             ))
@@ -269,7 +269,7 @@ export default function PlayersPage() {
           <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a2e] p-6 shadow-2xl">
 
             <h2 className="text-lg font-extrabold text-white mb-1">
-              ⚔️ Challenge {challengeModal.opponent.display_name}
+              ΓÜö∩╕Å Challenge {challengeModal.opponent.display_name}
             </h2>
             <p className="text-xs text-zinc-400 mb-5">Choose a subject and stake amount</p>
 
@@ -314,7 +314,7 @@ export default function PlayersPage() {
                         : "border-white/10 bg-black/20 text-zinc-500"
                     }`}
                   >
-                    ₦{amt}
+                    Γéª{amt}
                   </button>
                 ))}
               </div>
@@ -341,7 +341,7 @@ export default function PlayersPage() {
                 disabled={busy}
                 className="flex-1 rounded-2xl bg-[#7c3aed] py-3 text-sm font-extrabold text-white hover:bg-[#6d28d9] disabled:opacity-50 transition"
               >
-                {busy ? "Sending…" : "Send Challenge ⚔️"}
+                {busy ? "SendingΓÇª" : "Send Challenge ΓÜö∩╕Å"}
               </button>
             </div>
           </div>
