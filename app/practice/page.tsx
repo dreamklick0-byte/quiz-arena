@@ -10,6 +10,7 @@ const subjects = [
   { name: "Government", icon: "⚖️", gradient: "from-amber-600 to-yellow-800", slug: "government", image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80" },
   { name: "Economics", icon: "📊", gradient: "from-teal-600 to-cyan-800", slug: "economics", image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80" },
   { name: "Agricultural Science", icon: "🌱", gradient: "from-lime-600 to-green-800", slug: "agricultural-science", image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&q=80" },
+  { name: "Current Affairs", icon: "🌍", gradient: "from-rose-600 to-red-800", slug: "current-affairs", image: "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=400&q=80" },
 ];
 
 export default function PracticePage() {
@@ -51,17 +52,17 @@ export default function PracticePage() {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto px-4 py-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {subjects.map((s) => (
               <Link
                 key={s.slug}
                 href={`/practice/${s.slug}`}
-                className={`bg-gradient-to-br ${s.gradient} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden`}
+                className={`bg-gradient-to-br ${s.gradient} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden group`}
               >
                 <img
                   src={s.image}
-                  className="absolute inset-0 w-full h-full object-cover opacity-20"
+                  className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity"
                   alt=""
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-black/40 to-black/20" />

@@ -280,249 +280,267 @@ export default function BattleLobbyPage() {
   }, [mode, joinNormalized]);
 
   return (
-    <div
-      className="min-h-screen bg-[#0f0f1a] text-white"
-      style={{
-        minHeight: "100vh",
-        backgroundImage:
-          "linear-gradient(to bottom right, #4a00e0, #8e2de2)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
-        <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-[#0f0f1a] text-zinc-200 relative overflow-x-hidden">
+      {/* BACKGROUND IMAGE */}
+      <img
+        src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&q=80"
+        alt=""
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ opacity: 0.10 }}
+      />
+      <div className="fixed inset-0 bg-[#0a0a12]/90 pointer-events-none z-0" />
 
-      <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6 sm:pt-10">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
-            QUIZ ARENA
-          </p>
-          <Link
-            href="/"
-            className="text-xs font-medium text-[#888888] transition hover:text-[#7c3aed]"
-          >
-            Back to Home
-          </Link>
+      <div className="relative z-10">
+        {/* HERO BANNER */}
+        <div
+          className="py-16 text-center relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #0f0a1e, #1a0a2e)" }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1920&q=80"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0.12 }}
+            alt=""
+          />
+          <div className="absolute inset-0 bg-[#0f0a1e]/60" />
+          <div className="relative z-10 px-4">
+            <h1 className="text-white text-5xl font-black">Battle Arena</h1>
+            <p className="text-zinc-300 text-lg mt-2">
+              Challenge real students. Stake your amount. Winner takes all.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-2 rounded-xl border border-white/10 p-1">
-          <button
-            type="button"
-            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "create" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-            onClick={() => setMode("create")}
-          >
-            🔐 Private
-          </button>
-          <button
-            type="button"
-            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "join" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-            onClick={() => setMode("join")}
-          >
-            🔗 Join
-          </button>
-          <button
-            type="button"
-            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "quick" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-            onClick={handleQuickMatch}
-          >
-            ⚡ Quick
-          </button>
-          <button
-            type="button"
-            className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "league" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-            onClick={() => router.push("/league")}
-          >
-            🏆 League
-          </button>
-        </div>
+        <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6 sm:pt-10">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
+              QUIZ ARENA
+            </p>
+            <Link
+              href="/"
+              className="text-xs font-medium text-zinc-400 transition hover:text-[#7c3aed]"
+            >
+              Back to Home
+            </Link>
+          </div>
 
-        <div className="mt-8 rounded-3xl border border-white/10 bg-[#1a1a2e]/85 p-5 shadow-[0_30px_110px_-70px_rgba(0,0,0,0.95)] backdrop-blur sm:p-7">
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                Player name
-              </label>
-              <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f0f1a] ring-1 ring-white/10">
-                  <span className="text-sm font-extrabold text-white">
-                    {avatarLetter}
-                  </span>
-                </div>
-                <input
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  placeholder="e.g. Ada"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[#888888]"
-                />
-              </div>
-            </div>
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 rounded-xl border border-white/10 p-1 bg-white/5 backdrop-blur-sm">
+            <button
+              type="button"
+              className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "create" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+              onClick={() => setMode("create")}
+            >
+              🔐 Private
+            </button>
+            <button
+              type="button"
+              className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "join" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+              onClick={() => setMode("join")}
+            >
+              🔗 Join
+            </button>
+            <button
+              type="button"
+              className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "quick" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+              onClick={handleQuickMatch}
+            >
+              ⚡ Quick
+            </button>
+            <button
+              type="button"
+              className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "league" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
+              onClick={() => router.push("/league")}
+            >
+              🏆 League
+            </button>
+          </div>
 
-            {mode === "create" && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                    Subject
-                  </label>
-                  <div className="mt-2 rounded-2xl border border-white/10 bg-[#0f0f1a]/60 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full appearance-none bg-transparent text-sm text-white outline-none"
-                    >
-                      {SUBJECTS.map((s) => (
-                        <option key={s.slug} value={s.slug}>
-                          {s.emoji} {s.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                    Players
-                  </label>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {[2, 3, 4].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setMaxPlayers(n)}
-                        className={`rounded-xl border py-2 text-sm font-bold transition ${maxPlayers === n ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                    Stake Amount
-                  </label>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {STAKE_OPTIONS.map((amt) => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => setStakeAmount(amt)}
-                        className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
-                      >
-                        {amt === 0 ? "Free" : `₦${amt}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 rounded-2xl border border-dashed border-white/20 bg-black/30 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
-                    ━━━━━━━━━━━━━━━━━━━━━━
-                    <br />
-                    PRIZE BREAKDOWN
-                    <br />
-                    ━━━━━━━━━━━━━━━━━━━━━━
-                  </p>
-                  <div className="mt-3 space-y-1 text-xs font-mono">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Entry per player:</span>
-                      <span className="text-white">₦{stakeAmount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Total Pool:</span>
-                      <span className="text-white">₦{prizeBreakdown.totalPool}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Platform (20%):</span>
-                      <span className="text-white">₦{prizeBreakdown.platformCut}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-white/10 pt-1 font-bold">
-                      <span className="text-[#f59e0b]">Prize Pool (80%):</span>
-                      <span className="text-[#f59e0b]">₦{prizeBreakdown.prizePool}</span>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
-                    ━━━━━━━━━━━━━━━━━━━━━━
-                  </p>
-                  <div className="mt-2 space-y-1 text-xs font-bold text-center">
-                    <p className="text-emerald-400">🥇 1st: ₦{Math.floor(prizeBreakdown.first)}</p>
-                    {maxPlayers >= 3 && <p className="text-blue-400">🥈 2nd: ₦{Math.floor(prizeBreakdown.second)}</p>}
-                    {maxPlayers >= 4 && <p className="text-purple-400">🥉 3rd: ₦{Math.floor(prizeBreakdown.third)}</p>}
-                  </div>
-                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
-                    ━━━━━━━━━━━━━━━━━━━━━━
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {mode === "join" && (
+          <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur sm:p-7">
+            <form onSubmit={onSubmit} className="space-y-6">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                  Room code
+                  Player name
                 </label>
-                <input
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  placeholder="XXXXXX"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0f0f1a]/70 px-4 py-3.5 text-center font-mono text-lg tracking-[0.35em] text-white outline-none focus:border-[#7c3aed]"
-                />
-                
-                {joinNormalized.length === 6 && (
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
-                    {joinPreviewLoading ? (
-                      <p className="text-center text-xs text-zinc-500">Looking up room...</p>
-                    ) : joinPreview ? (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Subject:</span>
-                          <span className="font-bold text-white">{getSubjectMeta(joinPreview.subject)?.title}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Stake:</span>
-                          <span className="font-bold text-[#f59e0b]">{joinPreview.stake_amount === 0 ? "Free" : `₦${joinPreview.stake_amount}`}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Players:</span>
-                          <span className="text-white">{joinPreview.current_players} / {joinPreview.max_players}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-center text-xs text-red-400">Room not found or expired.</p>
-                    )}
+                <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f0f1a] ring-1 ring-white/10">
+                    <span className="text-sm font-extrabold text-white">
+                      {avatarLetter}
+                    </span>
                   </div>
-                )}
+                  <input
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    placeholder="e.g. Ada"
+                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[#888888]"
+                  />
+                </div>
               </div>
-            )}
 
-            {error && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
-            )}
+              {mode === "create" && (
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                      Subject
+                    </label>
+                    <div className="mt-2 rounded-2xl border border-white/10 bg-black/40 px-3 py-2.5 focus-within:border-[#7c3aed]/60">
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="w-full appearance-none bg-transparent text-sm text-white outline-none"
+                      >
+                        {SUBJECTS.map((s) => (
+                          <option key={s.slug} value={s.slug} className="bg-[#1a1a2e]">
+                            {s.emoji} {s.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-            <button
-              type="submit"
-              disabled={!canSubmit || busy}
-              className="w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-extrabold tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9] disabled:opacity-50"
-            >
-              {busy ? "Processing..." : mode === "create" ? "CREATE PRIVATE ROOM" : "JOIN BATTLE"}
-            </button>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                      Players
+                    </label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {[2, 3, 4].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setMaxPlayers(n)}
+                          className={`rounded-xl border py-2 text-sm font-bold transition ${maxPlayers === n ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
-              ⚡ Quick Match auto-connects you with online opponents
-            </p>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                      Stake Amount
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {STAKE_OPTIONS.map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setStakeAmount(amt)}
+                          className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
+                        >
+                          {amt === 0 ? "Free" : `₦${amt}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            {/* keep existing submit behavior for Enter key */}
-            <button type="submit" className="sr-only" aria-hidden tabIndex={-1}>
-              Submit
-            </button>
-          </form>
+                  <div className="sm:col-span-2 rounded-2xl border border-dashed border-white/20 bg-black/30 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                      ━━━━━━━━━━━━━━━━━━━━━━
+                      <br />
+                      PRIZE BREAKDOWN
+                      <br />
+                      ━━━━━━━━━━━━━━━━━━━━━━
+                    </p>
+                    <div className="mt-3 space-y-1 text-xs font-mono">
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Entry per player:</span>
+                        <span className="text-zinc-200">₦{stakeAmount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Total Pool:</span>
+                        <span className="text-zinc-200">₦{prizeBreakdown.totalPool}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Platform (20%):</span>
+                        <span className="text-zinc-200">₦{prizeBreakdown.platformCut}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-white/10 pt-1 font-bold">
+                        <span className="text-[#f59e0b]">Prize Pool (80%):</span>
+                        <span className="text-[#f59e0b]">₦{prizeBreakdown.prizePool}</span>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                      ━━━━━━━━━━━━━━━━━━━━━━
+                    </p>
+                    <div className="mt-2 space-y-1 text-xs font-bold text-center">
+                      <p className="text-emerald-400">🥇 1st: ₦{Math.floor(prizeBreakdown.first)}</p>
+                      {maxPlayers >= 3 && <p className="text-blue-400">🥈 2nd: ₦{Math.floor(prizeBreakdown.second)}</p>}
+                      {maxPlayers >= 4 && <p className="text-purple-400">🥉 3rd: ₦{Math.floor(prizeBreakdown.third)}</p>}
+                    </div>
+                    <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
+                      ━━━━━━━━━━━━━━━━━━━━━━
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {mode === "join" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                      Room code
+                    </label>
+                    <input
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      placeholder="XXXXXX"
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-4 text-center font-mono text-xl tracking-[0.35em] text-white outline-none focus:border-[#7c3aed]"
+                    />
+                  </div>
+                  
+                  {joinNormalized.length === 6 && (
+                    <div className="rounded-2xl border border-white/10 bg-black/60 p-5 backdrop-blur-sm">
+                      {joinPreviewLoading ? (
+                        <p className="text-center text-xs text-zinc-500 animate-pulse">Looking up room...</p>
+                      ) : joinPreview ? (
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Subject:</span>
+                            <span className="font-bold text-white uppercase tracking-wider">{getSubjectMeta(joinPreview.subject)?.title}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Stake:</span>
+                            <span className="font-bold text-[#f59e0b]">{joinPreview.stake_amount === 0 ? "Free" : `₦${joinPreview.stake_amount}`}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Players:</span>
+                            <span className="text-white font-bold">{joinPreview.current_players} / {joinPreview.max_players}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-center text-xs text-red-400 font-bold">Room not found or expired.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 font-medium">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={!canSubmit || busy}
+                className="w-full rounded-2xl bg-[#7c3aed] py-5 text-sm font-black tracking-[0.15em] text-white shadow-2xl shadow-[#7c3aed]/30 transition hover:bg-[#6d28d9] active:scale-[0.98] disabled:opacity-50"
+              >
+                {busy ? "PROCESSING..." : mode === "create" ? "CREATE PRIVATE ROOM" : "JOIN BATTLE"}
+              </button>
+
+              <p className="text-center text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">
+                ⚡ Quick Match auto-connects you with online opponents
+              </p>
+
+              {/* keep existing submit behavior for Enter key */}
+              <button type="submit" className="sr-only" aria-hidden tabIndex={-1}>
+                Submit
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

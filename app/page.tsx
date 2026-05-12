@@ -81,7 +81,8 @@ export default function LandingPage() {
         />
         <img
           src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=1920&q=80"
-          className="absolute inset-0 w-full h-full object-cover opacity-10 mix-blend-overlay"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.08, mixBlendMode: "overlay" }}
           alt=""
         />
         <div
@@ -179,105 +180,108 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 2 — FEATURES SCROLL */}
-      <section
-        className="bg-[#0a0a12] py-20 overflow-hidden relative"
-        style={{
-          backgroundImage: "url(https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80)",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}
-      >
-        <div className="absolute inset-0 bg-[#0a0a12]/90" />
-        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">Everything You Need to Win</h2>
-        <p className="text-zinc-400 text-center mb-12 relative z-10">One platform. Infinite possibilities.</p>
+      <section className="relative overflow-hidden py-20">
+        <img
+          src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.12 }}
+        />
+        <div className="absolute inset-0" style={{ background: "rgba(10,10,18,0.88)" }} />
+        <div className="relative z-10">
+          <h2 className="text-white text-4xl font-black text-center mb-2">Everything You Need to Win</h2>
+          <p className="text-zinc-400 text-center mb-12">One platform. Infinite possibilities.</p>
 
-        <div className="overflow-hidden relative z-10">
-          <div
-            className="flex w-fit"
-            style={{ animation: "scrollTicker 30s linear infinite" }}
-          >
-            {[...features, ...features].map((feature, i) => (
-              <div
-                key={i}
-                className={`w-72 shrink-0 mx-3 rounded-2xl p-6 border ${feature.color}`}
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-white font-bold text-xl mb-2">{feature.title}</h3>
-                <p className="text-zinc-400 text-sm">{feature.desc}</p>
+          <div className="overflow-hidden">
+            <div
+              className="flex w-fit"
+              style={{ animation: "scrollTicker 30s linear infinite" }}
+            >
+              {[...features, ...features].map((feature, i) => (
+                <div
+                  key={i}
+                  className={`w-72 shrink-0 mx-3 rounded-2xl p-6 border ${feature.color}`}
+                >
+                  <div className="text-4xl mb-4">{feature.icon}</div>
+                  <h3 className="text-white font-bold text-xl mb-2">{feature.title}</h3>
+                  <p className="text-zinc-400 text-sm">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3 — HOW IT WORKS */}
+      <section className="relative overflow-hidden py-24">
+        <img
+          src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.12 }}
+        />
+        <div className="absolute inset-0" style={{ background: "rgba(15,5,32,0.88)" }} />
+        <div className="relative z-10">
+          <h2 className="text-white text-4xl font-black text-center mb-2">How It Works</h2>
+          <p className="text-zinc-400 text-center mb-16">Get started in under 2 minutes</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto px-4">
+            {[
+              { step: "1", title: "Create Account", desc: "Sign up free in 30 seconds. No credit card needed." },
+              { step: "2", title: "Add to Wallet", desc: "Deposit from N100 via Paystack. Secure and instant." },
+              { step: "3", title: "Join a Battle", desc: "Pick a subject, stake your amount, find an opponent." },
+              { step: "4", title: "Win and Withdraw", desc: "Winner gets the pot. Withdraw to your bank anytime." }
+            ].map((item, i) => (
+              <div key={i} className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                <div
+                  className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center font-black text-2xl text-white"
+                  style={{ background: "linear-gradient(135deg,#7c3aed,#f59e0b)" }}
+                >
+                  {item.step}
+                </div>
+                <h3 className="text-white font-bold text-xl mb-2">{item.title}</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* SECTION 3 — HOW IT WORKS */}
-      <section
-        className="py-24 relative"
-        style={{
-          backgroundImage: "url(https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80)",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}
-      >
-        <div className="absolute inset-0 bg-[#0f0520]/88" />
-        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">How It Works</h2>
-        <p className="text-zinc-400 text-center mb-16 relative z-10">Get started in under 2 minutes</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto px-4 relative z-10">
-          {[
-            { step: "1", title: "Create Account", desc: "Sign up free in 30 seconds. No credit card needed." },
-            { step: "2", title: "Add to Wallet", desc: "Deposit from N100 via Paystack. Secure and instant." },
-            { step: "3", title: "Join a Battle", desc: "Pick a subject, stake your amount, find an opponent." },
-            { step: "4", title: "Win and Withdraw", desc: "Winner gets the pot. Withdraw to your bank anytime." }
-          ].map((item, i) => (
-            <div key={i} className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center font-black text-2xl text-white"
-                style={{ background: "linear-gradient(135deg,#7c3aed,#f59e0b)" }}
-              >
-                {item.step}
-              </div>
-              <h3 className="text-white font-bold text-xl mb-2">{item.title}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* SECTION 4 — SUBJECTS */}
-      <section
-        className="bg-[#0a0a12] py-20 relative"
-        style={{
-          backgroundImage: "url(https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=80)",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}
-      >
-        <div className="absolute inset-0 bg-[#0a0a12]/85" />
-        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">Master Every Subject</h2>
-        <p className="text-zinc-400 text-center mb-12 relative z-10">JAMB - WAEC - NECO all in one place</p>
+      <section className="relative overflow-hidden py-20">
+        <img
+          src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.12 }}
+        />
+        <div className="absolute inset-0" style={{ background: "rgba(10,10,18,0.85)" }} />
+        <div className="relative z-10">
+          <h2 className="text-white text-4xl font-black text-center mb-2">Master Every Subject</h2>
+          <p className="text-zinc-400 text-center mb-12">JAMB - WAEC - NECO all in one place</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto px-4 relative z-10">
-          {subjects.map((subject, i) => (
-            <Link
-              key={i}
-              href="/practice"
-              className={`bg-gradient-to-br ${subject.from} ${subject.to} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden`}
-            >
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)"
-                }}
-              />
-              <div className="text-4xl mb-3 relative z-10">{subject.icon}</div>
-              <div className="flex items-center justify-between relative z-10">
-                <h3 className="text-white font-extrabold text-lg">{subject.name}</h3>
-                <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">10 Qs</span>
-              </div>
-              <div className="text-white/80 text-sm mt-2 relative z-10">Start</div>
-            </Link>
-          ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
+            {subjects.map((subject, i) => (
+              <Link
+                key={i}
+                href="/practice"
+                className={`bg-gradient-to-br ${subject.from} ${subject.to} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden`}
+              >
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)"
+                  }}
+                />
+                <div className="text-4xl mb-3 relative z-10">{subject.icon}</div>
+                <div className="flex items-center justify-between relative z-10">
+                  <h3 className="text-white font-extrabold text-lg">{subject.name}</h3>
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">10 Qs</span>
+                </div>
+                <div className="text-white/80 text-sm mt-2 relative z-10">Start</div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -297,61 +301,62 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 6 — TESTIMONIALS */}
-      <section
-        className="py-24 relative"
-        style={{
-          backgroundImage: "url(https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80)",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}
-      >
-        <div className="absolute inset-0 bg-[#050508]/90" />
-        <h2 className="text-white text-4xl font-black text-center mb-12 relative z-10">Students Love Quiz Arena</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4 relative z-10">
-          {testimonials.map((t, i) => (
-            <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
-              <div className="text-[#f59e0b] text-lg mb-4">{"★".repeat(5)}</div>
-              <p className="text-zinc-300 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm bg-gradient-to-br ${t.colors}`}>
-                  {t.initials}
-                </div>
-                <div>
-                  <div className="text-white font-bold text-sm">{t.name}</div>
-                  <div className="text-zinc-500 text-xs">{t.role}</div>
+      <section className="relative overflow-hidden py-24">
+        <img
+          src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.12 }}
+        />
+        <div className="absolute inset-0" style={{ background: "rgba(5,5,8,0.90)" }} />
+        <div className="relative z-10">
+          <h2 className="text-white text-4xl font-black text-center mb-12">Students Love Quiz Arena</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4">
+            {testimonials.map((t, i) => (
+              <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
+                <div className="text-[#f59e0b] text-lg mb-4">{"★".repeat(5)}</div>
+                <p className="text-zinc-300 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm bg-gradient-to-br ${t.colors}`}>
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="text-white font-bold text-sm">{t.name}</div>
+                    <div className="text-zinc-500 text-xs">{t.role}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* SECTION 7 — CTA */}
-      <section
-        className="py-24 text-center px-4 relative overflow-hidden"
-        style={{ background: "radial-gradient(ellipse at center, #1e0a3c 0%, #050508 100%)" }}
-      >
+      <section className="relative overflow-hidden py-24 text-center px-4">
         <img
           src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1920&q=80"
-          className="absolute inset-0 w-full h-full object-cover opacity-30"
           alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.12 }}
         />
-        <div className="absolute inset-0 bg-black/60" />
-        <h2 className="text-white text-5xl font-black mb-4 relative z-10">Ready to Start Winning?</h2>
-        <p className="text-zinc-400 text-lg mb-10 relative z-10">Join 50,000+ students already competing. Your first spin is free.</p>
-        <div className="flex gap-4 justify-center flex-wrap relative z-10">
-          <Link
-            href="/auth"
-            className="bg-[#f59e0b] text-black font-black px-10 py-4 rounded-2xl text-lg hover:bg-[#e6950a] transition-colors"
-          >
-            Create Free Account
-          </Link>
-          <Link
-            href="/practice"
-            className="border border-white/20 text-white font-bold px-10 py-4 rounded-2xl text-lg hover:bg-white/5 transition-colors"
-          >
-            Explore Subjects
-          </Link>
+        <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.80)" }} />
+        <div className="relative z-10">
+          <h2 className="text-white text-5xl font-black mb-4">Ready to Start Winning?</h2>
+          <p className="text-zinc-400 text-lg mb-10">Join 50,000+ students already competing. Your first spin is free.</p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link
+              href="/auth"
+              className="bg-[#f59e0b] text-black font-black px-10 py-4 rounded-2xl text-lg hover:bg-[#e6950a] transition-colors"
+            >
+              Create Free Account
+            </Link>
+            <Link
+              href="/practice"
+              className="border border-white/20 text-white font-bold px-10 py-4 rounded-2xl text-lg hover:bg-white/5 transition-colors"
+            >
+              Explore Subjects
+            </Link>
+          </div>
         </div>
       </section>
 

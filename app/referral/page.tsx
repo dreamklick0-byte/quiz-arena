@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
+import Link from "next/link";
 
 export default function ReferralPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -50,104 +51,126 @@ export default function ReferralPage() {
   };
 
   return (
-    <div
-      className="min-h-screen text-white relative"
-      style={{
-        backgroundImage: "url(https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1920&q=80)",
-        backgroundSize: "cover",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center"
-      }}
-    >
-      <div className="fixed inset-0 bg-[#0f0f1a]/88 pointer-events-none z-0" />
+    <div className="min-h-screen text-white relative bg-[#0f0f1a]">
+      {/* Background Image */}
+      <img
+        src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1920&q=80"
+        alt=""
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ opacity: 0.06 }}
+      />
+      <div className="fixed inset-0 bg-[#0f0f1a]/92 pointer-events-none z-0" />
 
-      <PageShell overlay="transparent">
-        <div
-          className="py-16 text-center relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)" }}
-        >
-          <img
-            src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1920&q=80"
-            className="absolute inset-0 w-full h-full object-cover"
-            alt=""
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#064e3b]/90 to-[#065f46]/90" />
-          <span className="absolute top-12 left-[10%] text-3xl opacity-15">💰</span>
-          <span className="absolute top-20 right-[15%] text-3xl opacity-15">💰</span>
-          <span className="absolute bottom-16 left-[20%] text-3xl opacity-15">💰</span>
-          <span className="absolute bottom-8 right-[25%] text-3xl opacity-15">💰</span>
-          <span className="absolute top-32 left-[35%] text-3xl opacity-15">💰</span>
-          <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(16,185,129,0.5)" }}>
-            Refer Friends. Earn Forever.
-          </h1>
-          <p className="text-emerald-200 text-lg font-semibold mt-2 relative z-10">
-            Get 5% on first deposits. 0.5% on every deposit after that. Forever.
-          </p>
-          <div className="flex justify-center gap-12 mt-8 relative z-10">
-            <div className="text-center">
-              <div className="text-white font-black text-3xl">5%</div>
-              <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">First Deposit Bonus</div>
-            </div>
-            <div className="text-center">
-              <div className="text-white font-black text-3xl">0.5%</div>
-              <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">Recurring Bonus</div>
-            </div>
-            <div className="text-center">
-              <div className="text-white font-black text-3xl">∞</div>
-              <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">No Expiry</div>
-            </div>
+      <div className="relative z-10">
+        <PageShell overlay="transparent">
+          {/* HERO BANNER */}
+          <div
+            className="py-16 text-center relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)" }}
+          >
+            <img
+              src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1920&q=80"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0.15 }}
+              alt=""
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#064e3b]/90 to-[#065f46]/90" />
+            
+            {/* Money Rain Effect */}
+            <span className="absolute top-12 left-[10%] text-3xl opacity-15">💰</span>
+            <span className="absolute top-20 right-[15%] text-3xl opacity-15">💰</span>
+            <span className="absolute bottom-16 left-[20%] text-3xl opacity-15">💰</span>
+            <span className="absolute bottom-8 right-[25%] text-3xl opacity-15">💰</span>
+            <span className="absolute top-32 left-[35%] text-3xl opacity-15">💰</span>
+
+            <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(16,185,129,0.5)" }}>
+              Refer Friends. Earn Forever.
+            </h1>
+            <p className="text-emerald-200 text-lg font-semibold mt-2 relative z-10">
+              Get 5% on first deposits. 0.5% on every deposit after that. Forever.
+            </p>
           </div>
-        </div>
 
-        <div className="min-h-screen bg-transparent text-white flex flex-col items-center px-4 py-12">
-          <div className="w-full max-w-lg">
-            <h1 className="text-3xl font-black text-emerald-400 mb-1 hidden">💰 Refer & Earn</h1>
-            <p className="text-zinc-400 text-sm mb-8 hidden">Invite friends and earn bonus cash on every deposit they make.</p>
-
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center">
-                <div className="text-3xl font-black text-emerald-400">{referralCount}</div>
-                <div className="text-xs text-zinc-500 mt-1">Friends Referred</div>
-              </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center">
-                <div className="text-3xl font-black text-emerald-400">₦{totalEarned}</div>
-                <div className="text-xs text-zinc-500 mt-1">Total Earned</div>
-              </div>
-            </div>
-
+          <div className="max-w-4xl mx-auto px-4 py-12">
             {loading ? (
-              <div className="text-zinc-500 text-sm text-center">Loading...</div>
+              <div className="text-zinc-500 text-sm text-center py-20">Loading...</div>
             ) : !userId ? (
-              <a href="/auth" className="block text-center rounded-xl bg-emerald-500 px-8 py-3 font-bold text-black">Sign in to refer friends</a>
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-12 text-center backdrop-blur-md">
+                <h2 className="text-2xl font-bold text-white mb-4">Ready to start earning?</h2>
+                <p className="text-zinc-400 mb-8">Sign in to see your referral link and track your earnings.</p>
+                <Link href="/auth" className="inline-block rounded-2xl bg-emerald-500 px-10 py-4 font-black text-black hover:bg-emerald-400 transition-colors">
+                  Sign in to see your referral link
+                </Link>
+              </div>
             ) : (
-              <>
-                <div className="mb-4">
-                  <div className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Your Referral Code</div>
-                  <div className="rounded-xl bg-white/5 border border-white/10 px-5 py-4 text-center text-2xl font-black tracking-widest text-emerald-400">{code || "—"}</div>
+              <div className="space-y-8">
+                {/* SECTION A — Stats row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+                    <div className="text-3xl font-black text-emerald-400">{referralCount}</div>
+                    <div className="text-xs text-zinc-500 mt-1 uppercase tracking-wider">Friends Referred</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+                    <div className="text-3xl font-black text-emerald-400">₦{totalEarned}</div>
+                    <div className="text-xs text-zinc-500 mt-1 uppercase tracking-wider">Total Earned</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+                    <div className="text-3xl font-black text-emerald-400">₦0</div>
+                    <div className="text-xs text-zinc-500 mt-1 uppercase tracking-wider">Pending Bonus</div>
+                  </div>
                 </div>
-                <div className="mb-6">
-                  <div className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Your Referral Link</div>
-                  <div className="flex gap-2">
-                    <div className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-zinc-300 truncate">{referralLink}</div>
-                    <button onClick={copyLink} className="rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-black transition hover:bg-emerald-400">
-                      {copied ? "Copied!" : "Copy"}
+
+                {/* SECTION B — Your Referral Code */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Your Referral Code</label>
+                  <div className="rounded-xl bg-white/5 border border-white/10 px-5 py-6 text-center text-4xl font-black tracking-[0.2em] text-emerald-400 backdrop-blur-sm">
+                    {code || "—"}
+                  </div>
+                </div>
+
+                {/* SECTION C — Your Referral Link */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Your Referral Link</label>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex-1 rounded-xl bg-white/5 border border-white/10 px-5 py-4 text-sm text-zinc-300 truncate backdrop-blur-sm flex items-center">
+                      {referralLink}
+                    </div>
+                    <button 
+                      onClick={copyLink} 
+                      className="rounded-xl bg-emerald-500 px-8 py-4 font-black text-black hover:bg-emerald-400 transition-all shrink-0 active:scale-95"
+                    >
+                      {copied ? "Copied!" : "Copy Link"}
                     </button>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-                  <div className="text-sm font-bold text-white mb-3">How it works</div>
-                  <div className="space-y-2 text-xs text-zinc-400">
-                    <div className="flex gap-3"><span className="text-emerald-400 font-bold">1.</span> Share your referral link with friends</div>
-                    <div className="flex gap-3"><span className="text-emerald-400 font-bold">2.</span> They sign up and make their first deposit</div>
-                    <div className="flex gap-3"><span className="text-emerald-400 font-bold">3.</span> You earn 5% of their first deposit instantly</div>
-                    <div className="flex gap-3"><span className="text-emerald-400 font-bold">4.</span> You earn 0.5% on every future deposit forever</div>
+
+                {/* SECTION D — How It Works */}
+                <div className="rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-sm">
+                  <h3 className="text-xl font-black text-white mb-6">How It Works</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">1</div>
+                      <p className="text-sm text-zinc-300">Share your referral link with friends via social media or DM.</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">2</div>
+                      <p className="text-sm text-zinc-300">They sign up using your unique link and join the arena.</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">3</div>
+                      <p className="text-sm text-zinc-300">They make their first deposit to start competing in battles.</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">4</div>
+                      <p className="text-sm text-zinc-300">You earn <span className="text-emerald-400 font-bold">5%</span> of their first deposit instantly + <span className="text-emerald-400 font-bold">0.5%</span> on every future deposit forever.</p>
+                    </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
-        </div>
-      </PageShell>
+        </PageShell>
+      </div>
     </div>
   );
 }
