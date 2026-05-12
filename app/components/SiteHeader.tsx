@@ -77,7 +77,7 @@ export function SiteHeader() {
           <Link href="/" className="transition hover:text-white">
             Home
           </Link>
-          <Link href="/practice/maths" className="transition hover:text-white">
+          <Link href="/practice" className="transition hover:text-white">
             Practice
           </Link>
           <Link href="/battle" className="transition hover:text-[#f59e0b]">
