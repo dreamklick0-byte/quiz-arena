@@ -138,11 +138,18 @@ export default function BattleRequestListener() {
       }
 
       // Create the battle room (challenger is player 1)
-      const { roomCode } = await createBattleRoom(
+      const { data: sessionData } = await supabase.auth.getSession(); 
+      const userId = sessionData?.session?.user?.id; 
+      if (!userId) throw new Error("Not logged in"); 
+
+      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+      const roomCode = generateRoomCode(6); 
+
+      const room = await createBattleRoom(
+        roomCode, 
         subject,
-        challenger_name,
-        stake_amount,
-        2
+        userId,
+        stake_amount
       );
 
       // Add myself (opponent) as player 2
@@ -174,9 +181,12 @@ export default function BattleRequestListener() {
         .eq("id", id);
 
       // Link guest_id and activate room
+      const { data: guestSession } = await supabase.auth.getSession(); 
+      const guestId = guestSession?.session?.user?.id; 
+
       await supabase
         .from("battle_rooms")
-        .update({ guest_id: currentUserId, status: "active" })
+        .update({ guest_id: guestId, status: "active" })
         .eq("id", roomId);
 
       // Save player identity and redirect to battle room

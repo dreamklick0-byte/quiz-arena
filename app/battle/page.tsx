@@ -77,23 +77,30 @@ export default function BattleLobbyPage() {
     try {
       const supabase = getSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id; 
+      if (!userId) throw new Error("Please sign in to play."); 
       
       if (stakeAmount > 0) {
-        if (!user) throw new Error("Please sign in to play for money.");
-        const balance = await getWalletBalance(user.id);
+        const balance = await getWalletBalance(userId);
         if (balance < stakeAmount) {
           throw new Error(`Insufficient balance. You need ₦${stakeAmount}. Current balance: ₦${balance}.`);
         }
       }
 
-      const { roomCode, playerId } = await createBattleRoom(
+      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+      const roomCode = generateRoomCode(6); 
+
+      const room = await createBattleRoom(
+        roomCode, 
         subject,
-        playerName,
-        stakeAmount,
-        maxPlayers
+        userId,
+        stakeAmount
       );
 
-      if (stakeAmount > 0 && user) {
+      const player = await insertRoomPlayer(room.id, playerName); 
+      const playerId = player.id; 
+
+      if (stakeAmount > 0) {
         await processTransaction(
           user.id,
           'stake',

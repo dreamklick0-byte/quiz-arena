@@ -8,48 +8,22 @@ export type CreateBattleRoomResult = {
   roomId: string;
 };
 
-/**
- * Creates a waiting room and first player row (battle host).
- */
-export async function createBattleRoom(
-  subject: string,
-  playerName: string,
-  stakeAmount: number = 0,
-  maxPlayers: number = 2
-): Promise<CreateBattleRoomResult> {
-  const supabase = getSupabaseClient();
-  const roomCode = generateRoomCode(6);
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const currentUserId = user?.id || null;
-
-  const prizePool = stakeAmount * maxPlayers;
-  const platformCut = prizePool * 0.20;
-  const netPrizePool = prizePool - platformCut;
-
-  const { data: room, error: roomErr } = await supabase
-    .from("battle_rooms")
-    .insert({
-      room_code: roomCode,
-      status: "waiting",
-      subject,
-      current_question: 0,
-      stake_amount: stakeAmount,
-      prize_pool: netPrizePool,
-      max_players: maxPlayers,
-      is_paid: stakeAmount > 0,
-      host_id: currentUserId
-    })
-    .select("id, room_code")
-    .single();
-
-  if (roomErr) throw roomErr;
-
-  const player = await insertRoomPlayer(room.id, playerName);
-
-  return {
-    roomCode: room.room_code,
-    playerId: player.id,
-    roomId: room.id,
-  };
-}
+export async function createBattleRoom(roomCode: string, subject: string, userId: string, stakeAmount?: number) { 
+   const supabase = getSupabaseClient(); 
+   
+   const { data: room, error } = await supabase 
+     .from("battle_rooms") 
+     .insert({ 
+       room_code: roomCode, 
+       subject: subject, 
+       host_id: userId, 
+       status: "waiting", 
+       stake_amount: stakeAmount ?? 0, 
+       prize_pool: stakeAmount ? Math.floor(stakeAmount * 1.6) : 0, 
+     }) 
+     .select("id, room_code") 
+     .single(); 
+ 
+   if (error) throw error; 
+   return room; 
+ } 
