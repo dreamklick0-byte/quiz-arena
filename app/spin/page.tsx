@@ -184,12 +184,12 @@ export default function SpinPage() {
     <div className="min-h-screen text-white relative bg-[#0f0f1a]">
       {/* BACKGROUND IMAGE */}
       <img
-        src="https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=1920&q=80"
+        src="https://images.unsplash.com/photo-1607522370275-f6fd4d877e5e?w=1920&q=80"
         alt=""
         className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ opacity: 0.08 }}
+        style={{ opacity: 0.18 }}
       />
-      <div className="fixed inset-0 bg-[#0f0f1a]/92 pointer-events-none z-0" />
+      <div className="fixed inset-0 bg-[#0f0f1a]/75 pointer-events-none z-0" />
 
       <div className="relative z-10">
         <PageShell overlay="transparent">
@@ -222,10 +222,10 @@ export default function SpinPage() {
             <span className="absolute top-20 right-[20%] text-4xl opacity-20">🪙</span>
             <span className="absolute bottom-10 left-[25%] text-4xl opacity-20">🪙</span>
             <span className="absolute bottom-16 right-[15%] text-4xl opacity-20">🪙</span>
-            <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(245,158,11,0.6)" }}>
+            <h1 className="text-white text-5xl md:text-6xl font-black relative z-10 drop-shadow-2xl" style={{ textShadow: "0 0 40px rgba(245,158,11,0.9), 0 4px 8px rgba(0,0,0,0.8)" }}>
               Daily Spin & Win
             </h1>
-            <p className="text-amber-200 text-lg font-semibold mt-2 relative z-10">
+            <p className="text-amber-100 text-xl font-black mt-3 relative z-10 drop-shadow-lg">
               One free spin. Real cash prizes. Every day.
             </p>
           </div>
@@ -266,8 +266,8 @@ export default function SpinPage() {
                 </button>
               ) : (
                 <div className="flex flex-col items-center gap-2">
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-8 py-3 text-sm font-bold text-zinc-400">Already spun today</div>
-                  {countdown && <div className="text-xs text-zinc-500">Next spin in <span className="font-mono text-[#f59e0b] font-bold">{countdown}</span></div>}
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-8 py-3 text-base font-black text-amber-200">Already spun today</div>
+                  {countdown && <div className="text-sm font-bold text-white">Next spin in <span className="font-mono text-[#f59e0b] font-black text-lg">{countdown}</span></div>}
                 </div>
               )}
             </div>
@@ -288,20 +288,20 @@ export default function SpinPage() {
 
             {/* INFO SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-4xl">
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
                 <div className="text-3xl mb-3">🕐</div>
                 <h4 className="text-white font-bold">24hr Cooldown</h4>
-                <p className="text-zinc-400 text-sm mt-2">One free spin every 24 hours. Come back daily for more prizes.</p>
+                <p className="text-base font-semibold text-amber-100 mt-2">One free spin every 24 hours. Come back daily for more prizes.</p>
               </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
                 <div className="text-3xl mb-3">💰</div>
                 <h4 className="text-white font-bold">Real Cash Prizes</h4>
-                <p className="text-zinc-400 text-sm mt-2">All winnings credited instantly to your Quiz Arena wallet.</p>
+                <p className="text-base font-semibold text-amber-100 mt-2">All winnings credited instantly to your Quiz Arena wallet.</p>
               </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center backdrop-blur-sm">
+              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
                 <div className="text-3xl mb-3">🎯</div>
                 <h4 className="text-white font-bold">8 Prize Tiers</h4>
-                <p className="text-zinc-400 text-sm mt-2">Win between ₦20 and ₦110 on every spin. No losing spins.</p>
+                <p className="text-base font-semibold text-amber-100 mt-2">Win between ₦20 and ₦110 on every spin. No losing spins.</p>
               </div>
             </div>
 
