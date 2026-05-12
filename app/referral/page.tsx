@@ -51,10 +51,33 @@ export default function ReferralPage() {
 
   return (
     <PageShell overlay="transparent">
+      <div className="py-16 text-center" style={{ background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)" }}>
+        <h1 className="text-white text-5xl font-black" style={{ textShadow: "0 0 30px rgba(16,185,129,0.5)" }}>
+          Refer Friends. Earn Forever.
+        </h1>
+        <p className="text-emerald-200 text-lg font-semibold mt-2">
+          Get 5% on first deposits. 0.5% on every deposit after that. Forever.
+        </p>
+        <div className="flex justify-center gap-12 mt-8">
+          <div className="text-center">
+            <div className="text-white font-black text-3xl">5%</div>
+            <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">First Deposit Bonus</div>
+          </div>
+          <div className="text-center">
+            <div className="text-white font-black text-3xl">0.5%</div>
+            <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">Recurring Bonus</div>
+          </div>
+          <div className="text-center">
+            <div className="text-white font-black text-3xl">∞</div>
+            <div className="text-emerald-300 text-xs uppercase tracking-wider font-bold">No Expiry</div>
+          </div>
+        </div>
+      </div>
+
       <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col items-center px-4 py-12">
         <div className="w-full max-w-lg">
-          <h1 className="text-3xl font-black text-emerald-400 mb-1">💰 Refer & Earn</h1>
-          <p className="text-zinc-400 text-sm mb-8">Invite friends and earn bonus cash on every deposit they make.</p>
+          <h1 className="text-3xl font-black text-emerald-400 mb-1 hidden">💰 Refer & Earn</h1>
+          <p className="text-zinc-400 text-sm mb-8 hidden">Invite friends and earn bonus cash on every deposit they make.</p>
 
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center">

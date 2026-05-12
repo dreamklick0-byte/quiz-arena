@@ -182,11 +182,29 @@ export default function SpinPage() {
 
   return (
     <PageShell overlay="transparent">
+      <div className="py-16 text-center relative overflow-hidden" style={{ background: "linear-gradient(135deg, #78350f 0%, #b45309 100%)" }}>
+        <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full opacity-10">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <line 
+              key={i} 
+              x1="100" 
+              y1="100" 
+              x2={100+100*Math.cos(i*Math.PI/6)} 
+              y2={100+100*Math.sin(i*Math.PI/6)} 
+              stroke="#f59e0b" 
+              strokeWidth="1" 
+            />
+          ))}
+        </svg>
+        <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(245,158,11,0.6)" }}>
+          Daily Spin & Win
+        </h1>
+        <p className="text-amber-200 text-lg font-semibold mt-2 relative z-10">
+          One free spin. Real cash prizes. Every day.
+        </p>
+      </div>
+
       <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col items-center px-4 py-10">
-        <div className="mb-2 text-center">
-          <h1 className="text-3xl font-black tracking-tight text-[#f59e0b]">🎡 Daily Spin & Win</h1>
-          <p className="mt-1 text-sm text-zinc-400">One free spin every 24 hours. Win cash, XP, and more!</p>
-        </div>
 
         <div className="relative mt-6 flex flex-col items-center">
           <div className="relative z-10 mb-[-12px]">

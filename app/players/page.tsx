@@ -164,35 +164,45 @@ export default function PlayersPage() {
 
   // ── UI ───────────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="min-h-screen text-white"
-      style={{ backgroundImage: "linear-gradient(to bottom right, #4a00e0, #8e2de2)" }}
-    >
-      {/* Ambient blobs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
-        <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
+    <div className="min-h-screen text-white bg-[#0f0f1a]">
+      <div className="py-16 text-center" style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%)" }}>
+        <div className="flex items-center justify-center mb-3">
+          <span className="w-4 h-4 rounded-full bg-green-400 inline-block mr-3 animate-pulse" />
+          <h1 className="text-white text-5xl font-black inline">Players Online</h1>
+        </div>
+        <p className="text-purple-200 text-lg font-semibold mt-3">
+          See who is live right now. Send a direct battle challenge.
+        </p>
       </div>
 
-      <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6">
-
-        {/* Page header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
-              QUIZ ARENA
-            </p>
-            <h1 className="text-2xl font-extrabold text-white mt-1">
-              Players Online
-            </h1>
-          </div>
-          <button
-            onClick={() => router.push("/")}
-            className="text-xs font-medium text-[#888888] hover:text-[#7c3aed] transition"
-          >
-            ← Back to Home
-          </button>
+      <div
+        className="relative"
+      >
+        {/* Ambient blobs */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
+          <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
         </div>
+
+        <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6">
+
+          {/* Page header hidden as it is replaced by hero */}
+          <div className="flex items-center justify-between mb-6 hidden">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
+                QUIZ ARENA
+              </p>
+              <h1 className="text-2xl font-extrabold text-white mt-1">
+                Players Online
+              </h1>
+            </div>
+            <button
+              onClick={() => router.push("/")}
+              className="text-xs font-medium text-[#888888] hover:text-[#7c3aed] transition"
+            >
+              ← Back to Home
+            </button>
+          </div>
 
         {/* Online counter */}
         <div className="flex items-center gap-2 mb-6">
