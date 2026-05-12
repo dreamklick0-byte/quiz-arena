@@ -283,6 +283,7 @@ export default function BattleRequestListener() {
             </div>
           )}
 
+          {/* request fields: {JSON.stringify(Object.keys(incomingRequest))} */}
           {/* Accept / Decline buttons */}
           <div className="flex gap-2">
             <button
@@ -293,7 +294,33 @@ export default function BattleRequestListener() {
               ✕ Decline
             </button>
             <button
-              onClick={handleAccept}
+              onClick={async () => { 
+                try { 
+                  const supabase = (await import("@/lib/supabase")).getSupabaseClient(); 
+                  const { data: sessionData } = await supabase.auth.getSession(); 
+                  const userId = sessionData?.session?.user?.id; 
+                  if (!userId) { alert("Not logged in"); return; } 
+                  
+                  const request = incomingRequest as any;
+                  const roomCode = request.room_code || request.roomCode; 
+                  
+                  const { error } = await supabase 
+                    .from("battle_rooms") 
+                    .update({ guest_id: userId, status: "active" }) 
+                    .eq("room_code", roomCode); 
+                    
+                  if (error) { alert("Error: " + error.message); return; } 
+                  
+                  await supabase 
+                    .from("battle_requests") 
+                    .update({ status: "accepted" }) 
+                    .eq("id", request.id); 
+                    
+                  window.location.href = "/battle?room=" + roomCode; 
+                } catch (err) { 
+                  alert("Failed: " + err); 
+                } 
+              }} 
               disabled={busy}
               className="flex-1 rounded-xl bg-[#7c3aed] py-2.5 text-xs font-extrabold text-white hover:bg-[#6d28d9] disabled:opacity-50 transition"
             >
