@@ -8,11 +8,11 @@ export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
-    { url: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800&q=80", badge: "📚 Study Mode" },
-    { url: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&q=80", badge: "✍️ Exam Ready" },
+    { url: "https://images.unsplash.com/photo-1613896527026-f195d5c818ed?w=800&q=80", badge: "📚 Study Mode" },
+    { url: "https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=800&q=80", badge: "✍️ Exam Ready" },
     { url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&q=80", badge: "🏫 Live Classes" },
     { url: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800&q=80", badge: "🏆 Champions" },
-    { url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80", badge: "🥇 Win Prizes" },
+    { url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80", badge: "🥇 Win Prizes" },
   ];
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function LandingPage() {
           }}
         />
         <img
-          src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1613896527026-f195d5c818ed?w=1920&q=80"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 0.08, mixBlendMode: "overlay" }}
           alt=""
