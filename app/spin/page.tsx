@@ -181,7 +181,7 @@ export default function SpinPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell overlay="transparent">
       <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col items-center px-4 py-10">
         <div className="mb-2 text-center">
           <h1 className="text-3xl font-black tracking-tight text-[#f59e0b]">🎡 Daily Spin & Win</h1>
