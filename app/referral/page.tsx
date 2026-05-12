@@ -19,12 +19,13 @@ export default function ReferralPage() {
       if (!uid) { setLoading(false); return; }
       setUserId(uid);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("referral_code")
-        .eq("id", uid)
-        .single();
-      if (profile?.referral_code) setCode(profile.referral_code);
+      const { data: profile, error: profileError } = await supabase 
+        .from("profiles") 
+        .select("referral_code") 
+        .eq("id", uid) 
+        .maybeSingle(); 
+      console.log("Profile fetch:", profile, "Error:", profileError); 
+      if (profile?.referral_code) setCode(profile.referral_code); 
 
       const { count } = await supabase
         .from("referrals")
