@@ -303,40 +303,17 @@ export default function BattleRequestListener() {
                   
                   const roomCode = incomingRequest.room_code || (incomingRequest as any).roomCode; 
                   
-                  // Step 1: update battle_rooms with guest_id 
                   const { error: updateError } = await supabase 
                     .from("battle_rooms") 
                     .update({ guest_id: userId, status: "active" }) 
                     .eq("room_code", roomCode); 
                   if (updateError) { alert("Room update error: " + updateError.message); return; } 
                   
-                  // Step 2: get the room id 
-                  const { data: room, error: roomError } = await supabase 
-                    .from("battle_rooms") 
-                    .select("id") 
-                    .eq("room_code", roomCode) 
-                    .single(); 
-                  if (roomError || !room) { alert("Could not find room"); return; } 
-                  
-                  // Step 3: insert guest into room_players 
-                  const { error: playerError } = await supabase 
-                    .from("room_players") 
-                    .insert({ 
-                      room_id: room.id, 
-                      player_name: sessionData.session?.user?.email?.split("@")[0] || "Player", 
-                      score: 0, 
-                      finished: false, 
-                      user_id: userId, 
-                    }); 
-                  if (playerError) console.error("room_players error:", playerError.message); 
-                  
-                  // Step 4: mark request as accepted 
                   await supabase 
                     .from("battle_requests") 
                     .update({ status: "accepted" }) 
                     .eq("id", incomingRequest.id); 
                   
-                  // Step 5: redirect to battle 
                   window.location.href = "/battle?room=" + roomCode; 
                 } catch (err) { 
                   alert("Failed: " + String(err)); 
