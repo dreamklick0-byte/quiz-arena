@@ -1,18 +1,18 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
 
 const PRIZES = [
-  { label: "₦20", amount: 20, type: "cash", color: "#10b981", text: "#fff" },
-  { label: "₦50", amount: 50, type: "cash", color: "#f59e0b", text: "#000" },
-  { label: "₦70", amount: 70, type: "cash", color: "#6366f1", text: "#fff" },
-  { label: "₦100", amount: 100, type: "cash", color: "#ec4899", text: "#fff" },
+  { label: "â‚¦20", amount: 20, type: "cash", color: "#10b981", text: "#fff" },
+  { label: "â‚¦50", amount: 50, type: "cash", color: "#f59e0b", text: "#000" },
+  { label: "â‚¦70", amount: 70, type: "cash", color: "#6366f1", text: "#fff" },
+  { label: "â‚¦100", amount: 100, type: "cash", color: "#ec4899", text: "#fff" },
   { label: "Free Battle", amount: 0, type: "free_battle", color: "#3b82f6", text: "#fff" },
-  { label: "2× XP", amount: 0, type: "xp", color: "#8b5cf6", text: "#fff" },
+  { label: "2Ã— XP", amount: 0, type: "xp", color: "#8b5cf6", text: "#fff" },
   { label: "Try Again", amount: 0, type: "nothing", color: "#374151", text: "#9ca3af" },
-  { label: "₦110", amount: 110, type: "cash", color: "#ef4444", text: "#fff" },
+  { label: "â‚¦110", amount: 110, type: "cash", color: "#ef4444", text: "#fff" },
 ];
 
 const SLICE = (2 * Math.PI) / PRIZES.length;
@@ -184,7 +184,7 @@ export default function SpinPage() {
     <PageShell>
       <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col items-center px-4 py-10">
         <div className="mb-2 text-center">
-          <h1 className="text-3xl font-black tracking-tight text-[#f59e0b]">🎡 Daily Spin & Win</h1>
+          <h1 className="text-3xl font-black tracking-tight text-[#f59e0b]">ðŸŽ¡ Daily Spin & Win</h1>
           <p className="mt-1 text-sm text-zinc-400">One free spin every 24 hours. Win cash, XP, and more!</p>
         </div>
 
@@ -219,7 +219,7 @@ export default function SpinPage() {
               className="rounded-xl bg-[#f59e0b] px-10 py-3 text-sm font-black text-black shadow-lg transition hover:bg-[#d97706] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ boxShadow:"0 0 24px rgba(245,158,11,0.5)" }}
             >
-              {spinning ? "Spinning..." : "🎰 SPIN NOW"}
+              {spinning ? "Spinning..." : "ðŸŽ° SPIN NOW"}
             </button>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -232,13 +232,13 @@ export default function SpinPage() {
         {result && (
           <div className="mt-8 w-full max-w-sm rounded-2xl border px-6 py-5 text-center" style={{ borderColor:result.color, backgroundColor:result.color+"22", boxShadow:`0 0 30px ${result.color}44` }}>
             {result.type === "nothing" ? (
-              <><div className="text-3xl mb-1">😅</div><div className="text-lg font-black text-zinc-300">Better luck tomorrow!</div><div className="text-xs text-zinc-500 mt-1">Come back in 24 hours</div></>
+              <><div className="text-3xl mb-1">ðŸ˜…</div><div className="text-lg font-black text-zinc-300">Better luck tomorrow!</div><div className="text-xs text-zinc-500 mt-1">Come back in 24 hours</div></>
             ) : result.type === "cash" ? (
-              <><div className="text-3xl mb-1">🎉</div><div className="text-2xl font-black" style={{ color:result.color }}>{result.label} Won!</div><div className="text-xs text-zinc-400 mt-1">Credited to your wallet instantly</div></>
+              <><div className="text-3xl mb-1">ðŸŽ‰</div><div className="text-2xl font-black" style={{ color:result.color }}>{result.label} Won!</div><div className="text-xs text-zinc-400 mt-1">Credited to your wallet instantly</div></>
             ) : result.type === "free_battle" ? (
-              <><div className="text-3xl mb-1">⚔️</div><div className="text-xl font-black text-[#3b82f6]">Free Battle Entry!</div><div className="text-xs text-zinc-400 mt-1">Head to Battle to use it</div></>
+              <><div className="text-3xl mb-1">âš”ï¸</div><div className="text-xl font-black text-[#3b82f6]">Free Battle Entry!</div><div className="text-xs text-zinc-400 mt-1">Head to Battle to use it</div></>
             ) : (
-              <><div className="text-3xl mb-1">⚡</div><div className="text-xl font-black text-[#8b5cf6]">2× XP Boost!</div><div className="text-xs text-zinc-400 mt-1">Active for your next battle</div></>
+              <><div className="text-3xl mb-1">âš¡</div><div className="text-xl font-black text-[#8b5cf6]">2Ã— XP Boost!</div><div className="text-xs text-zinc-400 mt-1">Active for your next battle</div></>
             )}
           </div>
         )}
@@ -258,3 +258,4 @@ export default function SpinPage() {
     </PageShell>
   );
 }
+
