@@ -9,12 +9,12 @@ export default function LandingPage() {
   useEffect(() => {
     const newParticles = Array.from({ length: 20 }).map((_, i) => ({
       id: i,
-      size: Math.random() * 2 + 2, // 2-4px
-      left: Math.random() * 100, // 0-100%
-      delay: Math.random() * 10, // 0-10s
-      duration: Math.random() * 12 + 8, // 8-20s
+      size: Math.random() * 2 + 2,
+      left: Math.random() * 100,
+      delay: Math.random() * 10,
+      duration: Math.random() * 12 + 8,
       color: i % 2 === 0 ? "#7c3aed" : "#f59e0b",
-      opacity: Math.random() * 0.5 + 0.3, // 0.3-0.8
+      opacity: Math.random() * 0.5 + 0.3,
     }));
     setParticles(newParticles);
   }, []);
@@ -61,25 +61,30 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#050508] text-white font-sans">
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes floatUp { 
-          0% { transform: translateY(0) scale(1); } 
-          100% { transform: translateY(-100vh) scale(0.5); opacity: 0; } 
-        } 
-        @keyframes scrollTicker { 
-          0% { transform: translateX(0); } 
-          100% { transform: translateX(-50%); } 
-        } 
+        @keyframes floatUp {
+          0% { transform: translateY(0) scale(1); }
+          100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+        }
+        @keyframes scrollTicker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
       `}} />
 
       {/* SECTION 1 — HERO */}
       <section className="min-h-screen relative overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0 z-0"
           style={{
             background: "radial-gradient(ellipse at center, #1e0a3c 0%, #050508 100%)"
           }}
         />
-        <div 
+        <img
+          src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=1920&q=80"
+          className="absolute inset-0 w-full h-full object-cover opacity-10 mix-blend-overlay"
+          alt=""
+        />
+        <div
           className="absolute inset-0 z-0 opacity-20"
           style={{
             backgroundImage: `
@@ -89,14 +94,13 @@ export default function LandingPage() {
             backgroundSize: "40px 40px"
           }}
         />
-        <div 
+        <div
           className="absolute inset-0 z-0"
           style={{
             background: "radial-gradient(ellipse at center, rgba(124,58,237,0.2) 0%, transparent 60%)"
           }}
         />
 
-        {/* Animated Particles */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {particles.map((p) => (
             <div
@@ -120,11 +124,11 @@ export default function LandingPage() {
           <div className="border border-purple-500/30 bg-purple-500/10 backdrop-blur rounded-full px-4 py-2 text-purple-300 text-sm font-semibold mb-6">
             Nigeria's #1 Academic Quiz Platform
           </div>
-          
+
           <h1 className="text-white text-6xl md:text-8xl font-black block leading-none">
             Study Smart.
           </h1>
-          <h1 
+          <h1
             className="text-6xl md:text-8xl font-black block leading-none"
             style={{
               background: "linear-gradient(135deg,#7c3aed,#f59e0b)",
@@ -143,14 +147,14 @@ export default function LandingPage() {
           </p>
 
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link 
-              href="/auth" 
+            <Link
+              href="/auth"
               className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold px-8 py-4 rounded-2xl text-lg transition-colors"
             >
               Start Competing Free
             </Link>
-            <Link 
-              href="/practice" 
+            <Link
+              href="/practice"
               className="border border-white/20 bg-white/5 text-white font-bold px-8 py-4 rounded-2xl text-lg hover:bg-white/10 transition-colors"
             >
               Explore Subjects
@@ -175,18 +179,26 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 2 — FEATURES SCROLL */}
-      <section className="bg-[#0a0a12] py-20 overflow-hidden">
-        <h2 className="text-white text-4xl font-black text-center mb-2">Everything You Need to Win</h2>
-        <p className="text-zinc-400 text-center mb-12">One platform. Infinite possibilities.</p>
-        
-        <div className="overflow-hidden">
-          <div 
-            className="flex w-fit" 
+      <section
+        className="bg-[#0a0a12] py-20 overflow-hidden relative"
+        style={{
+          backgroundImage: "url(https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80)",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      >
+        <div className="absolute inset-0 bg-[#0a0a12]/90" />
+        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">Everything You Need to Win</h2>
+        <p className="text-zinc-400 text-center mb-12 relative z-10">One platform. Infinite possibilities.</p>
+
+        <div className="overflow-hidden relative z-10">
+          <div
+            className="flex w-fit"
             style={{ animation: "scrollTicker 30s linear infinite" }}
           >
             {[...features, ...features].map((feature, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={`w-72 shrink-0 mx-3 rounded-2xl p-6 border ${feature.color}`}
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
@@ -199,19 +211,27 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 3 — HOW IT WORKS */}
-      <section className="bg-gradient-to-b from-[#0a0a12] to-[#0f0520] py-24">
-        <h2 className="text-white text-4xl font-black text-center mb-2">How It Works</h2>
-        <p className="text-zinc-400 text-center mb-16">Get started in under 2 minutes</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto px-4">
+      <section
+        className="py-24 relative"
+        style={{
+          backgroundImage: "url(https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80)",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      >
+        <div className="absolute inset-0 bg-[#0f0520]/88" />
+        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">How It Works</h2>
+        <p className="text-zinc-400 text-center mb-16 relative z-10">Get started in under 2 minutes</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto px-4 relative z-10">
           {[
             { step: "1", title: "Create Account", desc: "Sign up free in 30 seconds. No credit card needed." },
             { step: "2", title: "Add to Wallet", desc: "Deposit from N100 via Paystack. Secure and instant." },
             { step: "3", title: "Join a Battle", desc: "Pick a subject, stake your amount, find an opponent." },
             { step: "4", title: "Win and Withdraw", desc: "Winner gets the pot. Withdraw to your bank anytime." }
           ].map((item, i) => (
-            <div key={i} className="text-center">
-              <div 
+            <div key={i} className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+              <div
                 className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center font-black text-2xl text-white"
                 style={{ background: "linear-gradient(135deg,#7c3aed,#f59e0b)" }}
               >
@@ -225,18 +245,26 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 4 — SUBJECTS */}
-      <section className="bg-[#0a0a12] py-20">
-        <h2 className="text-white text-4xl font-black text-center mb-2">Master Every Subject</h2>
-        <p className="text-zinc-400 text-center mb-12">JAMB - WAEC - NECO all in one place</p>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
+      <section
+        className="bg-[#0a0a12] py-20 relative"
+        style={{
+          backgroundImage: "url(https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=80)",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      >
+        <div className="absolute inset-0 bg-[#0a0a12]/85" />
+        <h2 className="text-white text-4xl font-black text-center mb-2 relative z-10">Master Every Subject</h2>
+        <p className="text-zinc-400 text-center mb-12 relative z-10">JAMB - WAEC - NECO all in one place</p>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto px-4 relative z-10">
           {subjects.map((subject, i) => (
-            <Link 
-              key={i} 
+            <Link
+              key={i}
               href="/practice"
               className={`bg-gradient-to-br ${subject.from} ${subject.to} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden`}
             >
-              <div 
+              <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)"
@@ -255,7 +283,7 @@ export default function LandingPage() {
 
       {/* SECTION 5 — LIVE TICKER */}
       <section className="bg-[#7c3aed] py-4 overflow-hidden">
-        <div 
+        <div
           className="flex w-fit items-center"
           style={{ animation: "scrollTicker 20s linear infinite" }}
         >
@@ -269,11 +297,19 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 6 — TESTIMONIALS */}
-      <section className="bg-[#050508] py-24">
-        <h2 className="text-white text-4xl font-black text-center mb-12">Students Love Quiz Arena</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4">
+      <section
+        className="py-24 relative"
+        style={{
+          backgroundImage: "url(https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80)",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      >
+        <div className="absolute inset-0 bg-[#050508]/90" />
+        <h2 className="text-white text-4xl font-black text-center mb-12 relative z-10">Students Love Quiz Arena</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4 relative z-10">
           {testimonials.map((t, i) => (
-            <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-6">
+            <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
               <div className="text-[#f59e0b] text-lg mb-4">{"★".repeat(5)}</div>
               <p className="text-zinc-300 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
               <div className="flex items-center gap-4">
@@ -291,21 +327,27 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 7 — CTA */}
-      <section 
-        className="py-24 text-center px-4"
+      <section
+        className="py-24 text-center px-4 relative overflow-hidden"
         style={{ background: "radial-gradient(ellipse at center, #1e0a3c 0%, #050508 100%)" }}
       >
-        <h2 className="text-white text-5xl font-black mb-4">Ready to Start Winning?</h2>
-        <p className="text-zinc-400 text-lg mb-10">Join 50,000+ students already competing. Your first spin is free.</p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Link 
-            href="/auth" 
+        <img
+          src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1920&q=80"
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
+          alt=""
+        />
+        <div className="absolute inset-0 bg-black/60" />
+        <h2 className="text-white text-5xl font-black mb-4 relative z-10">Ready to Start Winning?</h2>
+        <p className="text-zinc-400 text-lg mb-10 relative z-10">Join 50,000+ students already competing. Your first spin is free.</p>
+        <div className="flex gap-4 justify-center flex-wrap relative z-10">
+          <Link
+            href="/auth"
             className="bg-[#f59e0b] text-black font-black px-10 py-4 rounded-2xl text-lg hover:bg-[#e6950a] transition-colors"
           >
             Create Free Account
           </Link>
-          <Link 
-            href="/practice" 
+          <Link
+            href="/practice"
             className="border border-white/20 text-white font-bold px-10 py-4 rounded-2xl text-lg hover:bg-white/5 transition-colors"
           >
             Explore Subjects
@@ -320,9 +362,9 @@ export default function LandingPage() {
             <div className="text-white font-black text-xl">QUIZ ARENA</div>
             <div className="flex gap-6">
               {["Home", "Practice", "Battle", "Leaderboard", "Spin"].map((link) => (
-                <Link 
-                  key={link} 
-                  href={link === "Home" ? "/" : `/${link.toLowerCase()}`} 
+                <Link
+                  key={link}
+                  href={link === "Home" ? "/" : `/${link.toLowerCase()}`}
                   className="text-zinc-500 hover:text-white text-sm transition-colors"
                 >
                   {link}

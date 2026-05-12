@@ -181,98 +181,122 @@ export default function SpinPage() {
   };
 
   return (
-    <PageShell overlay="transparent">
-      <div className="py-16 text-center relative overflow-hidden" style={{ background: "linear-gradient(135deg, #78350f 0%, #b45309 100%)" }}>
-        <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full opacity-10">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <line 
-              key={i} 
-              x1="100" 
-              y1="100" 
-              x2={100+100*Math.cos(i*Math.PI/6)} 
-              y2={100+100*Math.sin(i*Math.PI/6)} 
-              stroke="#f59e0b" 
-              strokeWidth="1" 
-            />
-          ))}
-        </svg>
-        <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(245,158,11,0.6)" }}>
-          Daily Spin & Win
-        </h1>
-        <p className="text-amber-200 text-lg font-semibold mt-2 relative z-10">
-          One free spin. Real cash prizes. Every day.
-        </p>
-      </div>
+    <div
+      className="min-h-screen text-white relative"
+      style={{
+        backgroundImage: "url(https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=1920&q=80)",
+        backgroundSize: "cover",
+        backgroundAttachment: "fixed",
+        backgroundPosition: "center"
+      }}
+    >
+      <div className="fixed inset-0 bg-[#0f0f1a]/88 pointer-events-none z-0" />
 
-      <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col items-center px-4 py-10">
-
-        <div className="relative mt-6 flex flex-col items-center">
-          <div className="relative z-10 mb-[-12px]">
-            <div style={{
-              width: 0, height: 0,
-              borderLeft: "14px solid transparent",
-              borderRight: "14px solid transparent",
-              borderTop: "28px solid #f59e0b",
-              filter: "drop-shadow(0 2px 6px rgba(245,158,11,0.8))"
-            }} />
-          </div>
-          <canvas
-            ref={canvasRef}
-            width={320}
-            height={320}
-            className="rounded-full"
-            style={{ boxShadow: "0 0 40px rgba(245,158,11,0.25), 0 0 80px rgba(99,102,241,0.15)" }}
+      <PageShell overlay="transparent">
+        <div
+          className="py-16 text-center relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #78350f 0%, #b45309 100%)" }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1627384113743-6bd5a479fffd?w=1920&q=80"
+            className="absolute inset-0 w-full h-full object-cover"
+            alt=""
           />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#78350f]/90 to-[#92400e]/90" />
+          <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full opacity-10">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <line
+                key={i}
+                x1="100"
+                y1="100"
+                x2={100+100*Math.cos(i*Math.PI/6)}
+                y2={100+100*Math.sin(i*Math.PI/6)}
+                stroke="#f59e0b"
+                strokeWidth="1"
+              />
+            ))}
+          </svg>
+          <span className="absolute top-10 left-[15%] text-4xl opacity-20">🪙</span>
+          <span className="absolute top-20 right-[20%] text-4xl opacity-20">🪙</span>
+          <span className="absolute bottom-10 left-[25%] text-4xl opacity-20">🪙</span>
+          <span className="absolute bottom-16 right-[15%] text-4xl opacity-20">🪙</span>
+          <h1 className="text-white text-5xl font-black relative z-10" style={{ textShadow: "0 0 30px rgba(245,158,11,0.6)" }}>
+            Daily Spin & Win
+          </h1>
+          <p className="text-amber-200 text-lg font-semibold mt-2 relative z-10">
+            One free spin. Real cash prizes. Every day.
+          </p>
         </div>
 
-        <div className="mt-8 text-center">
-          {loading ? (
-            <div className="text-zinc-500 text-sm">Loading...</div>
-          ) : !userId ? (
-            <a href="/auth" className="rounded-xl bg-[#7c3aed] px-8 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#6d28d9]">Sign in to Spin</a>
-          ) : canSpin ? (
-            <button
-              onClick={handleSpin}
-              disabled={spinning}
-              className="rounded-xl bg-[#f59e0b] px-10 py-3 text-sm font-black text-black shadow-lg transition hover:bg-[#d97706] disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ boxShadow: "0 0 24px rgba(245,158,11,0.5)" }}
-            >
-              {spinning ? "Spinning..." : "🎰 SPIN NOW"}
-            </button>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 px-8 py-3 text-sm font-bold text-zinc-400">Already spun today</div>
-              {countdown && <div className="text-xs text-zinc-500">Next spin in <span className="font-mono text-[#f59e0b] font-bold">{countdown}</span></div>}
+        <div className="min-h-screen bg-transparent text-white flex flex-col items-center px-4 py-10">
+          <div className="relative mt-6 flex flex-col items-center">
+            <div className="relative z-10 mb-[-12px]">
+              <div style={{
+                width: 0, height: 0,
+                borderLeft: "14px solid transparent",
+                borderRight: "14px solid transparent",
+                borderTop: "28px solid #f59e0b",
+                filter: "drop-shadow(0 2px 6px rgba(245,158,11,0.8))"
+              }} />
             </div>
-          )}
-        </div>
+            <canvas
+              ref={canvasRef}
+              width={320}
+              height={320}
+              className="rounded-full"
+              style={{ boxShadow: "0 0 40px rgba(245,158,11,0.25), 0 0 80px rgba(99,102,241,0.15)" }}
+            />
+          </div>
 
-        {result && (
-          <div className="mt-8 w-full max-w-sm rounded-2xl border px-6 py-5 text-center" style={{ borderColor: result.color, backgroundColor: result.color + "22", boxShadow: `0 0 30px ${result.color}44` }}>
-            {result.type === "nothing" ? (
-              <><div className="text-3xl mb-1">😅</div><div className="text-lg font-black text-zinc-300">Better luck tomorrow!</div><div className="text-xs text-zinc-500 mt-1">Come back in 24 hours</div></>
-            ) : result.type === "cash" ? (
-              <><div className="text-3xl mb-1">🎉</div><div className="text-2xl font-black" style={{ color: result.color }}>{result.label} Won!</div><div className="text-xs text-zinc-400 mt-1">Credited to your wallet instantly</div></>
-            ) : result.type === "free_battle" ? (
-              <><div className="text-3xl mb-1">⚔️</div><div className="text-xl font-black text-[#3b82f6]">Free Battle Entry!</div><div className="text-xs text-zinc-400 mt-1">Head to Battle to use it</div></>
+          <div className="mt-8 text-center">
+            {loading ? (
+              <div className="text-zinc-500 text-sm">Loading...</div>
+            ) : !userId ? (
+              <a href="/auth" className="rounded-xl bg-[#7c3aed] px-8 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#6d28d9]">Sign in to Spin</a>
+            ) : canSpin ? (
+              <button
+                onClick={handleSpin}
+                disabled={spinning}
+                className="rounded-xl bg-[#f59e0b] px-10 py-3 text-sm font-black text-black shadow-lg transition hover:bg-[#d97706] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ boxShadow: "0 0 24px rgba(245,158,11,0.5)" }}
+              >
+                {spinning ? "Spinning..." : "🎰 SPIN NOW"}
+              </button>
             ) : (
-              <><div className="text-3xl mb-1">⚡</div><div className="text-xl font-black text-[#8b5cf6]">2× XP Boost!</div><div className="text-xs text-zinc-400 mt-1">Active for your next battle</div></>
+              <div className="flex flex-col items-center gap-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 px-8 py-3 text-sm font-bold text-zinc-400">Already spun today</div>
+                {countdown && <div className="text-xs text-zinc-500">Next spin in <span className="font-mono text-[#f59e0b] font-bold">{countdown}</span></div>}
+              </div>
             )}
           </div>
-        )}
 
-        <div className="mt-10 w-full max-w-sm">
-          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 text-center">Prize Pool</div>
-          <div className="grid grid-cols-2 gap-2">
-            {PRIZES.map((prize) => (
-              <div key={prize.label} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
-                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: prize.color }} />
-                <span className="text-xs text-zinc-300 font-medium">{prize.label}</span>
-              </div>
-            ))}
+          {result && (
+            <div className="mt-8 w-full max-w-sm rounded-2xl border px-6 py-5 text-center" style={{ borderColor: result.color, backgroundColor: result.color + "22", boxShadow: `0 0 30px ${result.color}44` }}>
+              {result.type === "nothing" ? (
+                <><div className="text-3xl mb-1">😅</div><div className="text-lg font-black text-zinc-300">Better luck tomorrow!</div><div className="text-xs text-zinc-500 mt-1">Come back in 24 hours</div></>
+              ) : result.type === "cash" ? (
+                <><div className="text-3xl mb-1">🎉</div><div className="text-2xl font-black" style={{ color: result.color }}>{result.label} Won!</div><div className="text-xs text-zinc-400 mt-1">Credited to your wallet instantly</div></>
+              ) : result.type === "free_battle" ? (
+                <><div className="text-3xl mb-1">⚔️</div><div className="text-xl font-black text-[#3b82f6]">Free Battle Entry!</div><div className="text-xs text-zinc-400 mt-1">Head to Battle to use it</div></>
+              ) : (
+                <><div className="text-3xl mb-1">⚡</div><div className="text-xl font-black text-[#8b5cf6]">2× XP Boost!</div><div className="text-xs text-zinc-400 mt-1">Active for your next battle</div></>
+              )}
+            </div>
+          )}
+
+          <div className="mt-10 w-full max-w-sm">
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 text-center">Prize Pool</div>
+            <div className="grid grid-cols-2 gap-2">
+              {PRIZES.map((prize) => (
+                <div key={prize.label} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+                  <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: prize.color }} />
+                  <span className="text-xs text-zinc-300 font-medium">{prize.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </PageShell>
+      </PageShell>
+    </div>
   );
 }

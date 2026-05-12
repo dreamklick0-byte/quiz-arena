@@ -31,7 +31,6 @@ export default function PlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // ΓöÇΓöÇ Load current user and start presence heartbeat ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   useEffect(() => {
     let heartbeatInterval: ReturnType<typeof setInterval>;
 
@@ -53,13 +52,11 @@ export default function PlayersPage() {
 
       setCurrentUser({ id: user.id, display_name: displayName });
 
-      // Register presence immediately
       await supabase.from("user_presence").upsert(
         { user_id: user.id, display_name: displayName, last_seen: new Date().toISOString() },
         { onConflict: "user_id" }
       );
 
-      // Keep presence alive every 30 seconds
       heartbeatInterval = setInterval(async () => {
         await supabase.from("user_presence").upsert(
           { user_id: user.id, display_name: displayName, last_seen: new Date().toISOString() },
@@ -75,7 +72,6 @@ export default function PlayersPage() {
     };
   }, []);
 
-  // ΓöÇΓöÇ Fetch online players (active in last 60 seconds) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const fetchOnlinePlayers = useCallback(async () => {
     if (!currentUser) return;
     const cutoff = new Date(Date.now() - 60000).toISOString();
@@ -89,7 +85,6 @@ export default function PlayersPage() {
     if (data) setOnlinePlayers(data);
   }, [currentUser]);
 
-  // ΓöÇΓöÇ Poll every 10 seconds + live realtime updates ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   useEffect(() => {
     if (!currentUser) return;
 
@@ -111,7 +106,6 @@ export default function PlayersPage() {
     };
   }, [currentUser, fetchOnlinePlayers]);
 
-  // ΓöÇΓöÇ Open challenge modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const openChallengeModal = (opponent: OnlinePlayer) => {
     setError(null);
     setChallengeModal({
@@ -121,7 +115,6 @@ export default function PlayersPage() {
     });
   };
 
-  // ΓöÇΓöÇ Send challenge ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const sendChallenge = async () => {
     if (!challengeModal || !currentUser) return;
     setBusy(true);
@@ -130,15 +123,13 @@ export default function PlayersPage() {
     try {
       const { stakeAmount, subject, opponent } = challengeModal;
 
-      // Verify challenger has enough balance
       const balance = await getWalletBalance(currentUser.id);
       if (balance < stakeAmount) {
         throw new Error(
-          `Insufficient balance. You need Γéª${stakeAmount} but your wallet has Γéª${balance}.`
+          `Insufficient balance. You need ₦${stakeAmount} but your wallet has ₦${balance}.`
         );
       }
 
-      // Insert the challenge request
       const { error: insertError } = await supabase.from("battle_requests").insert({
         challenger_id: currentUser.id,
         challenger_name: currentUser.display_name,
@@ -152,7 +143,7 @@ export default function PlayersPage() {
 
       setChallengeModal(null);
       setSuccessMsg(
-        `ΓÜö∩╕Å Challenge sent to ${opponent.display_name}! Waiting for their responseΓÇª`
+        `⚔️ Challenge sent to ${opponent.display_name}! Waiting for their response…`
       );
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: unknown) {
@@ -162,21 +153,40 @@ export default function PlayersPage() {
     }
   };
 
-  // ΓöÇΓöÇ UI ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   return (
     <div
-      className="min-h-screen text-white"
-      style={{ backgroundImage: "linear-gradient(to bottom right, #4a00e0, #8e2de2)" }}
+      className="min-h-screen text-white relative"
+      style={{
+        backgroundImage: "url(https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1920&q=80)",
+        backgroundSize: "cover",
+        backgroundAttachment: "fixed",
+        backgroundPosition: "center"
+      }}
     >
-      {/* Ambient blobs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
-        <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
+      <div className="fixed inset-0 bg-[#0f0f1a]/88 pointer-events-none z-0" />
+
+      <div
+        className="py-16 text-center relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%)" }}
+      >
+        <img
+          src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&q=80"
+          className="absolute inset-0 w-full h-full object-cover"
+          alt=""
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1e1b4b]/90 to-[#2e1065]/90" />
+        <div className="relative z-10 px-4">
+          <div className="flex items-center justify-center mb-3">
+            <span className="w-4 h-4 rounded-full bg-green-400 inline-block mr-3 animate-pulse" />
+            <h1 className="text-white text-5xl font-black">Players Online</h1>
+          </div>
+          <p className="text-purple-200 text-lg font-semibold mt-3">
+            See who is live right now. Send a direct battle challenge.
+          </p>
+        </div>
       </div>
 
-      <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6">
-
-        {/* Page header */}
+      <div className="relative mx-auto max-w-2xl px-4 pb-16 pt-6 z-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-[#7c3aed]">
@@ -190,11 +200,10 @@ export default function PlayersPage() {
             onClick={() => router.push("/")}
             className="text-xs font-medium text-[#888888] hover:text-[#7c3aed] transition"
           >
-            ΓåÉ Back to Home
+            ← Back to Home
           </button>
         </div>
 
-        {/* Online counter */}
         <div className="flex items-center gap-2 mb-6">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
           <span className="text-sm text-zinc-300">
@@ -203,18 +212,16 @@ export default function PlayersPage() {
           </span>
         </div>
 
-        {/* Success toast */}
         {successMsg && (
           <div className="mb-4 rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
             {successMsg}
           </div>
         )}
 
-        {/* Player cards */}
         <div className="space-y-3">
           {onlinePlayers.length === 0 ? (
             <div className="rounded-3xl border border-white/10 bg-[#1a1a2e]/85 p-12 text-center">
-              <p className="text-5xl mb-3">≡ƒæÇ</p>
+              <p className="text-5xl mb-3">👀</p>
               <p className="text-zinc-300 font-bold text-sm">No other players online right now.</p>
               <p className="text-zinc-500 text-xs mt-1">Check back in a few minutes!</p>
             </div>
@@ -224,7 +231,6 @@ export default function PlayersPage() {
                 key={player.user_id}
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#1a1a2e]/85 px-5 py-4 backdrop-blur"
               >
-                {/* Avatar + name */}
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#7c3aed]/30 ring-1 ring-[#7c3aed]/50">
                     <span className="text-base font-extrabold text-white">
@@ -240,12 +246,11 @@ export default function PlayersPage() {
                   </div>
                 </div>
 
-                {/* Challenge button */}
                 <button
                   onClick={() => openChallengeModal(player)}
                   className="rounded-xl bg-[#7c3aed] px-4 py-2 text-xs font-extrabold tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 hover:bg-[#6d28d9] transition"
                 >
-                  ΓÜö∩╕Å CHALLENGE
+                  ⚔️ CHALLENGE
                 </button>
               </div>
             ))
@@ -253,17 +258,15 @@ export default function PlayersPage() {
         </div>
       </div>
 
-      {/* Challenge Modal */}
       {challengeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a2e] p-6 shadow-2xl">
 
             <h2 className="text-lg font-extrabold text-white mb-1">
-              ΓÜö∩╕Å Challenge {challengeModal.opponent.display_name}
+              ⚔️ Challenge {challengeModal.opponent.display_name}
             </h2>
             <p className="text-xs text-zinc-400 mb-5">Choose a subject and stake amount</p>
 
-            {/* Subject */}
             <div className="mb-4">
               <label className="text-xs font-semibold uppercase tracking-widest text-[#f59e0b]">
                 Subject
@@ -285,7 +288,6 @@ export default function PlayersPage() {
               </div>
             </div>
 
-            {/* Stake */}
             <div className="mb-5">
               <label className="text-xs font-semibold uppercase tracking-widest text-[#f59e0b]">
                 Stake Amount
@@ -304,20 +306,18 @@ export default function PlayersPage() {
                         : "border-white/10 bg-black/20 text-zinc-500"
                     }`}
                   >
-                    Γéª{amt}
+                    ₦{amt}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                 {error}
               </div>
             )}
 
-            {/* Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => { setChallengeModal(null); setError(null); }}
@@ -331,7 +331,7 @@ export default function PlayersPage() {
                 disabled={busy}
                 className="flex-1 rounded-2xl bg-[#7c3aed] py-3 text-sm font-extrabold text-white hover:bg-[#6d28d9] disabled:opacity-50 transition"
               >
-                {busy ? "SendingΓÇª" : "Send Challenge ΓÜö∩╕Å"}
+                {busy ? "Sending…" : "Send Challenge ⚔️"}
               </button>
             </div>
           </div>
