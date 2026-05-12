@@ -173,6 +173,12 @@ export default function BattleRequestListener() {
         .update({ status: "accepted", room_code: roomCode })
         .eq("id", id);
 
+      // Link guest_id and activate room
+      await supabase
+        .from("battle_rooms")
+        .update({ guest_id: currentUserId, status: "active" })
+        .eq("id", roomId);
+
       // Save player identity and redirect to battle room
       localStorage.setItem("playerName", currentUserName);
 

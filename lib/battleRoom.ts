@@ -20,6 +20,9 @@ export async function createBattleRoom(
   const supabase = getSupabaseClient();
   const roomCode = generateRoomCode(6);
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const currentUserId = user?.id || null;
+
   const prizePool = stakeAmount * maxPlayers;
   const platformCut = prizePool * 0.20;
   const netPrizePool = prizePool - platformCut;
@@ -34,7 +37,8 @@ export async function createBattleRoom(
       stake_amount: stakeAmount,
       prize_pool: netPrizePool,
       max_players: maxPlayers,
-      is_paid: stakeAmount > 0
+      is_paid: stakeAmount > 0,
+      host_id: currentUserId
     })
     .select("id, room_code")
     .single();
