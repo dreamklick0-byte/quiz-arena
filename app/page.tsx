@@ -5,6 +5,15 @@ import Link from "next/link";
 
 export default function LandingPage() {
   const [particles, setParticles] = useState<any[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    { url: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800&q=80", badge: "📚 Study Mode" },
+    { url: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&q=80", badge: "✍️ Exam Ready" },
+    { url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&q=80", badge: "🏫 Live Classes" },
+    { url: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800&q=80", badge: "🏆 Champions" },
+    { url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80", badge: "🥇 Win Prizes" },
+  ];
 
   useEffect(() => {
     const newParticles = Array.from({ length: 20 }).map((_, i) => ({
@@ -17,7 +26,13 @@ export default function LandingPage() {
       opacity: Math.random() * 0.5 + 0.3,
     }));
     setParticles(newParticles);
-  }, []);
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [slides.length]);
 
   const features = [
     { title: "Live Battle Arena", icon: "⚔️", desc: "Challenge real students in real-time. Stake money. Winner takes all.", color: "border-purple-500/30 bg-purple-500/5" },
@@ -31,14 +46,15 @@ export default function LandingPage() {
   ];
 
   const subjects = [
-    { name: "Maths", icon: "🔢", from: "from-blue-600", to: "to-indigo-800" },
-    { name: "English", icon: "📝", from: "from-purple-600", to: "to-pink-800" },
-    { name: "Physics", icon: "⚡", from: "from-cyan-600", to: "to-blue-800" },
-    { name: "Chemistry", icon: "🧪", from: "from-orange-600", to: "to-red-800" },
-    { name: "Biology", icon: "🧬", from: "from-green-600", to: "to-emerald-800" },
-    { name: "Government", icon: "⚖️", from: "from-amber-600", to: "to-yellow-800" },
-    { name: "Economics", icon: "📊", from: "from-teal-600", to: "to-cyan-800" },
-    { name: "Agricultural Science", icon: "🌱", from: "from-lime-600", to: "to-green-800" },
+    { name: "Maths", icon: "🔢", from: "from-blue-600", to: "to-indigo-800", image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80" },
+    { name: "English", icon: "📝", from: "from-purple-600", to: "to-pink-800", image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&q=80" },
+    { name: "Physics", icon: "⚡", from: "from-cyan-600", to: "to-blue-800", image: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80" },
+    { name: "Chemistry", icon: "🧪", from: "from-orange-600", to: "to-red-800", image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&q=80" },
+    { name: "Biology", icon: "🧬", from: "from-green-600", to: "to-emerald-800", image: "https://images.unsplash.com/photo-1530026405186-ed1f139313f3?w=400&q=80" },
+    { name: "Government", icon: "⚖️", from: "from-amber-600", to: "to-yellow-800", image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80" },
+    { name: "Economics", icon: "📊", from: "from-teal-600", to: "to-cyan-800", image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80" },
+    { name: "Agricultural Science", icon: "🌱", from: "from-lime-600", to: "to-green-800", image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&q=80" },
+    { name: "Current Affairs", icon: "🌍", from: "from-rose-600", to: "to-red-800", image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80" },
   ];
 
   const tickerItems = [
@@ -121,59 +137,106 @@ export default function LandingPage() {
           ))}
         </div>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10 px-4">
-          <div className="border border-purple-500/30 bg-purple-500/10 backdrop-blur rounded-full px-4 py-2 text-purple-300 text-sm font-semibold mb-6">
-            Nigeria's #1 Academic Quiz Platform
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center px-6 md:px-16 z-10">
+          <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-7xl mx-auto">
+            {/* LEFT COLUMN */}
+            <div className="flex-1 text-center md:text-left">
+              <div className="border border-purple-500/30 bg-purple-500/10 backdrop-blur rounded-full px-4 py-2 text-purple-300 text-sm font-semibold mb-6 inline-block">
+                Nigeria's #1 Academic Quiz Platform
+              </div>
 
-          <h1 className="text-white text-6xl md:text-8xl font-black block leading-none">
-            Study Smart.
-          </h1>
-          <h1
-            className="text-6xl md:text-8xl font-black block leading-none"
-            style={{
-              background: "linear-gradient(135deg,#7c3aed,#f59e0b)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
-            }}
-          >
-            Compete Live.
-          </h1>
-          <h1 className="text-[#f59e0b] text-6xl md:text-8xl font-black block leading-none">
-            Win Big.
-          </h1>
+              <h1 className="text-white text-6xl md:text-8xl font-black block leading-none">
+                Study Smart.
+              </h1>
+              <h1
+                className="text-6xl md:text-8xl font-black block leading-none"
+                style={{
+                  background: "linear-gradient(135deg,#7c3aed,#f59e0b)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent"
+                }}
+              >
+                Compete Live.
+              </h1>
+              <h1 className="text-[#f59e0b] text-6xl md:text-8xl font-black block leading-none">
+                Win Big.
+              </h1>
 
-          <p className="text-zinc-300 text-lg max-w-2xl mx-auto mt-4 mb-10">
-            Join 50,000+ students mastering JAMB, WAEC and NECO through live battles, daily challenges, and real cash prizes.
-          </p>
+              <p className="text-zinc-300 text-lg max-w-2xl mx-auto md:mx-0 mt-4 mb-10">
+                Join 50,000+ students mastering JAMB, WAEC and NECO through live battles, daily challenges, and real cash prizes.
+              </p>
 
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link
-              href="/auth"
-              className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold px-8 py-4 rounded-2xl text-lg transition-colors"
-            >
-              Start Competing Free
-            </Link>
-            <Link
-              href="/practice"
-              className="border border-white/20 bg-white/5 text-white font-bold px-8 py-4 rounded-2xl text-lg hover:bg-white/10 transition-colors"
-            >
-              Explore Subjects
-            </Link>
-          </div>
+              <div className="flex gap-4 justify-center md:justify-start flex-wrap">
+                <Link
+                  href="/auth"
+                  className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold px-8 py-4 rounded-2xl text-lg transition-colors"
+                >
+                  Start Competing Free
+                </Link>
+                <Link
+                  href="/practice"
+                  className="border border-white/20 bg-white/5 text-white font-bold px-8 py-4 rounded-2xl text-lg hover:bg-white/10 transition-colors"
+                >
+                  Explore Subjects
+                </Link>
+              </div>
 
-          <div className="flex justify-center gap-8 mt-12 flex-wrap">
-            <div className="text-center">
-              <div className="text-[#f59e0b] font-black text-3xl">50,000+</div>
-              <div className="text-zinc-400 text-sm">Active Students</div>
+              <div className="flex justify-center md:justify-start gap-8 mt-12 flex-wrap">
+                <div className="text-center">
+                  <div className="text-[#f59e0b] font-black text-3xl">50,000+</div>
+                  <div className="text-zinc-400 text-sm">Active Students</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[#f59e0b] font-black text-3xl">10,000+</div>
+                  <div className="text-zinc-400 text-sm">Questions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[#f59e0b] font-black text-3xl">2M+</div>
+                  <div className="text-zinc-400 text-sm">Prizes Won</div>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-[#f59e0b] font-black text-3xl">10,000+</div>
-              <div className="text-zinc-400 text-sm">Questions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#f59e0b] font-black text-3xl">2M+</div>
-              <div className="text-zinc-400 text-sm">Prizes Won</div>
+
+            {/* RIGHT COLUMN — SLIDESHOW */}
+            <div className="flex-1 hidden md:flex items-center justify-center">
+              <div
+                className="relative w-full max-w-lg mx-auto rounded-3xl overflow-hidden"
+                style={{
+                  aspectRatio: "4/3",
+                  boxShadow: "0 0 40px rgba(124,58,237,0.4), 0 0 80px rgba(124,58,237,0.15)",
+                  border: "2px solid rgba(124,58,237,0.3)"
+                }}
+              >
+                {slides.map((slide, idx) => (
+                  <div
+                    key={idx}
+                    className={`absolute inset-0 transition-opacity duration-700 ${idx === currentSlide ? "opacity-100" : "opacity-0"}`}
+                  >
+                    <img
+                      src={slide.url}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      alt={slide.badge}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  </div>
+                ))}
+
+                {/* Floating Badge */}
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 text-white text-xs font-bold z-20">
+                  {slides[currentSlide].badge}
+                </div>
+
+                {/* Dot Indicators */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                  {slides.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentSlide(idx)}
+                      className={`transition-all duration-300 ${idx === currentSlide ? "w-6 h-2 bg-white rounded-full" : "w-2 h-2 bg-white/40 rounded-full"}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -218,9 +281,9 @@ export default function LandingPage() {
           src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.12 }}
+          style={{ opacity: 0.25 }}
         />
-        <div className="absolute inset-0" style={{ background: "rgba(15,5,32,0.88)" }} />
+        <div className="absolute inset-0" style={{ background: "rgba(15,5,32,0.75)" }} />
         <div className="relative z-10">
           <h2 className="text-white text-4xl font-black text-center mb-2">How It Works</h2>
           <p className="text-zinc-400 text-center mb-16">Get started in under 2 minutes</p>
@@ -232,7 +295,11 @@ export default function LandingPage() {
               { step: "3", title: "Join a Battle", desc: "Pick a subject, stake your amount, find an opponent." },
               { step: "4", title: "Win and Withdraw", desc: "Winner gets the pot. Withdraw to your bank anytime." }
             ].map((item, i) => (
-              <div key={i} className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+              <div
+                key={i}
+                className="text-center bg-white/8 backdrop-blur-md border border-white/15 rounded-2xl p-6"
+                style={{ boxShadow: "0 4px 24px rgba(124,58,237,0.15)" }}
+              >
                 <div
                   className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center font-black text-2xl text-white"
                   style={{ background: "linear-gradient(135deg,#7c3aed,#f59e0b)" }}
@@ -250,35 +317,51 @@ export default function LandingPage() {
       {/* SECTION 4 — SUBJECTS */}
       <section className="relative overflow-hidden py-20">
         <img
-          src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1920&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.12 }}
+          style={{ opacity: 0.20 }}
         />
-        <div className="absolute inset-0" style={{ background: "rgba(10,10,18,0.85)" }} />
+        <div className="absolute inset-0" style={{ background: "rgba(8,8,15,0.82)" }} />
         <div className="relative z-10">
           <h2 className="text-white text-4xl font-black text-center mb-2">Master Every Subject</h2>
           <p className="text-zinc-400 text-center mb-12">JAMB - WAEC - NECO all in one place</p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 max-w-7xl mx-auto px-4">
             {subjects.map((subject, i) => (
               <Link
                 key={i}
                 href="/practice"
-                className={`bg-gradient-to-br ${subject.from} ${subject.to} rounded-2xl p-6 cursor-pointer hover:scale-105 transition-transform duration-200 relative overflow-hidden`}
+                className="relative rounded-2xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 block"
+                style={{ minHeight: "160px" }}
               >
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)"
-                  }}
+                {/* Real subject image */}
+                <img
+                  src={subject.image}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ opacity: 0.35 }}
+                  alt={subject.name}
                 />
-                <div className="text-4xl mb-3 relative z-10">{subject.icon}</div>
-                <div className="flex items-center justify-between relative z-10">
-                  <h3 className="text-white font-extrabold text-lg">{subject.name}</h3>
-                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">10 Qs</span>
+                {/* Gradient overlay */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${subject.from} ${subject.to}`}
+                  style={{ opacity: 0.80 }}
+                />
+                {/* Dark overlay at bottom for text clarity */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+                {/* Content */}
+                <div className="relative z-10 p-6">
+                  <div className="text-4xl">{subject.icon}</div>
+                  <h3
+                    className="text-white font-extrabold text-lg mt-3"
+                    style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}
+                  >
+                    {subject.name}
+                  </h3>
+                  <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full mt-2 inline-block">10 Qs</div>
+                  <div className="text-white/90 text-sm mt-2 font-semibold">Start →</div>
                 </div>
-                <div className="text-white/80 text-sm mt-2 relative z-10">Start</div>
               </Link>
             ))}
           </div>
@@ -303,26 +386,30 @@ export default function LandingPage() {
       {/* SECTION 6 — TESTIMONIALS */}
       <section className="relative overflow-hidden py-24">
         <img
-          src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1529390079861-591de354faf5?w=1920&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.12 }}
+          style={{ opacity: 0.18 }}
         />
-        <div className="absolute inset-0" style={{ background: "rgba(5,5,8,0.90)" }} />
+        <div className="absolute inset-0" style={{ background: "rgba(5,5,8,0.88)" }} />
         <div className="relative z-10">
           <h2 className="text-white text-4xl font-black text-center mb-12">Students Love Quiz Arena</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4">
             {testimonials.map((t, i) => (
-              <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-6 backdrop-blur-sm">
+              <div
+                key={i}
+                className="rounded-2xl bg-white/8 backdrop-blur-md border border-white/15 p-6"
+                style={{ boxShadow: "0 4px 32px rgba(0,0,0,0.3)" }}
+              >
                 <div className="text-[#f59e0b] text-lg mb-4">{"★".repeat(5)}</div>
-                <p className="text-zinc-300 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
+                <p className="text-zinc-200 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm bg-gradient-to-br ${t.colors}`}>
                     {t.initials}
                   </div>
                   <div>
                     <div className="text-white font-bold text-sm">{t.name}</div>
-                    <div className="text-zinc-500 text-xs">{t.role}</div>
+                    <div className="text-zinc-400 text-xs">{t.role}</div>
                   </div>
                 </div>
               </div>
@@ -333,26 +420,50 @@ export default function LandingPage() {
 
       {/* SECTION 7 — CTA */}
       <section className="relative overflow-hidden py-24 text-center px-4">
+        {/* Layer 1 (bottom) */}
         <img
           src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1920&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.12 }}
+          style={{ opacity: 0.20 }}
         />
-        <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.80)" }} />
+        {/* Layer 2 (on top) */}
+        <img
+          src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.10, mixBlendMode: "screen" }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "radial-gradient(ellipse at center, rgba(30,10,60,0.85) 0%, rgba(5,5,8,0.92) 70%)" }}
+        />
+
+        {/* Decorative Element */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)", filter: "blur(40px)" }}
+        />
+
         <div className="relative z-10">
-          <h2 className="text-white text-5xl font-black mb-4">Ready to Start Winning?</h2>
+          <h2
+            className="text-white text-5xl font-black mb-4"
+            style={{ textShadow: "0 0 60px rgba(124,58,237,0.5), 0 2px 8px rgba(0,0,0,0.8)" }}
+          >
+            Ready to Start Winning?
+          </h2>
           <p className="text-zinc-400 text-lg mb-10">Join 50,000+ students already competing. Your first spin is free.</p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
               href="/auth"
               className="bg-[#f59e0b] text-black font-black px-10 py-4 rounded-2xl text-lg hover:bg-[#e6950a] transition-colors"
+              style={{ boxShadow: "0 0 30px rgba(245,158,11,0.5), 0 4px 16px rgba(0,0,0,0.4)" }}
             >
               Create Free Account
             </Link>
             <Link
               href="/practice"
-              className="border border-white/20 text-white font-bold px-10 py-4 rounded-2xl text-lg hover:bg-white/5 transition-colors"
+              className="border border-white/20 bg-white/5 text-white font-bold px-10 py-4 rounded-2xl text-lg hover:bg-white/5 transition-colors"
             >
               Explore Subjects
             </Link>
