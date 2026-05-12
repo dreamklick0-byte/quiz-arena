@@ -25,7 +25,10 @@ export default function AdminDashboard() {
     questions: 0, 
     leagues: 0,
     totalRevenue: 0,
-    totalPayouts: 0 
+    totalPayouts: 0,
+    totalUsers: 0, 
+    activeUsers: 0, 
+    onlineNow: 0, 
   });
   const [loading, setLoading] = useState(true);
 
@@ -55,6 +58,31 @@ export default function AdminDashboard() {
         if (statsData.success) {
           setStats(statsData.stats);
         }
+
+        const supabase = (await import("@/lib/supabase")).getSupabaseClient(); 
+        
+        const { count: totalUsers } = await supabase 
+          .from("profiles") 
+          .select("*", { count: "exact", head: true }); 
+        
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString(); 
+        const { count: onlineNow } = await supabase 
+          .from("user_presence") 
+          .select("*", { count: "exact", head: true }) 
+          .gte("last_seen", fiveMinutesAgo); 
+        
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); 
+        const { count: activeUsers } = await supabase 
+          .from("user_presence") 
+          .select("*", { count: "exact", head: true }) 
+          .gte("last_seen", thirtyDaysAgo); 
+        
+        setStats(prev => ({ 
+          ...prev, 
+          totalUsers: totalUsers || 0, 
+          activeUsers: activeUsers || 0, 
+          onlineNow: onlineNow || 0, 
+        })); 
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       } finally {
@@ -113,7 +141,19 @@ export default function AdminDashboard() {
         href: "/admin/activity-logs", 
         icon: "📜", 
         desc: "View system audit trail" 
-      }
+      },
+      { 
+        title: "User Management", 
+        href: "/admin/users", 
+        icon: "👥", 
+        desc: "Add, edit, remove, suspend users and manage wallets" 
+      }, 
+      { 
+        title: "Platform Settings", 
+        href: "/admin/settings", 
+        icon: "⚙️", 
+        desc: "Edit battle stakes, referral rates, platform config" 
+      }, 
     ] : []),
   ];
 
@@ -168,7 +208,22 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 mt-12"> 
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600/20 to-purple-800/20 border border-violet-500/30 p-6 text-center"> 
+            <div className="text-4xl font-black text-violet-300">{stats.totalUsers}</div> 
+            <div className="text-sm font-bold text-violet-400 mt-1 uppercase tracking-wider">Total Registered Users</div> 
+          </div> 
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-600/20 to-green-800/20 border border-emerald-500/30 p-6 text-center"> 
+            <div className="text-4xl font-black text-emerald-300">{stats.activeUsers}</div> 
+            <div className="text-sm font-bold text-emerald-400 mt-1 uppercase tracking-wider">Active Users (30 days)</div> 
+          </div> 
+          <div className="rounded-2xl bg-gradient-to-br from-amber-600/20 to-yellow-800/20 border border-amber-500/30 p-6 text-center"> 
+            <div className="text-4xl font-black text-amber-300">{stats.onlineNow}</div> 
+            <div className="text-sm font-bold text-amber-400 mt-1 uppercase tracking-wider">Online Right Now</div> 
+          </div> 
+        </div> 
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="group rounded-3xl border border-white/5 bg-white/[0.02] p-6 transition hover:bg-white/[0.04] hover:border-white/10">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Active Leagues</p>
             <div className="mt-2 flex items-baseline gap-2">
