@@ -8,11 +8,11 @@ export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
-    { url: "https://images.unsplash.com/photo-1613896527026-f195d5c818ed?w=800&q=80", badge: "📚 Study Mode" },
-    { url: "https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=800&q=80", badge: "✍️ Exam Ready" },
+    { url: "https://images.unsplash.com/photo-1536337005238-94b997371b40?w=800&q=80", badge: "📚 Study Mode" },
+    { url: "https://images.unsplash.com/photo-1655720348590-c739c860beed?w=800&q=80", badge: "✍️ Exam Ready" },
     { url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&q=80", badge: "🏫 Live Classes" },
-    { url: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800&q=80", badge: "🏆 Champions" },
-    { url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80", badge: "🥇 Win Prizes" },
+    { url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80", badge: "🏆 Champions" },
+    { url: "https://images.unsplash.com/photo-1655720357872-ce227e4164ba?w=800&q=80", badge: "🥇 Win Prizes" },
   ];
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function LandingPage() {
           }}
         />
         <img
-          src="https://images.unsplash.com/photo-1613896527026-f195d5c818ed?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1536337005238-94b997371b40?w=1920&q=80"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 0.08, mixBlendMode: "overlay" }}
           alt=""
