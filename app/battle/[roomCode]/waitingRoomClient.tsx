@@ -25,6 +25,7 @@ type RoomRow = {
   current_question: number;
   host_id?: string;
   guest_id?: string;
+  max_players?: number;
 };
 
 export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
@@ -258,16 +259,16 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
 
           <div className="mt-6 flex flex-col gap-3">
             {/* Status Message */}
-            {(room?.max_players ?? 2) > 2 ? (
+            {((room as any)?.max_players ?? 2) > 2 ? (
               <>
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center text-sm text-zinc-500">
-                  {players.length < (room?.max_players ?? 2)
-                    ? `Waiting for more players (${players.length}/${room?.max_players})...`
+                  {players.length < ((room as any)?.max_players ?? 2)
+                    ? `Waiting for more players (${players.length}/${(room as any)?.max_players})...`
                     : players.every(p => p.is_ready) 
                       ? "Everyone is ready!" 
                       : "Waiting for everyone to ready up..."}
                 </div>
-                {isCreator && players.length >= (room?.max_players ?? 2) && players.every(p => p.is_ready) && (
+                {isCreator && players.length >= ((room as any)?.max_players ?? 2) && players.every(p => p.is_ready) && (
                   <button
                     onClick={startGame}
                     disabled={busy}
