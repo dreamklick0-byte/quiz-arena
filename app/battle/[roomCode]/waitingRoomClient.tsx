@@ -59,6 +59,12 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       if (cancelled) return;
       setRoom(roomRow);
 
+      // If room is already active, redirect immediately 
+      if (roomRow.status === "active") { 
+        window.location.href = `/battle/${roomCode}/play`; 
+        return; 
+      } 
+
       // 2. Auto-set this player as ready
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
@@ -179,9 +185,44 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(playersChannel);
-      supabase.removeChannel(roomChannel);
+    // Polling fallback — check every 2 seconds in case Realtime doesn't fire 
+    const poll = setInterval(async () => { 
+      const { data: roomData } = await supabase 
+        .from("battle_rooms") 
+        .select("status, id, max_players, guest_id") 
+        .eq("id", room.id) 
+        .single(); 
+    
+      if (roomData?.status === "active") { 
+        clearInterval(poll); 
+        window.location.href = `/battle/${roomCode}/play`; 
+        return; 
+      } 
+    
+      // Also check players and auto-start if both ready 
+      const { data: playerData } = await supabase 
+        .from("room_players") 
+        .select("is_ready, user_id") 
+        .eq("room_id", room.id); 
+    
+      const allReady = playerData && playerData.length >= 2 && playerData.every(p => p.is_ready); 
+    
+      if (allReady && roomData?.status === "waiting") { 
+        // Check if this user is the creator 
+        const creatorCode = localStorage.getItem("createdRoomCode"); 
+        if (creatorCode === roomCode) { 
+          await supabase 
+            .from("battle_rooms") 
+            .update({ status: "active", current_question: 0, started_at: new Date().toISOString() }) 
+            .eq("id", room.id); 
+        } 
+      } 
+    }, 2000); 
+
+    return () => { 
+      clearInterval(poll); 
+      supabase.removeChannel(playersChannel); 
+      supabase.removeChannel(roomChannel); 
     };
   }, [room?.id, room?.room_code, room?.status, room?.max_players, roomCode, router, isCreator]);
 
