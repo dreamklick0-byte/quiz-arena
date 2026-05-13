@@ -37,23 +37,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`/account/wallet?success=true&amount=${amount}`, request.url)) 
     } 
  
-    const { data: wallet } = await supabase 
-      .from('wallets') 
-      .select('balance') 
-      .eq('user_id', userId) 
-      .single() 
- 
-    console.log('userId:', userId) 
-    console.log('reference:', reference) 
-    console.log('amount:', amount) 
-    console.log('wallet data:', wallet) 
-    console.log('existingTx:', existingTx) 
- 
-    if (!wallet) { 
-      await supabase.from('wallets').insert({ user_id: userId, balance: amount, total_won: 0, total_spent: 0 }) 
-    } else { 
-      await supabase.from('wallets').update({ balance: wallet.balance + amount }).eq('user_id', userId) 
-    } 
+    const { error: rpcError } = await supabase.rpc('increment_wallet_balance', { 
+      p_user_id: userId, 
+      p_amount: amount 
+    }) 
+    console.log('rpc error:', rpcError) 
  
     await supabase.from('transactions').insert({ 
       user_id: userId, 
