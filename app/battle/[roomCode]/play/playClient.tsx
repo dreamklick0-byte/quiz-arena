@@ -92,48 +92,54 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const subjectTitle = subjectMeta?.title ?? room?.subject ?? "";
   const subjectEmoji = subjectMeta?.emoji ? `${subjectMeta.emoji} ` : "";
 
-  const submitAnswer = useCallback(async (answerIndex: number | null) => {
-    if (!room?.id || !playerId || !q) return;
-    const supabase = getSupabaseClient();
-    const isCorrect = answerIndex !== null && answerIndex === q.correctIndex;
+  const submitAnswer = useCallback(async (answerIndex: number | null) => { 
+   if (!room?.id || !q) return; 
+   const supabase = getSupabaseClient(); 
+   const isCorrect = answerIndex !== null && answerIndex === q.correctIndex; 
+ 
+   // Update room_players score for live updates (use user_id not playerId) 
+   if (isCorrect && playerId) { 
+     const { data: currentPlayer } = await supabase 
+       .from("room_players") 
+       .select("score") 
+       .eq("room_id", room.id) 
+       .eq("user_id", playerId) 
+       .single(); 
+ 
+     if (currentPlayer) { 
+       await supabase 
+         .from("room_players") 
+         .update({ score: (currentPlayer.score ?? 0) + 1 }) 
+         .eq("room_id", room.id) 
+         .eq("user_id", playerId); 
+     } 
+   } 
+ 
+   // Try to save to battle_answers — don't block if it fails 
+   try { 
+     await supabase.from("battle_answers").insert({ 
+       room_code: room.room_code, 
+       user_id: playerId, 
+       question_index: index, 
+       is_correct: isCorrect, 
+     }); 
+   } catch (e) { 
+     console.warn("battle_answers insert failed (non-fatal):", e); 
+   } 
+ }, [room, playerId, q, index]); 
 
-    // Save to battle_answers
-    const { error: ansErr } = await supabase.from("battle_answers").insert({
-      room_code: room.room_code,
-      user_id: playerId,
-      question_index: index,
-      is_correct: isCorrect,
-    });
-    if (ansErr) throw ansErr;
-
-    // Also update room_players score for live updates
-    if (isCorrect) {
-      const { data: currentPlayer } = await supabase
-        .from("room_players")
-        .select("score")
-        .eq("id", playerId)
-        .single();
-      
-      if (currentPlayer) {
-        await supabase
-          .from("room_players")
-          .update({ score: (currentPlayer.score ?? 0) + 1 })
-          .eq("id", playerId);
-      }
-    }
-  }, [room, playerId, q, index]);
-
-  const pickOption = async (i: number) => {
-    if (answered) return;
-    setSelectedIndex(i);
-    setAnswered(true);
-    setTimedOut(false);
-    try {
-      await submitAnswer(i);
-    } catch (e: unknown) {
-      setError((e as Error)?.message ?? "Failed to submit answer.");
-    }
-  };
+  const pickOption = async (i: number) => { 
+   if (answered) return; 
+   setSelectedIndex(i); 
+   setAnswered(true); 
+   setTimedOut(false); 
+   try { 
+     await submitAnswer(i); 
+   } catch (e: unknown) { 
+     console.error("submitAnswer error:", e); 
+     // Don't block UI even if submit fails 
+   } 
+ }; 
 
   const handleForceFinish = useCallback(async () => {
     const currentPlayers = playersRef.current;
