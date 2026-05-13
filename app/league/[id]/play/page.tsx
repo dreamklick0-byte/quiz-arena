@@ -41,17 +41,23 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       }
 
       // Check if already finished
-      const { data: entry } = await supabase
-        .from("league_entries")
-        .select("finished")
-        .eq("league_id", params.id)
-        .eq("user_id", user.id)
-        .single();
+      const { data: entry, error: entryError } = await supabase 
+        .from("league_entries") 
+        .select("finished") 
+        .eq("league_id", params.id) 
+        .eq("user_id", user.id) 
+        .maybeSingle(); 
       
-      if (entry?.finished) {
-        router.push("/league");
-        return;
-      }
+      if (entry?.finished === true) { 
+        router.push("/league"); 
+        return; 
+      } 
+
+      // If no entry found, redirect to league page (user hasn't joined) 
+      if (!entryError && entry === null) { 
+        router.push("/league"); 
+        return; 
+      } 
 
       const { data: leagueData } = await supabase
         .from("leagues")
