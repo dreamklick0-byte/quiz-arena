@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     console.log('existingTx:', existingTx) 
  
     if (!wallet) { 
-      await supabase.from('wallets').insert({ user_id: userId, balance: amount }) 
+      await supabase.from('wallets').insert({ user_id: userId, balance: amount, total_won: 0, total_spent: 0 }) 
     } else { 
       await supabase.from('wallets').update({ balance: wallet.balance + amount }).eq('user_id', userId) 
     } 
