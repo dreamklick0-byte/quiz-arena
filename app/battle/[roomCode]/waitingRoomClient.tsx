@@ -141,7 +141,19 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
             .select("id, room_id, player_name, score, finished, is_ready, joined_at, user_id")
             .eq("room_id", room.id)
             .order("joined_at", { ascending: true });
-          setPlayers((data ?? []) as PlayerRow[]);
+          const playerRows = (data ?? []) as PlayerRow[];
+          setPlayers(playerRows);
+
+          // Auto-start 2-player battle when both are ready
+          if ((room.max_players ?? 2) <= 2 && playerRows.length >= 2 && playerRows.every(p => p.is_ready)) {
+            if (isCreator && room.status === "waiting") {
+              // Only creator updates the status to active
+              await supabase
+                .from("battle_rooms")
+                .update({ status: "active", current_question: 0, started_at: new Date().toISOString() })
+                .eq("id", room.id);
+            }
+          }
         }
       )
       .subscribe();
@@ -159,6 +171,10 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         (payload) => {
           const next = payload.new as RoomRow;
           setRoom(next);
+          // Auto-redirect when status becomes active
+          if (next.status === "active") {
+            router.replace(`/battle/${roomCode}/play`);
+          }
         }
       )
       .subscribe();
@@ -167,7 +183,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       supabase.removeChannel(playersChannel);
       supabase.removeChannel(roomChannel);
     };
-  }, [room?.id, room?.room_code, router]);
+  }, [room?.id, room?.room_code, room?.status, room?.max_players, roomCode, router, isCreator]);
 
   const startGame = async () => {
     if (!room || busy) return;

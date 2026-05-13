@@ -33,48 +33,39 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function load() { 
-      console.log('load() started') 
       const supabase = getSupabaseClient(); 
       const { data: { user } } = await supabase.auth.getUser(); 
-      console.log('user:', user?.id) 
-      if (!user) { 
-        router.push("/auth"); 
-        return; 
-      } 
-  
-      const { data: entry, error: entryError } = await  supabase 
+      if (!user) { router.push("/auth"); return; } 
+    
+      // Check entry exists 
+      const { data: entry } = await supabase 
         .from("league_entries") 
-        .select("finished") 
+        .select("finished, score") 
         .eq("league_id", params.id) 
         .eq("user_id", user.id) 
         .maybeSingle(); 
-      
-      console.log('entry:', entry, 'entryError:', entryError) 
-  
-      if (entry?.finished === true) { 
-        router.push("/league"); 
-        return; 
-      } 
-  
-      if (!entryError && entry === null) { 
-        router.push("/league"); 
-        return; 
-      } 
-  
-      const { data: leagueData, error: leagueError } = await  supabase 
+    
+      // Already finished — go back 
+      if (entry?.finished === true) { router.push("/league"); return; } 
+    
+      // Fetch league and questions 
+      const { data: leagueData } = await supabase 
         .from("leagues") 
-        .select("*") 
+        .select("id, name, subject, questions") 
         .eq("id", params.id) 
         .single(); 
-  
-      console.log('leagueData:', leagueData?.name, 'questions count:', leagueData?.questions?.length, 'leagueError:', leagueError) 
-  
-      if (leagueData) { 
-        setLeague(leagueData); 
-        setQuestions(leagueData.questions || []); 
-        setLoading(false); 
-        setStartTime(Date.now()); 
+    
+      if (!leagueData) { router.push("/league"); return; } 
+      if (!leagueData.questions || leagueData.questions.length === 0) { 
+        alert("This league has no questions yet. Please contact admin."); 
+        router.push("/league"); 
+        return; 
       } 
+    
+      setLeague(leagueData); 
+      setQuestions(leagueData.questions); 
+      setLoading(false); 
+      setStartTime(Date.now()); 
     } 
     load();
   }, [params.id, router]);

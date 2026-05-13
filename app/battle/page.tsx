@@ -87,6 +87,25 @@ export default function BattleLobbyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id; 
       if (!userId) throw new Error("Please sign in to play."); 
+
+      // Check free daily limit for private rooms
+      if (stakeAmount === 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const { count, error: countError } = await supabase
+          .from("battle_rooms")
+          .select("*", { count: 'exact', head: true })
+          .eq("host_id", userId)
+          .eq("stake_amount", 0)
+          .gte("created_at", today.toISOString());
+        
+        if (countError) throw countError;
+        
+        if (count && count >= 1) {
+          throw new Error("You've used your free challenge for today. Come back tomorrow or stake ₦100+ to play more.");
+        }
+      }
       
       if (stakeAmount > 0) {
         const balance = await getWalletBalance(userId);
@@ -197,23 +216,103 @@ export default function BattleLobbyPage() {
       const userId = user?.id;
       if (!userId) throw new Error("Please sign in to play.");
 
-      const subjects = ["maths","english","physics","chemistry","biology","government","economics"];
-      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-      
-      const { generateRoomCode } = await import("@/app/battle/battleUtils");
-      const roomCode = generateRoomCode(6);
+      const stake = mode === "quick" ? 0 : 100;
 
-      const room = await createBattleRoom(
-        roomCode, 
-        randomSubject,
-        userId,
-        0 // Quick match is free
-      );
+      // 1. Add to matchmaking queue
+      const { data: queueEntry, error: queueError } = await supabase
+        .from("matchmaking_queue")
+        .insert({
+          user_id: userId,
+          stake_amount: stake,
+          status: 'searching'
+        })
+        .select()
+        .single();
 
-      const player = await insertRoomPlayer(room.id, playerName);
-      persistIdentity(player.id);
-      localStorage.setItem("createdRoomCode", roomCode);
-      router.push(`/battle/${roomCode}`);
+      if (queueError) throw queueError;
+
+      // 2. Look for opponent
+      let matchFound = false;
+      const startTime = Date.now();
+      const timeout = 120000; // 2 minutes
+
+      while (Date.now() - startTime < timeout) {
+        // Check if we've been matched (status changed to 'matched' and room_id is set)
+        const { data: currentEntry } = await supabase
+          .from("matchmaking_queue")
+          .select("status, room_id")
+          .eq("id", queueEntry.id)
+          .single();
+
+        if (currentEntry?.status === 'matched' && currentEntry.room_id) {
+          // We were matched by someone else
+          const { data: room } = await supabase
+            .from("battle_rooms")
+            .select("room_code")
+            .eq("id", currentEntry.room_id)
+            .single();
+          
+          if (room) {
+            persistIdentity(userId); // Use userId or playerName? playerName is used in existing code
+            router.push(`/battle/${room.room_code}`);
+            matchFound = true;
+            break;
+          }
+        }
+
+        // Try to find someone else waiting
+        const { data: opponent } = await supabase
+          .from("matchmaking_queue")
+          .select("id, user_id")
+          .eq("stake_amount", stake)
+          .eq("status", "searching")
+          .neq("user_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (opponent) {
+          // Found someone! Create room and match both
+          const subjects = ["maths","english","physics","chemistry","biology","government","economics"];
+          const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+          const { generateRoomCode } = await import("@/app/battle/battleUtils");
+          const roomCode = generateRoomCode(6);
+
+          const room = await createBattleRoom(
+            roomCode, 
+            randomSubject,
+            userId,
+            stake
+          );
+
+          // Update both queue entries
+          await supabase
+            .from("matchmaking_queue")
+            .update({ status: 'matched', room_id: room.id })
+            .in("id", [queueEntry.id, opponent.id]);
+
+          // Join the room
+          const player = await insertRoomPlayer(room.id, playerName);
+          persistIdentity(player.id);
+          localStorage.setItem("createdRoomCode", roomCode);
+          router.push(`/battle/${roomCode}`);
+          matchFound = true;
+          break;
+        }
+
+        // Wait 3 seconds before polling again
+        await new Promise(r => setTimeout(r, 3000));
+      }
+
+      if (!matchFound) {
+        // Timeout: remove from queue
+        await supabase
+          .from("matchmaking_queue")
+          .delete()
+          .eq("id", queueEntry.id);
+        setError("No opponent found. Try again.");
+      }
+
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message);
@@ -223,46 +322,7 @@ export default function BattleLobbyPage() {
     }
   };
 
-  const handleLeagueMatch = async () => {
-    if (!playerName.trim()) {
-      setError("Please enter your name first.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    setFindingOpponent(true);
-    
-    try {
-      const supabase = getSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-      if (!userId) throw new Error("Please sign in to play.");
-
-      const subjects = ["maths","english","physics","chemistry","biology","government","economics"];
-      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-      
-      const { generateRoomCode } = await import("@/app/battle/battleUtils");
-      const roomCode = generateRoomCode(6);
-
-      const room = await createBattleRoom(
-        roomCode, 
-        randomSubject,
-        userId,
-        100 // League stake
-      );
-
-      const player = await insertRoomPlayer(room.id, playerName);
-      persistIdentity(player.id);
-      localStorage.setItem("createdRoomCode", roomCode);
-      router.push(`/battle/${roomCode}`);
-    } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message);
-    } finally {
-      setBusy(false);
-      setFindingOpponent(false);
-    }
-  };
+  const handleLeagueMatch = handleQuickMatch; // Reuse the same logic for league match with different stake amount
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
