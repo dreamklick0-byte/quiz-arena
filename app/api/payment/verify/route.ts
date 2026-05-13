@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
       .eq('user_id', userId) 
       .single() 
  
+    console.log('userId:', userId) 
+    console.log('reference:', reference) 
+    console.log('amount:', amount) 
+    console.log('wallet data:', wallet) 
+    console.log('existingTx:', existingTx) 
+ 
     if (!wallet) { 
       await supabase.from('wallets').insert({ user_id: userId, balance: amount }) 
     } else { 
