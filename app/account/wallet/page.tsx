@@ -111,7 +111,8 @@ export default function WalletPage() {
               const verifyRes = await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`); 
               if (verifyRes.ok || verifyRes.redirected) { 
                 alert('Payment successful! Your wallet has been updated.'); 
-                window.location.reload(); 
+                await refreshData();
+                setShowDeposit(false);
               } else { 
                 const text = await verifyRes.text(); 
                 alert('Payment verify failed: ' + verifyRes.status + ' ' + text.substring(0, 100)); 
