@@ -153,10 +153,12 @@ export default function BattleRequestListener() {
         userId,
         stake_amount
       );
+      // const roomCode = room.room_code; // roomCode is already defined above
 
       // Add myself (opponent) as player 2
-      const roomId = await getRoomIdFromCode(roomCode);
-      await insertRoomPlayer(roomId, currentUserName);
+      const roomId = room.id; // Use room.id directly instead of getRoomIdFromCode(roomCode)
+      const player = await insertRoomPlayer(roomId, currentUserName);
+      // const playerId = player.id; // playerId not used here
 
       // Deduct stakes from both wallets simultaneously
       await Promise.all([
