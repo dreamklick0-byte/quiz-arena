@@ -374,21 +374,18 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   }, [room?.id, roomCode, router]);
 
   const calculateTimeLeft = useCallback(() => { 
-    if (!room?.started_at) { 
-      setGlobalTimeLeft(TIMER_SECONDS); 
-      return; 
-    } 
-    const now = Date.now(); 
-    const startedAt = new Date(room.started_at).getTime(); 
-    if (isNaN(startedAt)) { setGlobalTimeLeft(TIMER_SECONDS); return; } 
-    const elapsed = (now - startedAt) / 1000; 
+    if (!playerStartedAt) return; 
+    
+    // Use local playerStartedAt as the reference — more reliable than DB started_at 
+    const elapsed = (Date.now() - playerStartedAt) / 1000; 
     const remaining = Math.max(0, TIMER_SECONDS - elapsed); 
     setGlobalTimeLeft(Math.round(remaining)); 
+    
     if (remaining <= 0) { 
       setTimedOut(true); 
       handleForceFinish(); 
     } 
-  }, [room?.started_at, handleForceFinish]); 
+  }, [playerStartedAt, handleForceFinish]); 
 
   useEffect(() => {
     const timerId = setInterval(calculateTimeLeft, 200);
