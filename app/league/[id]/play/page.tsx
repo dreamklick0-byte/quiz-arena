@@ -32,46 +32,50 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const supabase = getSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/auth");
-        return;
-      }
-
-      // Check if already finished
-      const { data: entry, error: entryError } = await supabase 
+    async function load() { 
+      console.log('load() started') 
+      const supabase = getSupabaseClient(); 
+      const { data: { user } } = await supabase.auth.getUser(); 
+      console.log('user:', user?.id) 
+      if (!user) { 
+        router.push("/auth"); 
+        return; 
+      } 
+  
+      const { data: entry, error: entryError } = await  supabase 
         .from("league_entries") 
         .select("finished") 
         .eq("league_id", params.id) 
         .eq("user_id", user.id) 
         .maybeSingle(); 
       
+      console.log('entry:', entry, 'entryError:', entryError) 
+  
       if (entry?.finished === true) { 
         router.push("/league"); 
         return; 
       } 
-
-      // If no entry found, redirect to league page (user hasn't joined) 
+  
       if (!entryError && entry === null) { 
         router.push("/league"); 
         return; 
       } 
-
-      const { data: leagueData } = await supabase
-        .from("leagues")
-        .select("*")
-        .eq("id", params.id)
-        .single();
-
-      if (leagueData) {
-        setLeague(leagueData);
-        setQuestions(leagueData.questions || []);
-        setLoading(false);
-        setStartTime(Date.now());
-      }
-    }
+  
+      const { data: leagueData, error: leagueError } = await  supabase 
+        .from("leagues") 
+        .select("*") 
+        .eq("id", params.id) 
+        .single(); 
+  
+      console.log('leagueData:', leagueData?.name, 'questions count:', leagueData?.questions?.length, 'leagueError:', leagueError) 
+  
+      if (leagueData) { 
+        setLeague(leagueData); 
+        setQuestions(leagueData.questions || []); 
+        setLoading(false); 
+        setStartTime(Date.now()); 
+      } 
+    } 
     load();
   }, [params.id, router]);
 
