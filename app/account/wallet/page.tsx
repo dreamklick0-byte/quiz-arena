@@ -97,6 +97,7 @@ export default function WalletPage() {
         })
       });
       const data = await res.json();
+      console.log('Init response:', data);
       
       if (data.status) {
         const PaystackPop = (await import("@paystack/inline-js")).default;
@@ -210,7 +211,10 @@ export default function WalletPage() {
           
           <div className="mt-8 flex gap-4">
             <button 
-              onClick={() => setShowDeposit(true)}
+              onClick={() => {
+                console.log('Paystack key:', process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY);
+                setShowDeposit(true);
+              }}
               className="rounded-2xl bg-[#7c3aed] px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9]"
             >
               💳 Add Money
