@@ -120,7 +120,7 @@ export default function LeaguePage() {
          user.id,
          'stake',
          league.entry_fee,
-         `league-${league.id}`,
+         `league-${league.id}-${user.id}-${Date.now()}`,
          `Joined League: ${league.name}`
        );
 
