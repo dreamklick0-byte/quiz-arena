@@ -18,11 +18,11 @@ export async function GET() {
       supabase.from("withdrawal_requests").select("*", { count: 'exact', head: true }).eq("status", "pending"),
       supabase.from("questions").select("*", { count: 'exact', head: true }),
       supabase.from("leagues").select("*", { count: 'exact', head: true }).eq("status", "open"),
-      supabase.from("leagues").select("platform_revenue").eq("status", "completed"),
-      supabase.from("withdrawal_requests").select("amount").eq("status", "processed")
+      supabase.from("transactions").select("amount").eq("type", "stake"), 
+      supabase.from("withdrawal_requests").select("amount").eq("status", "processed") 
     ]);
 
-    const totalRevenue = (revenueData.data || []).reduce((sum, l) => sum + (l.platform_revenue || 0), 0);
+    const totalRevenue = Math.round((revenueData.data || []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0) * 0.2); 
     const totalPayouts = (payoutsData.data || []).reduce((sum, w) => sum + (w.amount || 0), 0);
 
     return NextResponse.json({
