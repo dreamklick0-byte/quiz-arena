@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       .single() 
  
     if (existingTx) { 
-      return NextResponse.json({ status: true, message: 'Already processed', amount }) 
+      return NextResponse.redirect(new URL(`/account/wallet?success=true&amount=${amount}`, request.url)) 
     } 
  
     const { data: wallet } = await supabase 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       status: 'completed' 
     }) 
  
-    return NextResponse.json({ status: true, message: 'Wallet updated', amount }) 
+    return NextResponse.redirect(new URL(`/account/wallet?success=true&amount=${amount}`, request.url)) 
  
   } catch (err) { 
     console.error('Payment verify error:', err) 
