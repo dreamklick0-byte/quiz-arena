@@ -39,6 +39,12 @@ export default function BattleLobbyPage() {
   } | null>(null);
   const [joinPreviewLoading, setJoinPreviewLoading] = useState(false);
 
+  // Load saved name
+  useEffect(() => {
+    const saved = localStorage.getItem("playerName");
+    if (saved) setPlayerName(saved);
+  }, []);
+
   const prizeBreakdown = useMemo(() => {
     const totalPool = stakeAmount * maxPlayers;
     const platformCut = totalPool * 0.20;
@@ -232,6 +238,27 @@ export default function BattleLobbyPage() {
 
   const avatarLetter = (playerName.trim()[0] ?? "?").toUpperCase();
   const joinNormalized = normalizeRoomCode(joinCode);
+
+  const [autoJoining, setAutoJoining] = useState(false);
+
+  // Auto-join from URL param
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get("room");
+    if (roomFromUrl && roomFromUrl.length === 6 && !joinCode) {
+      setJoinCode(roomFromUrl);
+      setMode("join");
+      setAutoJoining(true);
+    }
+  }, []);
+
+  // Trigger auto-join when name and code are ready
+  useEffect(() => {
+    if (autoJoining && playerName && joinCode.length === 6 && mode === "join" && !busy) {
+      setAutoJoining(false);
+      joinRoom();
+    }
+  }, [autoJoining, playerName, joinCode, mode, busy]);
 
   useEffect(() => {
     if (mode !== "join" || joinNormalized.length !== 6) {

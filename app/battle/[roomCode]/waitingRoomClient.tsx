@@ -14,6 +14,7 @@ type PlayerRow = {
   finished: boolean;
   is_ready: boolean;
   joined_at: string;
+  user_id?: string;
 };
 
 type RoomRow = {
@@ -22,6 +23,8 @@ type RoomRow = {
   status: string;
   subject: string;
   current_question: number;
+  host_id?: string;
+  guest_id?: string;
 };
 
 export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
@@ -38,26 +41,48 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
   useEffect(() => {
     let cancelled = false;
 
-
     const load = async () => {
       const supabase = getSupabaseClient();
       const { data: roomRow, error: roomErr } = await supabase
         .from("battle_rooms")
-        .select("id, room_code, status, subject, current_question")
+        .select("id, room_code, status, subject, current_question, host_id, guest_id")
         .eq("room_code", roomCode)
         .single();
       if (roomErr) throw roomErr;
       if (cancelled) return;
       setRoom(roomRow);
 
+      if (roomRow.status === "active" && roomRow.guest_id) {
+        router.replace(`/battle/${roomRow.room_code}/play`);
+        return;
+      }
+
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
-        .select("id, room_id, player_name, score, finished, is_ready, joined_at")
+        .select("id, room_id, player_name, score, finished, is_ready, joined_at, user_id")
         .eq("room_id", roomRow.id)
         .order("joined_at", { ascending: true });
       if (playersErr) throw playersErr;
       if (cancelled) return;
       setPlayers((playerRows ?? []) as PlayerRow[]);
+
+      // Auto-ready current player
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("room_players")
+          .update({ is_ready: true })
+          .eq("room_id", roomRow.id)
+          .eq("user_id", user.id);
+
+        // Update guest_id if not set and current user is not host
+        if (roomRow.host_id !== user.id && !roomRow.guest_id) {
+          await supabase
+            .from("battle_rooms")
+            .update({ guest_id: user.id })
+            .eq("id", roomRow.id);
+        }
+      }
     };
 
     load().catch((e: unknown) => {
@@ -68,6 +93,13 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       cancelled = true;
     };
   }, [roomCode]);
+
+  // Auto-start battle when both players are present
+   useEffect(() => {
+     if (room?.status === "waiting" && room?.guest_id && players.length >= 2 && isCreator) {
+       startGame();
+     }
+   }, [room?.status, room?.guest_id, players.length, isCreator]);
 
   useEffect(() => {
     if (!room?.id) return;
@@ -107,7 +139,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         (payload) => {
           const next = payload.new as RoomRow;
           setRoom(next);
-          if (next.status === "active") {
+          if (next.status === "active" && next.guest_id) {
             router.replace(`/battle/${next.room_code}/play`);
           }
         }
@@ -139,35 +171,8 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     }
   };
 
-  const toggleReady = async () => {
-    if (!room || busy) return;
-    const playerId = localStorage.getItem(`player_id_${room.room_code}`);
-    if (!playerId) return;
-
-    const currentPlayer = players.find(p => p.id === playerId);
-    if (!currentPlayer) return;
-
-    setBusy(true);
-    try {
-      const supabase = getSupabaseClient();
-      const { error: updateErr } = await supabase
-        .from("room_players")
-        .update({ is_ready: !currentPlayer.is_ready })
-        .eq("id", playerId);
-      if (updateErr) throw updateErr;
-    } catch (e: unknown) {
-      setError((e as Error)?.message ?? "Failed to update ready status.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const subjectTitle =
     room?.subject ? getSubjectMeta(room.subject)?.title ?? room.subject : "";
-
-  const currentPlayerId = typeof window !== 'undefined' ? localStorage.getItem(`player_id_${roomCode}`) : null;
-  const allReady = players.length >= 2 && players.every(p => p.is_ready);
-  const readyToStart = allReady && room?.status === "waiting";
 
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
@@ -236,43 +241,16 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
           )}
 
           <div className="mt-6 flex flex-col gap-3">
-            {/* Ready Toggle for Current Player */}
-            {currentPlayerId && players.find(p => p.id === currentPlayerId) && (
-              <button
-                type="button"
-                onClick={toggleReady}
-                disabled={busy}
-                className={`w-full rounded-xl py-3 text-sm font-bold transition ${
-                  players.find(p => p.id === currentPlayerId)?.is_ready
-                    ? "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                }`}
-              >
-                {players.find(p => p.id === currentPlayerId)?.is_ready ? "Not Ready" : "Ready Up"}
-              </button>
-            )}
-
-            {/* Start Button or Status Message */}
-            {readyToStart ? (
-              isCreator ? (
-                <button
-                  type="button"
-                  onClick={startGame}
-                  disabled={busy}
-                  className="w-full rounded-xl bg-[#7c3aed] py-4 text-center text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-50"
-                >
-                  {busy ? "Starting…" : "Start Battle"}
-                </button>
-              ) : (
-                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-3 text-center text-sm text-emerald-400 font-bold">
-                  Everyone is ready! Waiting for creator...
-                </div>
-              )
-            ) : (
+            {/* Status Message */}
+            {room?.status === "waiting" ? (
               <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center text-sm text-zinc-500">
                 {players.length < 2 
-                  ? "Waiting for more players..." 
-                  : "Waiting for everyone to ready up..."}
+                  ? "Waiting for opponent..." 
+                  : "Both players joined! Starting battle..."}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-3 text-center text-sm text-emerald-400 font-bold">
+                Battle is starting...
               </div>
             )}
           </div>
