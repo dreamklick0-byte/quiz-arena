@@ -100,32 +100,7 @@ export default function WalletPage() {
       console.log('Init response:', data);
       
       if (data.status) {
-        const PaystackPop = (await import("@paystack/inline-js")).default;
-        const paystack = new PaystackPop();
-        paystack.newTransaction({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
-          email: user.email,
-          amount: amount * 100,
-          ref: data.data.reference,
-          onSuccess: async (transaction: { reference: string }) => { 
-            try { 
-              const verifyRes = await fetch(`/api/payment/verify?reference=${transaction.reference}&userId=${user?.id}`); 
-              if (verifyRes.ok || verifyRes.redirected) { 
-                alert('Payment successful! Your wallet has been updated.'); 
-                await refreshData();
-                setShowDeposit(false);
-              } else { 
-                const text = await verifyRes.text(); 
-                alert('Payment verify failed: ' + verifyRes.status + ' ' + text.substring(0, 100)); 
-              } 
-            } catch (err) { 
-              alert('Error: ' + err); 
-            } 
-          },
-          onCancel: () => {
-            setBusy(false);
-          }
-        });
+        window.location.href = data.data.authorization_url;
       }
     } catch (err) {
       console.error(err);
