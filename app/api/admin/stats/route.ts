@@ -13,17 +13,17 @@ export async function GET() {
     const supabase = getAdminClient();
 
     // Fetch stats in parallel
-    const [adminsCount, withdrawalsCount, questionsCount, leaguesCount, revenueData, payoutsData] = await Promise.all([
+    const [adminsCount, withdrawalsCount, questionsCount, leaguesCount, payoutsData, platformStats] = await Promise.all([
       supabase.from("admin_accounts").select("*", { count: 'exact', head: true }),
       supabase.from("withdrawal_requests").select("*", { count: 'exact', head: true }).eq("status", "pending"),
       supabase.from("questions").select("*", { count: 'exact', head: true }),
       supabase.from("leagues").select("*", { count: 'exact', head: true }).eq("status", "open"),
-      supabase.from("transactions").select("amount").eq("type", "stake"), 
-      supabase.from("withdrawal_requests").select("amount").eq("status", "processed") 
+      supabase.from("withdrawal_requests").select("amount").eq("status", "processed"),
+      supabase.rpc('get_platform_stats')
     ]);
 
-    const totalRevenue = Math.round((revenueData.data || []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0) * 0.2); 
-    const totalPayouts = (payoutsData.data || []).reduce((sum, w) => sum + (w.amount || 0), 0);
+    const totalRevenue = platformStats.data?.total_revenue || 0;
+    const totalPayouts = platformStats.data?.total_payouts || 0;
 
     return NextResponse.json({
       success: true,
