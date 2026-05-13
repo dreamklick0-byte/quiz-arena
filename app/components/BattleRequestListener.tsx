@@ -193,7 +193,7 @@ export default function BattleRequestListener() {
       localStorage.setItem("playerName", currentUserName);
 
       setIncomingRequest(null);
-      router.push(`/battle/${roomCode}`);
+      router.push(`/battle/${roomCode}/play`);
     } catch (e: unknown) {
       setError((e as Error)?.message ?? "Something went wrong. Please try again.");
     } finally {
@@ -314,7 +314,7 @@ export default function BattleRequestListener() {
                     .update({ status: "accepted" }) 
                     .eq("id", incomingRequest.id); 
                   
-                  window.location.href = "/battle?room=" + roomCode; 
+                  window.location.href = "/battle/" + roomCode + "/play"; 
                 } catch (err) { 
                   alert("Failed: " + String(err)); 
                 } 

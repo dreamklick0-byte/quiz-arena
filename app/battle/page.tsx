@@ -24,6 +24,7 @@ export default function BattleLobbyPage() {
   const [joinCode, setJoinCode] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [findingOpponent, setFindingOpponent] = useState(false);
   
   // Private Room Setup
   const [maxPlayers, setMaxPlayers] = useState<number>(2);
@@ -69,6 +70,7 @@ export default function BattleLobbyPage() {
     if (!playerName.trim()) return false;
     if (mode === "create") return Boolean(subject);
     if (mode === "join") return normalizeRoomCode(joinCode).length === 6;
+    if (mode === "quick" || mode === "league") return true;
     return true;
   }, [playerName, mode, subject, joinCode]);
 
@@ -187,45 +189,78 @@ export default function BattleLobbyPage() {
     }
     setBusy(true);
     setError(null);
-    setMode("quick");
+    setFindingOpponent(true);
     
     try {
       const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      if (!userId) throw new Error("Please sign in to play.");
+
+      const subjects = ["maths","english","physics","chemistry","biology","government","economics"];
+      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
       
-      // 1. Check if there's an existing waiting room for this subject
-      const { data: rooms } = await supabase
-        .from("battle_rooms")
-        .select("id, room_code, max_players")
-        .eq("subject", subject)
-        .eq("status", "waiting")
-        .eq("stake_amount", 0) // Quick match is free for now
-        .order("created_at", { ascending: false });
+      const { generateRoomCode } = await import("@/app/battle/battleUtils");
+      const roomCode = generateRoomCode(6);
 
-      if (rooms && rooms.length > 0) {
-        for (const room of rooms) {
-          const { count } = await supabase
-            .from("room_players")
-            .select("*", { count: 'exact', head: true })
-            .eq("room_id", room.id);
-          
-          if (count && count < room.max_players) {
-            const player = await insertRoomPlayer(room.id, playerName);
-            persistIdentity(player.id);
-            router.push(`/battle/${room.room_code}`);
-            return;
-          }
-        }
-      }
+      const room = await createBattleRoom(
+        roomCode, 
+        randomSubject,
+        userId,
+        0 // Quick match is free
+      );
 
-      // 2. If no room found, create one
-      const { roomCode, playerId } = await createBattleRoom(subject, playerName, 0, 2);
-      persistIdentity(playerId);
+      const player = await insertRoomPlayer(room.id, playerName);
+      persistIdentity(player.id);
+      localStorage.setItem("createdRoomCode", roomCode);
       router.push(`/battle/${roomCode}`);
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message);
     } finally {
       setBusy(false);
+      setFindingOpponent(false);
+    }
+  };
+
+  const handleLeagueMatch = async () => {
+    if (!playerName.trim()) {
+      setError("Please enter your name first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setFindingOpponent(true);
+    
+    try {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      if (!userId) throw new Error("Please sign in to play.");
+
+      const subjects = ["maths","english","physics","chemistry","biology","government","economics"];
+      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+      
+      const { generateRoomCode } = await import("@/app/battle/battleUtils");
+      const roomCode = generateRoomCode(6);
+
+      const room = await createBattleRoom(
+        roomCode, 
+        randomSubject,
+        userId,
+        100 // League stake
+      );
+
+      const player = await insertRoomPlayer(room.id, playerName);
+      persistIdentity(player.id);
+      localStorage.setItem("createdRoomCode", roomCode);
+      router.push(`/battle/${roomCode}`);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message);
+    } finally {
+      setBusy(false);
+      setFindingOpponent(false);
     }
   };
 
@@ -233,7 +268,9 @@ export default function BattleLobbyPage() {
     e.preventDefault();
     if (!canSubmit || busy) return;
     if (mode === "create") await createRoom();
-    else await joinRoom();
+    else if (mode === "join") await joinRoom();
+    else if (mode === "quick") await handleQuickMatch();
+    else if (mode === "league") await handleLeagueMatch();
   };
 
   const avatarLetter = (playerName.trim()[0] ?? "?").toUpperCase();
@@ -376,14 +413,14 @@ export default function BattleLobbyPage() {
             <button
               type="button"
               className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "quick" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-              onClick={handleQuickMatch}
+              onClick={() => setMode("quick")}
             >
               ⚡ Quick
             </button>
             <button
               type="button"
               className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "league" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-              onClick={() => router.push("/league")}
+              onClick={() => setMode("league")}
             >
               🏆 League
             </button>
@@ -549,6 +586,30 @@ export default function BattleLobbyPage() {
                 </div>
               )}
 
+              {(mode === "quick" || mode === "league") && (
+                <div className="py-10 text-center">
+                  {findingOpponent ? (
+                    <div className="space-y-4">
+                      <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#7c3aed] border-t-transparent"></div>
+                      <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Finding opponent...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-zinc-400">
+                        {mode === "quick" 
+                          ? "Jump into a fast 1v1 battle with a random subject." 
+                          : "Compete in the league for a ₦100 stake."}
+                      </p>
+                      <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                         <p className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-[0.2em]">
+                           {mode === "quick" ? "FREE ENTRY" : "ENTRY FEE: ₦100"}
+                         </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {error && (
                 <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 font-medium">
                   {error}
@@ -560,7 +621,7 @@ export default function BattleLobbyPage() {
                 disabled={!canSubmit || busy}
                 className="w-full rounded-2xl bg-[#7c3aed] py-5 text-sm font-black tracking-[0.15em] text-white shadow-2xl shadow-[#7c3aed]/30 transition hover:bg-[#6d28d9] active:scale-[0.98] disabled:opacity-50"
               >
-                {busy ? "PROCESSING..." : mode === "create" ? "CREATE PRIVATE ROOM" : "JOIN BATTLE"}
+                {busy ? "PROCESSING..." : mode === "create" ? "CREATE PRIVATE ROOM" : mode === "join" ? "JOIN BATTLE" : mode === "quick" ? "START QUICK MATCH" : "ENTER LEAGUE"}
               </button>
 
               <p className="text-center text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">

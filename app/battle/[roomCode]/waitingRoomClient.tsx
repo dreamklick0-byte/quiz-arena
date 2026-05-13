@@ -41,22 +41,40 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
+    const autoInit = async () => {
       const supabase = getSupabaseClient();
+
+      // 1. Fetch room first to get ID and current status
       const { data: roomRow, error: roomErr } = await supabase
         .from("battle_rooms")
-        .select("id, room_code, status, subject, current_question, host_id, guest_id")
+        .select("id, room_code, status, subject, current_question, host_id, guest_id, max_players")
         .eq("room_code", roomCode)
         .single();
-      if (roomErr) throw roomErr;
+
+      if (roomErr || !roomRow) {
+        if (!cancelled) setError("Room not found.");
+        return;
+      }
       if (cancelled) return;
       setRoom(roomRow);
 
-      if (roomRow.status === "active" && roomRow.guest_id) {
-        router.replace(`/battle/${roomRow.room_code}/play`);
+      // 2. Auto-set this player as ready
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (userId) {
+        await supabase.from("room_players")
+          .update({ is_ready: true })
+          .eq("room_id", roomRow.id)
+          .eq("user_id", userId);
+      }
+
+      // 3. Check if room is already active (2-player auto-start)
+      if (roomRow.status === "active" && roomRow.guest_id && (roomRow.max_players ?? 2) <= 2) {
+        window.location.href = "/battle/" + roomCode + "/play";
         return;
       }
 
+      // 4. Load players
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
         .select("id, room_id, player_name, score, finished, is_ready, joined_at, user_id")
@@ -66,40 +84,41 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       if (cancelled) return;
       setPlayers((playerRows ?? []) as PlayerRow[]);
 
-      // Auto-ready current player
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      // 5. Update guest_id if needed
+      if (userId && roomRow.host_id !== userId && !roomRow.guest_id) {
         await supabase
-          .from("room_players")
-          .update({ is_ready: true })
-          .eq("room_id", roomRow.id)
-          .eq("user_id", user.id);
-
-        // Update guest_id if not set and current user is not host
-        if (roomRow.host_id !== user.id && !roomRow.guest_id) {
-          await supabase
-            .from("battle_rooms")
-            .update({ guest_id: user.id })
-            .eq("id", roomRow.id);
-        }
+          .from("battle_rooms")
+          .update({ guest_id: userId })
+          .eq("id", roomRow.id);
       }
     };
 
-    load().catch((e: unknown) => {
+    autoInit().catch((e: unknown) => {
       setError((e as Error)?.message ?? "Failed to load room.");
     });
 
+    // Subscribe to room changes for auto-redirect
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel("auto-start-" + roomCode)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "battle_rooms",
+        filter: "room_code=eq." + roomCode,
+      }, (payload) => {
+        const updated = payload.new as any;
+        if (updated.status === "active" && updated.guest_id && (updated.max_players ?? 2) <= 2) {
+          window.location.href = "/battle/" + roomCode + "/play";
+        }
+      })
+      .subscribe();
+
     return () => {
       cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [roomCode]);
-
-  // Auto-start battle when both players are present
-   useEffect(() => {
-     if (room?.status === "waiting" && room?.guest_id && players.length >= 2 && isCreator) {
-       startGame();
-     }
-   }, [room?.status, room?.guest_id, players.length, isCreator]);
 
   useEffect(() => {
     if (!room?.id) return;
@@ -118,7 +137,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         async () => {
           const { data } = await supabase
             .from("room_players")
-            .select("id, room_id, player_name, score, finished, is_ready, joined_at")
+            .select("id, room_id, player_name, score, finished, is_ready, joined_at, user_id")
             .eq("room_id", room.id)
             .order("joined_at", { ascending: true });
           setPlayers((data ?? []) as PlayerRow[]);
@@ -139,9 +158,6 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         (payload) => {
           const next = payload.new as RoomRow;
           setRoom(next);
-          if (next.status === "active" && next.guest_id) {
-            router.replace(`/battle/${next.room_code}/play`);
-          }
         }
       )
       .subscribe();
@@ -242,15 +258,30 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
 
           <div className="mt-6 flex flex-col gap-3">
             {/* Status Message */}
-            {room?.status === "waiting" ? (
+            {(room?.max_players ?? 2) > 2 ? (
+              <>
+                <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center text-sm text-zinc-500">
+                  {players.length < (room?.max_players ?? 2)
+                    ? `Waiting for more players (${players.length}/${room?.max_players})...`
+                    : players.every(p => p.is_ready) 
+                      ? "Everyone is ready!" 
+                      : "Waiting for everyone to ready up..."}
+                </div>
+                {isCreator && players.length >= (room?.max_players ?? 2) && players.every(p => p.is_ready) && (
+                  <button
+                    onClick={startGame}
+                    disabled={busy}
+                    className="w-full rounded-xl bg-[#7c3aed] py-4 text-center text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] disabled:opacity-50"
+                  >
+                    {busy ? "Starting…" : "Start Battle"}
+                  </button>
+                )}
+              </>
+            ) : (
               <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center text-sm text-zinc-500">
                 {players.length < 2 
                   ? "Waiting for opponent..." 
                   : "Both players joined! Starting battle..."}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-3 text-center text-sm text-emerald-400 font-bold">
-                Battle is starting...
               </div>
             )}
           </div>
