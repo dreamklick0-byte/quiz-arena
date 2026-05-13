@@ -42,6 +42,7 @@ type PlayerRow = {
   score: number;
   finished: boolean;
   joined_at: string;
+  user_id?: string;
 };
 
 export function BattlePlayClient({ roomCode }: { roomCode: string }) {
@@ -63,9 +64,15 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     playersRef.current = players;
   }, [players]);
 
-  const playerId = useMemo(() => {
-    return typeof window === "undefined" ? null : localStorage.getItem("playerId");
-  }, []);
+  const [playerId, setPlayerId] = useState<string | null>(null); 
+ 
+  useEffect(() => { 
+    const supabase = getSupabaseClient(); 
+    supabase.auth.getUser().then(({ data }) => { 
+      if (data?.user?.id) setPlayerId(data.user.id); 
+    }); 
+  }, []); 
+
   const playerName = useMemo(() => {
     return typeof window === "undefined"
       ? null
@@ -78,7 +85,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
   const myPlayer = useMemo(() => {
     if (!playerId) return null;
-    return players.find((p) => p.id === playerId) ?? null;
+    return players.find((p) => p.user_id === playerId || p.id === playerId) ?? null;
   }, [players, playerId]);
 
   const subjectMeta = room?.subject ? getSubjectMeta(room.subject) : undefined;
@@ -293,7 +300,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
-        .select("id, room_id, player_name, score, finished, joined_at")
+        .select("id, room_id, player_name, score, finished, joined_at, user_id")
         .eq("room_id", roomRow.id)
         .order("joined_at", { ascending: true });
       if (playersErr) throw playersErr;
@@ -328,7 +335,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         async () => {
           const { data } = await supabase
             .from("room_players")
-            .select("id, room_id, player_name, score, finished, joined_at")
+            .select("id, room_id, player_name, score, finished, joined_at, user_id")
             .eq("room_id", room.id)
             .order("joined_at", { ascending: true });
           setPlayers((data ?? []) as PlayerRow[]);
@@ -360,34 +367,22 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     };
   }, [room?.id, roomCode, router]);
 
-  const calculateTimeLeft = useCallback(() => {
-    if (!room?.started_at) {
-      setGlobalTimeLeft(TIMER_SECONDS);
-      return;
-    }
-
-    const now = new Date();
-    const startedAt = new Date(room.started_at);
-    const elapsedSeconds = (now.getTime() - startedAt.getTime()) / 1000;
-    
-    // If elapsedSeconds is NaN or invalid, fallback to TIMER_SECONDS
-    if (isNaN(elapsedSeconds)) {
-      setGlobalTimeLeft(TIMER_SECONDS);
-      return;
-    }
-
-    const remaining = Math.max(0, TIMER_SECONDS - elapsedSeconds);
-
-    if (remaining <= 0) {
-      setGlobalTimeLeft(0);
-      setTimedOut(true);
-      if (room.status === "active" && myPlayer && !myPlayer.finished) {
-        handleForceFinish();
-      }
-    } else {
-      setGlobalTimeLeft(remaining);
-    }
-  }, [room, myPlayer, handleForceFinish]);
+  const calculateTimeLeft = useCallback(() => { 
+    if (!room?.started_at) { 
+      setGlobalTimeLeft(TIMER_SECONDS); 
+      return; 
+    } 
+    const now = Date.now(); 
+    const startedAt = new Date(room.started_at).getTime(); 
+    if (isNaN(startedAt)) { setGlobalTimeLeft(TIMER_SECONDS); return; } 
+    const elapsed = (now - startedAt) / 1000; 
+    const remaining = Math.max(0, TIMER_SECONDS - elapsed); 
+    setGlobalTimeLeft(Math.round(remaining)); 
+    if (remaining <= 0) { 
+      setTimedOut(true); 
+      handleForceFinish(); 
+    } 
+  }, [room?.started_at, handleForceFinish]); 
 
   useEffect(() => {
     const timerId = setInterval(calculateTimeLeft, 200);
@@ -548,6 +543,15 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
               )}
             </div>
           )}
+
+          {answered && ( 
+             <button 
+               onClick={goNext} 
+               className="mt-6 w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg transition hover:bg-[#6d28d9]" 
+             > 
+               {index >= TOTAL_QUESTIONS - 1 ? "Finish Battle" : "Next Question →"} 
+             </button> 
+           )} 
         </main>
 
         <aside className="rounded-2xl border border-white/10 bg-[#161627]/70 p-5">
@@ -588,19 +592,6 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         </aside>
       </div>
 
-      {answered && (
-        <div className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#0f0f1a]/98 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-          <div className="mx-auto max-w-3xl">
-            <button
-              type="button"
-              onClick={goNext}
-              className="w-full rounded-xl bg-[#7c3aed] py-3.5 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99]"
-            >
-              {index >= TOTAL_QUESTIONS - 1 ? "See results" : "Next question"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
