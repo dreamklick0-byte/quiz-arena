@@ -194,9 +194,13 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     }
     setRematchBusy(true);
     try {
-      const { roomCode: nextCode, playerId } = await createBattleRoom(sub, name);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id ?? "";
+
+      const room = await createBattleRoom(sub, name, userId);
+      const nextCode = room.room_code;
+      
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("playerId", playerId);
         window.localStorage.setItem("playerName", name);
         window.localStorage.setItem("createdRoomCode", nextCode);
       }
