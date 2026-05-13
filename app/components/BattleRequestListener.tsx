@@ -13,6 +13,8 @@ type BattleRequest = {
   challenger_name: string;
   subject: string;
   stake_amount: number;
+  room_code?: string;
+  roomCode?: string;
 };
 
 export default function BattleRequestListener() {
@@ -301,7 +303,7 @@ export default function BattleRequestListener() {
                   const userId = sessionData?.session?.user?.id; 
                   if (!userId) { alert("Not logged in"); return; } 
                   
-                  const roomCode = incomingRequest.room_code || (incomingRequest as any).roomCode; 
+                  const roomCode = (incomingRequest as any).room_code || (incomingRequest as any).roomCode; 
                   
                   const { error: updateError } = await supabase 
                     .from("battle_rooms") 
@@ -312,7 +314,7 @@ export default function BattleRequestListener() {
                   await supabase 
                     .from("battle_requests") 
                     .update({ status: "accepted" }) 
-                    .eq("id", incomingRequest.id); 
+                    .eq("id", (incomingRequest as any).id); 
                   
                   window.location.href = "/battle/" + roomCode + "/play"; 
                 } catch (err) { 
