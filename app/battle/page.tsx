@@ -844,79 +844,54 @@ export default function BattleLobbyPage() {
                 </div>
               )}
 
-              {mode === "quick" && (
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
-                      Choose Subject
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {SUBJECTS.map((s) => (
-                        <button
-                          key={s.slug}
-                          type="button"
-                          onClick={() => setQuickSubject(s.slug)}
-                          className={`rounded-xl py-2.5 px-3 text-xs font-bold transition border ${quickSubject === s.slug ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#7c3aed]/50"}`}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
-                      Stake Amount
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {QUICK_STAKE_OPTIONS.map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setQuickStake(amt)}
-                          className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`}
-                        >
-                          ₦{amt.toLocaleString()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-zinc-400 space-y-1">
-                    <div className="flex justify-between">
-                      <span>Stake</span>
-                      <span className="text-white font-bold">
-                        ₦{quickStake.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>You can win</span>
-                      <span className="text-emerald-400 font-bold">
-                        ₦{(quickStake * 2 * 0.8).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Subject</span>
-                      <span className="text-[#7c3aed] font-bold capitalize">
-                        {quickSubject}
-                      </span>
-                    </div>
-                  </div>
-
-                  {findingOpponent && (
-                    <div className="rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/30 p-4 text-center">
-                      <div className="text-2xl mb-2 animate-spin inline-block">
-                        ⚡
-                      </div>
-                      <div className="text-sm font-bold text-white">
-                        {searchingMsg}
-                      </div>
-                      <div className="text-xs text-zinc-400 mt-1">
-                        Matching you with a ₦{quickStake} opponent...
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {mode === "quick" && ( 
+                <div className="space-y-5"> 
+                  <div> 
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Choose Subject</label> 
+                    <div className="grid grid-cols-3 gap-2"> 
+                      {SUBJECTS.map((s) => ( 
+                        <button 
+                          key={s.slug} 
+                          type="button" 
+                          onClick={() => setQuickSubject(s.slug)} 
+                          className={`rounded-xl py-2.5 px-3 text-xs font-bold transition border ${quickSubject === s.slug ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#7c3aed]/50"}`} 
+                        > 
+                          {s.label} 
+                        </button> 
+                      ))} 
+                    </div> 
+                  </div> 
+              
+                  <div> 
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Stake Amount</label> 
+                    <div className="grid grid-cols-3 gap-2"> 
+                      {QUICK_STAKE_OPTIONS.map((amt) => ( 
+                        <button 
+                          key={amt} 
+                          type="button" 
+                          onClick={() => setQuickStake(amt)} 
+                          className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`} 
+                        > 
+                          ₦{amt.toLocaleString()} 
+                        </button> 
+                      ))} 
+                    </div> 
+                  </div> 
+              
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-zinc-400 space-y-1"> 
+                    <div className="flex justify-between"><span>Stake</span><span className="text-white font-bold">₦{quickStake.toLocaleString()}</span></div> 
+                    <div className="flex justify-between"><span>You can win</span><span className="text-emerald-400 font-bold">₦{(quickStake * 2 * 0.8).toLocaleString()}</span></div> 
+                    <div className="flex justify-between"><span>Subject</span><span className="text-[#7c3aed] font-bold capitalize">{quickSubject}</span></div> 
+                  </div> 
+              
+                  {findingOpponent && ( 
+                    <div className="rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/30 p-4 text-center"> 
+                      <div className="text-2xl mb-2 animate-spin inline-block">⚡</div> 
+                      <div className="text-sm font-bold text-white">{searchingMsg}</div> 
+                      <div className="text-xs text-zinc-400 mt-1">Matching you with a ₦{quickStake} opponent...</div> 
+                    </div> 
+                  )} 
+                </div> 
               )}
 
               {mode === "league" && (
