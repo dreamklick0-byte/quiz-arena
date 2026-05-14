@@ -69,6 +69,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   useEffect(() => { 
     const supabase = getSupabaseClient(); 
     supabase.auth.getUser().then(({ data }) => { 
+      console.log('auth user:', data?.user?.id); 
       if (data?.user?.id) setPlayerId(data.user.id); 
     }); 
   }, []); 
@@ -223,7 +224,11 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   }, [room, playerId, playerStartedAt]);
 
   const goNext = useCallback(async () => {
-    if (!room?.id || !playerId) return;
+    console.log('goNext called, playerId:', playerId, 'room:', room?.id, 'index:', index); 
+    if (!room?.id || !playerId) { 
+      console.error('goNext blocked - missing room or playerId'); 
+      return; 
+    }
     
     if (!answered) {
       setAnswered(true);
