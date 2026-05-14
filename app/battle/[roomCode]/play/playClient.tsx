@@ -221,7 +221,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     } catch (e) {
       console.error("Error force finishing:", e);
     }
-  }, [room, playerId, playerStartedAt]);
+    // Always redirect after force finish 
+    router.replace(`/battle/${roomCode}/results`);
+  }, [room, playerId, playerStartedAt, router, roomCode]);
 
   const goNext = useCallback(async () => {
     console.log('goNext called, playerId:', playerId, 'room:', room?.id, 'index:', index); 
@@ -309,8 +311,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         }
       } catch (e: unknown) {
         setError((e as Error)?.message ?? "Failed to finish game.");
-        return;
       }
+      // Always redirect to results after finishing, regardless of other players 
+      router.replace(`/battle/${roomCode}/results`);
       return;
     }
 
@@ -318,7 +321,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     setAnswered(false);
     setSelectedIndex(null);
     setTimedOut(false);
-  }, [room, playerId, answered, index, playerStartedAt, submitAnswer]);
+  }, [room, playerId, answered, index, playerStartedAt, submitAnswer, router, roomCode]);
 
   useEffect(() => {
     let cancelled = false;
