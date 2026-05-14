@@ -129,17 +129,19 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
  }, [room, playerId, q, index]); 
 
   const pickOption = async (i: number) => { 
-   if (answered) return; 
-   setSelectedIndex(i); 
-   setAnswered(true); 
-   setTimedOut(false); 
-   try { 
-     await submitAnswer(i); 
-   } catch (e: unknown) { 
-     console.error("submitAnswer error:", e); 
-     // Don't block UI even if submit fails 
-   } 
- }; 
+    console.log('pickOption called, answered:', answered, 'index:', i); 
+    if (answered) return; 
+    setSelectedIndex(i); 
+    setAnswered(true); 
+    console.log('setAnswered(true) called'); 
+    setTimedOut(false); 
+    try { 
+      await submitAnswer(i); 
+    } catch (e: unknown) { 
+      console.error("submitAnswer error:", e); 
+      // Don't block UI even if submit fails 
+    } 
+  }; 
 
   const handleForceFinish = useCallback(async () => {
     const currentPlayers = playersRef.current;
