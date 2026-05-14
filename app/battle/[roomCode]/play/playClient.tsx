@@ -383,17 +383,24 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     const remaining = Math.max(0, TIMER_SECONDS - elapsed); 
     setGlobalTimeLeft(Math.round(remaining)); 
     
-    if (remaining <= 0) { 
+    if (remaining <= 0 && index > 0) { 
+      // Only force finish if player has at least started answering 
       setTimedOut(true); 
       handleForceFinish(); 
     } 
-  }, [playerStartedAt, handleForceFinish]); 
+  }, [playerStartedAt, handleForceFinish, index]); 
 
   useEffect(() => {
     const timerId = setInterval(calculateTimeLeft, 200);
 
     return () => clearInterval(timerId);
   }, [calculateTimeLeft]);
+
+  useEffect(() => { 
+    setAnswered(false); 
+    setSelectedIndex(null); 
+    setTimedOut(false); 
+  }, [index]); 
 
 
 
