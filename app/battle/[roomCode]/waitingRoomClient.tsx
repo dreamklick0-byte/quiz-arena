@@ -39,6 +39,28 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     return localStorage.getItem("createdRoomCode") === roomCode;
   }, [roomCode]);
 
+  useEffect(() => { 
+    const checkRoomStatus = async () => { 
+      const supabase = getSupabaseClient(); 
+      const { data: room } = await supabase 
+        .from("battle_rooms") 
+        .select("status, room_code") 
+        .eq("room_code", roomCode) 
+        .maybeSingle(); 
+      
+      if (room?.status === "active") { 
+        router.replace(`/battle/${room.room_code}/play`); 
+      } 
+    }; 
+    
+    if (roomCode) { 
+      checkRoomStatus(); 
+      // Also poll every 2 seconds in case room becomes active 
+      const interval = setInterval(checkRoomStatus, 2000); 
+      return () => clearInterval(interval); 
+    } 
+  }, [roomCode, router]); 
+
   useEffect(() => {
     let cancelled = false;
 
