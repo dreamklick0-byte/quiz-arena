@@ -765,7 +765,7 @@ export default function BattleLobbyPage() {
                           onClick={() => setQuickSubject(s.slug)} 
                           className={`rounded-xl py-2.5 px-3 text-xs font-bold transition border ${quickSubject === s.slug ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#7c3aed]/50"}`} 
                         > 
-                          {s.label} 
+                          {s.title} 
                         </button> 
                       ))} 
                     </div> 
