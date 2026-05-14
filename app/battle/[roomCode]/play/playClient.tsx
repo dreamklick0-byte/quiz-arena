@@ -151,7 +151,11 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     const supabase = getSupabaseClient();
     
     // Find player index (1, 2, 3, or 4)
-    const myIdx = currentPlayers.findIndex(p => p.id === playerId) + 1;
+    const myIdx = currentPlayers.findIndex(p => p.user_id === playerId || p.id === playerId) + 1; 
+    if (myIdx <= 0) { 
+      console.error('Player not found in room_players'); 
+      return; 
+    } 
     const playerKey = `player${myIdx}`;
 
     // 1. Calculate score from battle_answers for ALL questions
@@ -221,7 +225,11 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     if (index >= TOTAL_QUESTIONS - 1) {
       const supabase = getSupabaseClient();
       const currentPlayers = playersRef.current;
-      const myIdx = currentPlayers.findIndex(p => p.id === playerId) + 1;
+      const myIdx = currentPlayers.findIndex(p => p.user_id === playerId || p.id === playerId) + 1;
+      if (myIdx <= 0) { 
+        console.error('Player not found in room_players'); 
+        return; 
+      } 
       const playerKey = `player${myIdx}`;
       
       const { data: answers } = await supabase
