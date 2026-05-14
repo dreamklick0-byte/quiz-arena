@@ -54,7 +54,8 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
     }; 
     
     if (roomCode) { 
-      checkRoomStatus(); 
+      // Run immediately on mount with 0ms delay
+      setTimeout(checkRoomStatus, 0); 
       // Also poll every 2 seconds in case room becomes active 
       const interval = setInterval(checkRoomStatus, 2000); 
       return () => clearInterval(interval); 
@@ -270,8 +271,14 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
   const subjectTitle =
     room?.subject ? getSubjectMeta(room.subject)?.title ?? room.subject : "";
 
+  // Auto-redirect if room is already active (for quick match) 
+  if (room?.status === "active") { 
+    return null; // useEffect will handle redirect 
+  } 
+
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
+      {room?.status === "active" && (() => { router.replace(`/battle/${roomCode}/play`); return null; })()}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
         <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
