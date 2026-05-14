@@ -26,6 +26,11 @@ export default function BattleLobbyPage() {
   const [error, setError] = useState<string | null>(null);
   const [findingOpponent, setFindingOpponent] = useState(false);
   
+  const [quickSubject, setQuickSubject] = useState<string>(SUBJECTS[0]?.slug ?? "maths");
+  const [quickStake, setQuickStake] = useState<number>(100);
+  const QUICK_STAKE_OPTIONS = [100, 200, 300, 500, 1000, 2000];
+  const [searchingMsg, setSearchingMsg] = useState<string>("Searching for opponent...");
+
   // Private Room Setup
   const [maxPlayers, setMaxPlayers] = useState<number>(2);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
@@ -209,6 +214,201 @@ export default function BattleLobbyPage() {
     setBusy(true);
     setError(null);
     setFindingOpponent(true);
+    setSearchingMsg("Searching for opponent...");
+    try {
+      const supabase = getSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id;
+      if (!userId) throw new Error("Please sign in to play.");
+
+      // Check wallet balance
+      if (quickStake > 0) {
+        const balance = await getWalletBalance(userId);
+        if (balance < quickStake) {
+          throw new Error(
+            `Insufficient balance. You need ₦${quickStake}. Current balance: ₦${balance}.`
+          );
+        }
+      }
+
+      // Remove any stale queue entries for this user
+      await supabase
+        .from("matchmaking_queue")
+        .delete()
+        .eq("user_id", userId)
+        .eq("status", "searching");
+
+      // Add to matchmaking queue with subject preference
+      const { data: queueEntry, error: queueError } = await supabase
+        .from("matchmaking_queue")
+        .insert({
+          user_id: userId,
+          stake_amount: quickStake,
+          status: "searching",
+          subject: quickSubject,
+        })
+        .select()
+        .single();
+
+      if (queueError) throw queueError;
+
+      // Poll every 2 seconds for up to 2 minutes
+      let matchFound = false;
+      const startTime = Date.now();
+      const timeout = 120000;
+      let dots = 0;
+
+      while (Date.now() - startTime < timeout && !matchFound) {
+        dots = (dots + 1) % 4;
+        setSearchingMsg("Searching for opponent" + ".".repeat(dots));
+
+        // Check if we were matched by someone else
+        const { data: myEntry } = await supabase
+          .from("matchmaking_queue")
+          .select("status, room_id")
+          .eq("id", queueEntry.id)
+          .maybeSingle();
+
+        if (myEntry?.status === "matched" && myEntry.room_id) {
+          const { data: room } = await supabase
+            .from("battle_rooms")
+            .select("room_code")
+            .eq("id", myEntry.room_id)
+            .single();
+
+          if (room) {
+            // Join the room as player 2
+            const player = await insertRoomPlayer(myEntry.room_id, playerName);
+            persistIdentity(player.id);
+
+            // Deduct stake
+            if (quickStake > 0) {
+              await processTransaction(
+                userId,
+                "stake",
+                quickStake,
+                `quick-join-${room.room_code}-${userId}`,
+                `Quick match stake ₦${quickStake}`
+              );
+            }
+
+            // Mark room as active so battle starts immediately
+            await supabase
+              .from("battle_rooms")
+              .update({
+                status: "active",
+                started_at: new Date().toISOString(),
+              })
+              .eq("id", myEntry.room_id);
+
+            await supabase
+              .from("matchmaking_queue")
+              .update({ status: "matched" })
+              .eq("id", queueEntry.id);
+
+            localStorage.setItem("createdRoomCode", "");
+            matchFound = true;
+            router.push(`/battle/${room.room_code}/play`);
+            break;
+          }
+        }
+
+        // Try to find an opponent with same stake and subject (or same stake any subject)
+        const { data: opponent } = await supabase
+          .from("matchmaking_queue")
+          .select("id, user_id, subject")
+          .eq("stake_amount", quickStake)
+          .eq("status", "searching")
+          .neq("user_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (opponent) {
+          setSearchingMsg("Opponent found! Starting battle...");
+
+          // Use opponent's subject or our subject randomly
+          const battleSubject =
+            Math.random() > 0.5 ? quickSubject : opponent.subject || quickSubject;
+          const { generateRoomCode } = await import("@/app/battle/battleUtils");
+          const roomCode = generateRoomCode(6);
+
+          // Create room
+          const room = await createBattleRoom(
+            roomCode,
+            battleSubject,
+            userId,
+            quickStake
+          );
+
+          // Add ourselves as player 1
+          const player = await insertRoomPlayer(room.id, playerName);
+          persistIdentity(player.id);
+
+          // Deduct our stake
+          if (quickStake > 0) {
+            await processTransaction(
+              userId,
+              "stake",
+              quickStake,
+              `quick-create-${roomCode}`,
+              `Quick match stake ₦${quickStake}`
+            );
+          }
+
+          // Mark opponent as matched so they get redirected
+          await supabase
+            .from("matchmaking_queue")
+            .update({ status: "matched", room_id: room.id })
+            .eq("id", opponent.id);
+
+          await supabase
+            .from("matchmaking_queue")
+            .update({ status: "matched", room_id: room.id })
+            .eq("id", queueEntry.id);
+
+          // Mark room active immediately — no waiting room, starts directly
+          await supabase
+            .from("battle_rooms")
+            .update({
+              status: "active",
+              started_at: new Date().toISOString(),
+              guest_id: opponent.user_id,
+            })
+            .eq("id", room.id);
+
+          localStorage.setItem("createdRoomCode", roomCode);
+          matchFound = true;
+          router.push(`/battle/${roomCode}/play`);
+          break;
+        }
+
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+
+      if (!matchFound) {
+        await supabase.from("matchmaking_queue").delete().eq("id", queueEntry.id);
+        setError("No opponent found after 2 minutes. Try again.");
+      }
+    } catch (err: unknown) {
+      setError((err as Error)?.message ?? "Matchmaking failed.");
+    } finally {
+      setBusy(false);
+      setFindingOpponent(false);
+      setSearchingMsg("Searching for opponent...");
+    }
+  };
+
+  const handleLeagueMatch = async () => {
+    if (!playerName.trim()) {
+      setError("Please enter your name first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setFindingOpponent(true);
     
     try {
       const supabase = getSupabaseClient();
@@ -216,7 +416,7 @@ export default function BattleLobbyPage() {
       const userId = user?.id;
       if (!userId) throw new Error("Please sign in to play.");
 
-      const stake = mode === "quick" ? 0 : 100;
+      const stake = 100;
 
       // 1. Add to matchmaking queue
       const { data: queueEntry, error: queueError } = await supabase
@@ -253,7 +453,7 @@ export default function BattleLobbyPage() {
             .single();
           
           if (room) {
-            persistIdentity(userId); // Use userId or playerName? playerName is used in existing code
+            persistIdentity(userId); 
             router.push(`/battle/${room.room_code}`);
             matchFound = true;
             break;
@@ -321,8 +521,6 @@ export default function BattleLobbyPage() {
       setFindingOpponent(false);
     }
   };
-
-  const handleLeagueMatch = handleQuickMatch; // Reuse the same logic for league match with different stake amount
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -646,7 +844,82 @@ export default function BattleLobbyPage() {
                 </div>
               )}
 
-              {(mode === "quick" || mode === "league") && (
+              {mode === "quick" && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
+                      Choose Subject
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SUBJECTS.map((s) => (
+                        <button
+                          key={s.slug}
+                          type="button"
+                          onClick={() => setQuickSubject(s.slug)}
+                          className={`rounded-xl py-2.5 px-3 text-xs font-bold transition border ${quickSubject === s.slug ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#7c3aed]/50"}`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
+                      Stake Amount
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {QUICK_STAKE_OPTIONS.map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setQuickStake(amt)}
+                          className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`}
+                        >
+                          ₦{amt.toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-zinc-400 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Stake</span>
+                      <span className="text-white font-bold">
+                        ₦{quickStake.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>You can win</span>
+                      <span className="text-emerald-400 font-bold">
+                        ₦{(quickStake * 2 * 0.8).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Subject</span>
+                      <span className="text-[#7c3aed] font-bold capitalize">
+                        {quickSubject}
+                      </span>
+                    </div>
+                  </div>
+
+                  {findingOpponent && (
+                    <div className="rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/30 p-4 text-center">
+                      <div className="text-2xl mb-2 animate-spin inline-block">
+                        ⚡
+                      </div>
+                      <div className="text-sm font-bold text-white">
+                        {searchingMsg}
+                      </div>
+                      <div className="text-xs text-zinc-400 mt-1">
+                        Matching you with a ₦{quickStake} opponent...
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {mode === "league" && (
                 <div className="py-10 text-center">
                   {findingOpponent ? (
                     <div className="space-y-4">
@@ -656,13 +929,11 @@ export default function BattleLobbyPage() {
                   ) : (
                     <div className="space-y-4">
                       <p className="text-sm text-zinc-400">
-                        {mode === "quick" 
-                          ? "Jump into a fast 1v1 battle with a random subject." 
-                          : "Compete in the league for a ₦100 stake."}
+                        Compete in the league for a ₦100 stake.
                       </p>
                       <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                          <p className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-[0.2em]">
-                           {mode === "quick" ? "FREE ENTRY" : "ENTRY FEE: ₦100"}
+                           ENTRY FEE: ₦100
                          </p>
                       </div>
                     </div>
@@ -681,7 +952,17 @@ export default function BattleLobbyPage() {
                 disabled={!canSubmit || busy}
                 className="w-full rounded-2xl bg-[#7c3aed] py-5 text-sm font-black tracking-[0.15em] text-white shadow-2xl shadow-[#7c3aed]/30 transition hover:bg-[#6d28d9] active:scale-[0.98] disabled:opacity-50"
               >
-                {busy ? "PROCESSING..." : mode === "create" ? "CREATE PRIVATE ROOM" : mode === "join" ? "JOIN BATTLE" : mode === "quick" ? "START QUICK MATCH" : "ENTER LEAGUE"}
+                {mode === "quick" && findingOpponent
+                  ? searchingMsg
+                  : busy
+                  ? "PROCESSING..."
+                  : mode === "create"
+                  ? "CREATE PRIVATE ROOM"
+                  : mode === "join"
+                  ? "JOIN BATTLE"
+                  : mode === "quick"
+                  ? "⚡ Find Quick Match"
+                  : "ENTER LEAGUE"}
               </button>
 
               <p className="text-center text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">
