@@ -223,12 +223,15 @@ export default function BattleLobbyPage() {
       const userId = user?.id;
       if (!userId) throw new Error("Please sign in to play.");
 
+      const stake = quickStake; 
+      const battleSubject = quickSubject; 
+
       // Check wallet balance
-      if (quickStake > 0) {
+      if (stake > 0) {
         const balance = await getWalletBalance(userId);
-        if (balance < quickStake) {
+        if (balance < stake) {
           throw new Error(
-            `Insufficient balance. You need ₦${quickStake}. Current balance: ₦${balance}.`
+            `Insufficient balance. You need ₦${stake}. Current balance: ₦${balance}.`
           );
         }
       }
@@ -245,9 +248,9 @@ export default function BattleLobbyPage() {
         .from("matchmaking_queue")
         .insert({
           user_id: userId,
-          stake_amount: quickStake,
+          stake_amount: stake,
           status: "searching",
-          subject: quickSubject,
+          subject: battleSubject,
         })
         .select()
         .single();
@@ -280,17 +283,17 @@ export default function BattleLobbyPage() {
 
           if (room) {
             // Join the room as player 2
-            const player = await insertRoomPlayer(myEntry.room_id, playerName);
-            persistIdentity(player.id);
+            const player2 = await insertRoomPlayer(myEntry.room_id, playerName); 
+            persistIdentity(player2.id); 
 
             // Deduct stake
-            if (quickStake > 0) {
+            if (stake > 0) {
               await processTransaction(
                 userId,
                 "stake",
-                quickStake,
+                stake,
                 `quick-join-${room.room_code}-${userId}`,
-                `Quick match stake ₦${quickStake}`
+                `Quick match stake ₦${stake}`
               );
             }
 
@@ -319,7 +322,7 @@ export default function BattleLobbyPage() {
         const { data: opponent } = await supabase
           .from("matchmaking_queue")
           .select("id, user_id, subject")
-          .eq("stake_amount", quickStake)
+          .eq("stake_amount", stake)
           .eq("status", "searching")
           .neq("user_id", userId)
           .order("created_at", { ascending: true })
@@ -329,18 +332,16 @@ export default function BattleLobbyPage() {
         if (opponent) {
           setSearchingMsg("Opponent found! Starting battle...");
 
-          // Use opponent's subject or our subject randomly
-          const battleSubject =
-            Math.random() > 0.5 ? quickSubject : opponent.subject || quickSubject;
+          const randomSubject = battleSubject; 
           const { generateRoomCode } = await import("@/app/battle/battleUtils");
           const roomCode = generateRoomCode(6);
 
           // Create room
           const room = await createBattleRoom(
             roomCode,
-            battleSubject,
+            randomSubject,
             userId,
-            quickStake
+            stake
           );
 
           // Add ourselves as player 1
@@ -348,13 +349,13 @@ export default function BattleLobbyPage() {
           persistIdentity(player.id);
 
           // Deduct our stake
-          if (quickStake > 0) {
+          if (stake > 0) {
             await processTransaction(
               userId,
               "stake",
-              quickStake,
+              stake,
               `quick-create-${roomCode}`,
-              `Quick match stake ₦${quickStake}`
+              `Quick match stake ₦${stake}`
             );
           }
 
