@@ -315,7 +315,7 @@ export default function BattleLobbyPage() {
      } 
  
    } catch (err: unknown) { 
-     if (queueId) await supabase.from("matchmaking_queue").delete().eq("id", queueId).catch(() => {}); 
+     if (queueId) try { await supabase.from("matchmaking_queue").delete().eq("id", queueId); } catch (_) {} 
      setError((err as Error)?.message ?? "Matchmaking failed."); 
    } finally { 
      setBusy(false); 
