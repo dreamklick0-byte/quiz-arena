@@ -14,15 +14,45 @@ export async function GET() {
  
     const supabase = getAdminClient(); 
  
-    const { data: users, error } = await supabase
-      .from("admin_users_view")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) { 
-      console.error("Fetch users error:", error); 
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 }); 
+    const { data: authData, error: authError } = await supabase.auth.admin.listUsers(); 
+    if (authError) { 
+      return NextResponse.json({ success: false, error: authError.message }, { status: 500 }); 
     } 
+ 
+    const authUsers = authData?.users || []; 
+ 
+    const [profilesData, wallets, presence, coinsData, xpData] = await Promise.all([ 
+      supabase.from("profiles").select("id, display_name, referral_code, status, referred_by"), 
+      supabase.from("wallets").select("user_id, balance"), 
+      supabase.from("user_presence").select("user_id, last_seen"), 
+      supabase.from("arena_coins").select("user_id, coins"), 
+      supabase.from("user_xp").select("user_id, xp") 
+    ]); 
+ 
+    console.log('profiles fetched:', profilesData.data?.length, 'error:', profilesData.error?.message); 
+ 
+    const profileMap = Object.fromEntries((profilesData.data || []).map(p => [p.id, p])); 
+    const walletMap = Object.fromEntries((wallets.data || []).map(w => [w.user_id, w.balance])); 
+    const presenceMap = Object.fromEntries((presence.data || []).map(p => [p.user_id, p.last_seen])); 
+    const coinsMap = Object.fromEntries((coinsData.data || []).map(c => [c.user_id, c.coins])); 
+    const xpMap = Object.fromEntries((xpData.data || []).map(x => [x.user_id, x.xp])); 
+ 
+    const users = authUsers.map(u => { 
+      const p = profileMap[u.id] || {}; 
+      return { 
+        id: u.id, 
+        email: u.email || null, 
+        display_name: p.display_name || u.user_metadata?.display_name || u.user_metadata?.full_name || u.email?.split("@")[0] || u.email || "Unknown", 
+        phone: u.phone || null, 
+        referral_code: p.referral_code || null, 
+        created_at: u.created_at || new Date().toISOString(), 
+        status: p.status || "active", 
+        wallet_balance: walletMap[u.id] || 0, 
+        coins: coinsMap[u.id] || 0, 
+        xp: xpMap[u.id] || 0, 
+        last_seen: presenceMap[u.id] || u.last_sign_in_at || null, 
+      }; 
+    }); 
  
     return NextResponse.json({ success: true, users }); 
   } catch (err: any) { 
