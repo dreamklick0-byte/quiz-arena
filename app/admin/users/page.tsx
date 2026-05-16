@@ -56,10 +56,17 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name, email, phone, referral_code, created_at, status")
+    const { data: profiles, error: profileError } = await supabase
+      .from("admin_users_view")
+      .select("*")
       .order("created_at", { ascending: false });
+
+    if (profileError) {
+      console.error("Fetch users error:", profileError);
+      showToast("Error: " + profileError.message, false);
+      setLoading(false);
+      return;
+    }
 
     const { data: wallets } = await supabase.from("wallets").select("user_id, balance");
     const { data: presence } = await supabase.from("user_presence").select("user_id, last_seen");
@@ -76,7 +83,7 @@ export default function AdminUsersPage() {
       wallet_balance: walletMap[p.id] || 0,
       coins: coinsMap[p.id] || 0,
       xp: xpMap[p.id] || 0,
-      last_seen: presenceMap[p.id] || null,
+      last_seen: p.last_sign_in_at || presenceMap[p.id] || null,
     }));
     setUsers(merged);
     setLoading(false);
@@ -159,12 +166,13 @@ export default function AdminUsersPage() {
     return "Active";
   };
 
-  const filtered = users.filter(u => {
+  const filtered = (users || []).filter(u => {
+    if (!u || !u.id) return false;
     const matchSearch =
       (u.display_name || "").toLowerCase().includes(search.toLowerCase()) ||
       (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
       (u.referral_code || "").toLowerCase().includes(search.toLowerCase()) ||
-      u.id.includes(search);
+      String(u.id).includes(search);
     const matchStatus =
       statusFilter === "all" ||
       (statusFilter === "online" && isOnline(u.last_seen)) ||
@@ -180,47 +188,8 @@ export default function AdminUsersPage() {
   const handleAction = async () => {
     if (!selectedUser) return;
     setBusy(true);
-    const amount = parseFloat(actionAmount);
+
     try {
-      if (actionType === "add_wallet" || actionType === "remove_wallet") {
-        const { data: wallet } = await supabase.from("wallets").select("balance").eq("user_id", selectedUser.id).maybeSingle();
-        const current = wallet?.balance || 0;
-        const newBalance = actionType === "add_wallet" ? current + amount : Math.max(0, current - amount);
-        await supabase.from("wallets").upsert({ user_id: selectedUser.id, balance: newBalance }, { onConflict: "user_id" });
-        showToast(`Wallet updated: ₦${newBalance.toLocaleString()}`, true);
-      }
-      if (actionType === "add_xp" || actionType === "remove_xp") {
-        const { data: xpRow } = await supabase.from("user_xp").select("xp").eq("user_id", selectedUser.id).maybeSingle();
-        const current = xpRow?.xp || 0;
-        const newXP = actionType === "add_xp" ? current + amount : Math.max(0, current - amount);
-        await supabase.from("user_xp").upsert({ user_id: selectedUser.id, xp: newXP }, { onConflict: "user_id" });
-        showToast(`XP updated: ${newXP}`, true);
-      }
-      if (actionType === "add_coins" || actionType === "remove_coins") {
-        const { data: coinRow } = await supabase.from("arena_coins").select("coins").eq("user_id", selectedUser.id).maybeSingle();
-        const current = coinRow?.coins || 0;
-        const newCoins = actionType === "add_coins" ? current + amount : Math.max(0, current - amount);
-        await supabase.from("arena_coins").upsert({ user_id: selectedUser.id, coins: newCoins }, { onConflict: "user_id" });
-        showToast(`Coins updated: ${newCoins}`, true);
-      }
-      if (actionType === "suspend_user") {
-        await supabase.from("profiles").update({ status: "suspended" }).eq("id", selectedUser.id);
-        showToast(`${selectedUser.display_name || "User"} suspended`, true);
-      }
-      if (actionType === "ban_user") {
-        await supabase.from("profiles").update({ status: "banned" }).eq("id", selectedUser.id);
-        showToast(`${selectedUser.display_name || "User"} banned`, true);
-      }
-      if (actionType === "activate_user") {
-        await supabase.from("profiles").update({ status: "active" }).eq("id", selectedUser.id);
-        showToast(`${selectedUser.display_name || "User"} activated`, true);
-      }
-      if (actionType === "delete_user") {
-        await supabase.from("profiles").delete().eq("id", selectedUser.id);
-        setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-        setSelectedUser(null);
-        showToast("User deleted", true);
-      }
       if (actionType === "reset_password") {
         const res = await fetch("/api/admin/reset-password", {
           method: "POST",
@@ -229,12 +198,34 @@ export default function AdminUsersPage() {
         });
         const data = await res.json();
         showToast(data.success ? "Password reset!" : "Failed: " + data.error, data.success);
+      } else {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            actionType,
+            amount: actionAmount
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || "Action completed", true);
+          if (actionType === "delete_user") {
+            setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
+            setSelectedUser(null);
+          }
+        } else {
+          showToast("Error: " + data.error, false);
+        }
       }
+
       fetchUsers();
       setActionType("");
       setActionAmount("");
       setShowProfile(false);
-    } catch {
+    } catch (err) {
+      console.error("Action error:", err);
       showToast("Action failed", false);
     }
     setBusy(false);
@@ -378,7 +369,20 @@ export default function AdminUsersPage() {
                 </div>
               ))}
               {paginated.length === 0 && (
-                <div className="text-zinc-500 text-center py-12 font-bold">No users found.</div>
+                <div className="text-zinc-500 text-center py-12 font-bold">
+                  No users found. 
+                  {users.length > 0 && (
+                    <div className="mt-2">
+                      <span className="text-zinc-400">Total users: {users.length}. </span>
+                      <button 
+                        onClick={() => { setSearch(""); setStatusFilter("all"); setPage(0); }}
+                        className="text-violet-400 hover:underline"
+                      >
+                        Reset filters
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
