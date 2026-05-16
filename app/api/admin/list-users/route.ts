@@ -40,7 +40,7 @@ export async function GET() {
       return { 
         id: u.id, 
         email: u.email || null, 
-        display_name: p.display_name || u.user_metadata?.display_name || u.email?.split("@")[0] || "User", 
+        display_name: p.display_name || u.user_metadata?.display_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Unknown", 
         phone: u.phone || null, 
         referral_code: p.referral_code || null, 
         created_at: u.created_at || new Date().toISOString(), 

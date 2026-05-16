@@ -167,6 +167,7 @@ export default function AuthPage() {
                 className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm outline-none ring-0 transition focus:border-[#7c3aed]/55"
                 placeholder="How others see you on leaderboards"
                 autoComplete="nickname"
+                required
               />
             </div>
           )}
