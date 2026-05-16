@@ -292,6 +292,7 @@ export default function BattleLobbyPage() {
  
            // Go straight to battle — no room code shown 
            router.push(`/battle/${myEntry.room_code}/play`); 
+           await supabase.from("matchmaking_queue").delete().eq("id", queueId); 
            return; 
          } 
        } 
