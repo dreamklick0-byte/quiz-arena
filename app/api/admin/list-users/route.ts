@@ -22,12 +22,14 @@ export async function GET() {
     const authUsers = authData?.users || []; 
  
     const [profilesData, wallets, presence, coinsData, xpData] = await Promise.all([ 
-      supabase.from("profiles").select("*"), 
+      supabase.from("profiles").select("id, display_name, referral_code, status, referred_by"), 
       supabase.from("wallets").select("user_id, balance"), 
       supabase.from("user_presence").select("user_id, last_seen"), 
       supabase.from("arena_coins").select("user_id, coins"), 
       supabase.from("user_xp").select("user_id, xp") 
     ]); 
+ 
+    console.log('profiles fetched:', profilesData.data?.length, 'error:', profilesData.error?.message); 
  
     const profileMap = Object.fromEntries((profilesData.data || []).map(p => [p.id, p])); 
     const walletMap = Object.fromEntries((wallets.data || []).map(w => [w.user_id, w.balance])); 
@@ -40,7 +42,7 @@ export async function GET() {
       return { 
         id: u.id, 
         email: u.email || null, 
-        display_name: p.display_name || u.user_metadata?.display_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Unknown", 
+        display_name: p.display_name || u.user_metadata?.display_name || u.user_metadata?.full_name || u.email?.split("@")[0] || u.email || "Unknown", 
         phone: u.phone || null, 
         referral_code: p.referral_code || null, 
         created_at: u.created_at || new Date().toISOString(), 
