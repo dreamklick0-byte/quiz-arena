@@ -13,12 +13,11 @@ export async function GET() {
     const supabase = getAdminClient();
 
     // Fetch stats in parallel
-    const [adminsCount, withdrawalsCount, questionsCount, leaguesCount, payoutsData, platformStats] = await Promise.all([
+    const [adminsCount, withdrawalsCount, questionsCount, leaguesCount, platformStats] = await Promise.all([
       supabase.from("admin_accounts").select("*", { count: 'exact', head: true }),
       supabase.from("withdrawal_requests").select("*", { count: 'exact', head: true }).eq("status", "pending"),
       supabase.from("questions").select("*", { count: 'exact', head: true }),
       supabase.from("leagues").select("*", { count: 'exact', head: true }).eq("status", "open"),
-      supabase.from("withdrawal_requests").select("amount").eq("status", "processed"),
       supabase.rpc('get_platform_stats')
     ]);
 

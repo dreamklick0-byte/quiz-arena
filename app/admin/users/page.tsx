@@ -56,7 +56,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles, error: profileError } = await supabase
+    const { data: merged, error: profileError } = await supabase
       .from("admin_users_view")
       .select("*")
       .order("created_at", { ascending: false });
@@ -68,24 +68,7 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const { data: wallets } = await supabase.from("wallets").select("user_id, balance");
-    const { data: presence } = await supabase.from("user_presence").select("user_id, last_seen");
-    const { data: coinsData } = await supabase.from("arena_coins").select("user_id, coins");
-    const { data: xpData } = await supabase.from("user_xp").select("user_id, xp");
-
-    const walletMap = Object.fromEntries((wallets || []).map(w => [w.user_id, w.balance]));
-    const presenceMap = Object.fromEntries((presence || []).map(p => [p.user_id, p.last_seen]));
-    const coinsMap = Object.fromEntries((coinsData || []).map(c => [c.user_id, c.coins]));
-    const xpMap = Object.fromEntries((xpData || []).map(x => [x.user_id, x.xp]));
-
-    const merged = (profiles || []).map(p => ({
-      ...p,
-      wallet_balance: walletMap[p.id] || 0,
-      coins: coinsMap[p.id] || 0,
-      xp: xpMap[p.id] || 0,
-      last_seen: p.last_sign_in_at || presenceMap[p.id] || null,
-    }));
-    setUsers(merged);
+    setUsers(merged || []);
     setLoading(false);
   };
 
