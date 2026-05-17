@@ -99,7 +99,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       }
 
       // 3. Check if room is already active (2-player auto-start)
-      if (roomRow.status === "active" && roomRow.guest_id && (roomRow.max_players ?? 2) <= 2) {
+      if (roomRow.status === "active" && roomRow.guest_id && (roomRow.max_players ?? 2) <= 2 && roomRow.max_players !== 3 && roomRow.max_players !== 4) {
         window.location.href = "/battle/" + roomCode + "/play";
         return;
       }
@@ -138,7 +138,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         filter: "room_code=eq." + roomCode,
       }, (payload) => {
         const updated = payload.new as any;
-        if (updated.status === "active" && updated.guest_id && (updated.max_players ?? 2) <= 2) {
+        if (updated.status === "active" && updated.guest_id && (updated.max_players ?? 2) <= 2 && updated.max_players !== 3 && updated.max_players !== 4) {
           window.location.href = "/battle/" + roomCode + "/play";
         }
       })
@@ -174,7 +174,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
           setPlayers(playerRows);
 
           // Auto-start 2-player battle when both are ready
-          if ((room.max_players ?? 2) <= 2 && playerRows.length >= 2 && playerRows.every(p => p.is_ready)) {
+          if (playerRows.length >= (room.max_players ?? 2) && playerRows.every(p => p.is_ready)) {
             if (isCreator && room.status === "waiting") {
               // Only creator updates the status to active
               await supabase
