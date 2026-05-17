@@ -19,12 +19,15 @@ export async function POST(req: Request) {
     const supabase = getAdminClient();
 
     if (actionType === "add_wallet" || actionType === "remove_wallet") {
-      const { data: wallet } = await supabase.from("wallets").select("balance").eq("user_id", userId).maybeSingle();
-      const current = wallet?.balance || 0;
       const numAmount = parseFloat(amount) || 0;
-      const newBalance = actionType === "add_wallet" ? current + numAmount : Math.max(0, current - numAmount);
-      await supabase.from("wallets").upsert({ user_id: userId, balance: newBalance }, { onConflict: "user_id" });
-      return NextResponse.json({ success: true, message: `Wallet updated: ₦${newBalance.toLocaleString()}` });
+      const { error: walletUpdateError } = await supabase.rpc('increment_wallet_balance', {
+        p_user_id: userId,
+        p_amount: actionType === "add_wallet" ? numAmount : -numAmount
+      });
+      if (walletUpdateError) {
+        return NextResponse.json({ success: false, error: walletUpdateError.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: `Wallet updated successfully` });
     }
 
     if (actionType === "add_xp" || actionType === "remove_xp") {
