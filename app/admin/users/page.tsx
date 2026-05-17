@@ -321,9 +321,9 @@ export default function AdminUsersPage() {
                         ID: {user.id.substring(0, 16)}... • Code: {user.referral_code || "—"}
                       </div>
                       <div className="flex gap-3 mt-1.5 flex-wrap">
-                        <span className="text-xs text-emerald-400 font-black">₦{user.wallet_balance.toLocaleString()}</span>
-                        <span className="text-xs text-amber-400 font-black">{user.coins.toLocaleString()} coins</span>
-                        <span className="text-xs text-violet-400 font-black">{user.xp.toLocaleString()} XP</span>
+                        <span className="text-xs text-emerald-400 font-black">₦{(user.wallet_balance || 0).toLocaleString()}</span>
+                        <span className="text-xs text-amber-400 font-black">{(user.coins || 0).toLocaleString()} coins</span>
+                        <span className="text-xs text-violet-400 font-black">{(user.xp || 0).toLocaleString()} XP</span>
                       </div>
                       {user.last_seen && (
                         <div className="text-[10px] text-zinc-600 mt-1 font-bold uppercase">
@@ -431,11 +431,11 @@ export default function AdminUsersPage() {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center py-2 border-b border-white/5">
                             <span className="text-zinc-400 text-sm font-bold">Wallet Balance</span>
-                            <span className="text-white font-black">₦{profileData.wallet_balance.toLocaleString()}</span>
+                            <span className="text-white font-black">₦{(profileData.wallet_balance || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-white/5">
                             <span className="text-zinc-400 text-sm font-bold">Arena Coins</span>
-                            <span className="text-amber-400 font-black">{profileData.coins.toLocaleString()}</span>
+                            <span className="text-amber-400 font-black">{(profileData.coins || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-white/5">
                             <span className="text-zinc-400 text-sm font-bold">Total Deposits</span>
