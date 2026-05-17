@@ -327,7 +327,7 @@ export default function AdminUsersPage() {
                       </div>
                       {user.last_seen && (
                         <div className="text-[10px] text-zinc-600 mt-1 font-bold uppercase">
-                          Last seen: {new Date(user.last_seen).toLocaleString()}
+                          Last seen: {user.last_seen ? new Date(user.last_seen).toLocaleString() : 'Never'}
                         </div>
                       )}
                     </div>
@@ -439,11 +439,11 @@ export default function AdminUsersPage() {
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-white/5">
                             <span className="text-zinc-400 text-sm font-bold">Total Deposits</span>
-                            <span className="text-emerald-400 font-black">₦{profileData.total_deposits.toLocaleString()}</span>
+                            <span className="text-emerald-400 font-black">₦{(profileData.total_deposits || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-white/5">
                             <span className="text-zinc-400 text-sm font-bold">Total Withdrawals</span>
-                            <span className="text-red-400 font-black">₦{profileData.total_withdrawals.toLocaleString()}</span>
+                            <span className="text-red-400 font-black">₦{(profileData.total_withdrawals || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
