@@ -245,6 +245,7 @@ export default function BattleLobbyPage() {
        const room = await createBattleRoom(roomCode, quickSubject, userId, quickStake); 
        const player = await insertRoomPlayer(room.id, playerName); 
        persistIdentity(player.id); 
+       localStorage.setItem("createdRoomCode", roomCode); 
  
        if (quickStake > 0) { 
          await processTransaction(userId, "stake", quickStake, `qm-${roomCode}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
