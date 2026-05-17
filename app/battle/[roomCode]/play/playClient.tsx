@@ -33,6 +33,7 @@ type RoomRow = {
   player4_score: number | null;
   started_at: string | null;
   ends_at: string | null;
+  [key: string]: any;
 };
 
 type PlayerRow = {
@@ -404,12 +405,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "battle_rooms", filter: `id=eq.${room.id}` },
         (payload) => {
-          const newRoomData = payload.new as RoomRow;
+          const newRoomData = payload.new as any;
           setRoom((prev) => {
             if (!prev) return newRoomData;
             return { ...prev, ...newRoomData };
           });
-          if (payload.new?.status === 'finished' || payload.new?.ends_at) { 
+          if (newRoomData?.status === 'finished' || newRoomData?.ends_at) { 
             router.replace(`/battle/${roomCode}/results`); 
           } 
         }
