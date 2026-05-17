@@ -280,6 +280,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       updateData[`${playerKey}_score`] = finalScore;
       updateData[`${playerKey}_time_seconds`] = timeTaken;
 
+      let allFinished = false;
       try {
         const { error: finErr } = await supabase
           .from("battle_rooms")
@@ -294,15 +295,15 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
           .single();
 
         if (updatedRoom) {
-          let allDone = true;
+          allFinished = true;
           for (let i = 1; i <= currentPlayers.length; i++) {
             if (!updatedRoom[`player${i}_finished`]) {
-              allDone = false;
+              allFinished = false;
               break;
             }
           }
 
-          if (allDone) {
+          if (allFinished) {
             await supabase
               .from("battle_rooms")
               .update({ status: "finished", ends_at: new Date().toISOString() })
@@ -312,8 +313,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       } catch (e: unknown) {
         setError((e as Error)?.message ?? "Failed to finish game.");
       }
-      // Always redirect to results after finishing, regardless of other players 
-      router.replace(`/battle/${roomCode}/results`);
+      // Only redirect when ALL players have finished or timer expired 
+      if (allFinished) { 
+        router.replace(`/battle/${roomCode}/results`); 
+      } else { 
+        // Wait for opponent - show waiting screen (room status will trigger redirect) 
+      } 
       return;
     }
 
@@ -404,9 +409,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
             if (!prev) return newRoomData;
             return { ...prev, ...newRoomData };
           });
-          if (newRoomData.status !== "active" || newRoomData.ends_at) {
-            router.replace(`/battle/${roomCode}/results`);
-          }
+          if (payload.new?.status === 'finished' || payload.new?.ends_at) { 
+            router.replace(`/battle/${roomCode}/results`); 
+          } 
         }
       )
       .subscribe();
