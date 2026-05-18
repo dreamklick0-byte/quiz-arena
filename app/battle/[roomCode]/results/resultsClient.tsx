@@ -57,7 +57,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
         if (playersErr) throw playersErr;
 
         const merged: RoomPlayer[] = (roomPlayers ?? []).map((p, idx) => {
-          const pIdx = idx + 1;
+          const pIdx = room.host_id === p.user_id ? 1 : 2;
           return {
             id: p.id,
             player_name: p.player_name,
