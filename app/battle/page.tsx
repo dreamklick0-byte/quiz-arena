@@ -126,7 +126,8 @@ export default function BattleLobbyPage() {
         roomCode, 
         subject,
         userId,
-        stakeAmount
+        stakeAmount,
+        maxPlayers
       );
 
       const player = await insertRoomPlayer(room.id, playerName); 
@@ -866,4 +867,6 @@ export default function BattleLobbyPage() {
     </div>
   );
 }
+
+
 
