@@ -228,7 +228,7 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
         .select("is_ready, user_id") 
         .eq("room_id", room.id); 
     
-      const allReady = playerData && playerData.length >= 2 && playerData.every(p => p.is_ready); 
+      const allReady = playerData && playerData.length >= (roomData?.max_players ?? 2) && playerData.every(p => p.is_ready); 
     
       if (allReady && roomData?.status === "waiting") { 
         // Check if this user is the creator 
