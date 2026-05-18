@@ -8,13 +8,13 @@ export type CreateBattleRoomResult = {
   roomId: string;
 };
 
-export async function createBattleRoom(roomCode: string, subject: string, userId: string, stakeAmount?: number) { 
+export async function createBattleRoom(roomCode: string, subject: string, userId: string, stakeAmount?: number, maxPlayers?: number) { 
    const supabase = getSupabaseClient(); 
    
    const { data: room, error } = await supabase 
      .from("battle_rooms") 
      .insert({ 
-       room_code: roomCode, 
+       room_code: roomCode, max_players: maxPlayers ?? 2, 
        subject: subject, 
        host_id: userId, 
        status: "waiting", 
@@ -27,3 +27,5 @@ export async function createBattleRoom(roomCode: string, subject: string, userId
    if (error) throw error; 
    return room; 
  } 
+
+
