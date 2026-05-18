@@ -192,7 +192,7 @@ export default function BattleLobbyPage() {
           user.id,
           'stake',
           room.stake_amount,
-          `join-${code}`,
+          `join-${code}-${Date.now()}`,
           `Joined room ${code} with ₦${room.stake_amount} stake`
         );
       }
