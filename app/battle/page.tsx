@@ -123,10 +123,11 @@ export default function BattleLobbyPage() {
       const roomCode = generateRoomCode(6); 
 
       const room = await createBattleRoom(
-        roomCode, 
+        roomCode,
         subject,
         userId,
-        stakeAmount
+        stakeAmount,
+        maxPlayers
       );
 
       const player = await insertRoomPlayer(room.id, playerName); 
