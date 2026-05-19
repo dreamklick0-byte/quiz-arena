@@ -8,7 +8,7 @@ export default function ReferralPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [code, setCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState(0);
-  const [referees, setReferees] = useState<{ id: string; referred_id: string; created_at: string }[]>([]);
+  const [referees, setReferees] = useState<{ id: string; referee_id: string; created_at: string }[]>([]);
   const [totalEarned, setTotalEarned] = useState(0);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export default function ReferralPage() {
 
       const { data: refereeList } = await supabase 
         .from("referrals") 
-        .select("id, referred_id, created_at") 
+        .select("id, referee_id, created_at") 
         .eq("referrer_id", uid) 
         .order("created_at", { ascending: false }); 
       setReferees(refereeList || []); 
