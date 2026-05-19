@@ -54,23 +54,18 @@ export default function AdminUsersPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    const { data: merged, error: profileError } = await supabase
-      .from("admin_users_view")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (profileError) {
-      console.error("Fetch users error:", profileError);
-      showToast("Error: " + profileError.message, false);
-      setLoading(false);
-      return;
-    }
-
-    setUsers(merged || []);
-    setLoading(false);
-  };
+  const fetchUsers = async () => { 
+   setLoading(true); 
+   const res = await fetch("/api/admin/list-users"); 
+   const data = await res.json(); 
+   if (!data.success) { 
+     showToast("Error loading users", false); 
+     setLoading(false); 
+     return; 
+   } 
+   setUsers(data.users || []); 
+   setLoading(false); 
+ }; 
 
   const fetchUserProfile = async (user: User) => {
     setProfileLoading(true);
