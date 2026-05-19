@@ -8,6 +8,7 @@ export default function ReferralPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [code, setCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState(0);
+  const [referees, setReferees] = useState<{ id: string; referred_id: string; created_at: string }[]>([]);
   const [totalEarned, setTotalEarned] = useState(0);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,13 @@ export default function ReferralPage() {
         .select("*", { count: "exact", head: true })
         .eq("referrer_id", uid);
       setReferralCount(count || 0);
+
+      const { data: refereeList } = await supabase 
+        .from("referrals") 
+        .select("id, referred_id, created_at") 
+        .eq("referrer_id", uid) 
+        .order("created_at", { ascending: false }); 
+      setReferees(refereeList || []); 
 
       const { data: earnings } = await supabase
         .from("referral_earnings")
@@ -110,6 +118,18 @@ export default function ReferralPage() {
                   <div className="rounded-2xl bg-emerald-900/40 border border-emerald-400/40 p-6 text-center backdrop-blur-md shadow-xl shadow-emerald-900/30">
                     <div className="text-4xl font-black text-emerald-400">{referralCount}</div>
                     <div className="text-sm font-bold text-emerald-200 mt-1 uppercase tracking-wider">Friends Referred</div>
+
+                    {referees.length > 0 && ( 
+                      <div className="mt-6 space-y-2"> 
+                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3 text-left">Your Referrals</p> 
+                        {referees.map((r, i) => ( 
+                          <div key={r.id} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3"> 
+                            <span className="text-sm text-zinc-300">Referee #{i + 1}</span> 
+                            <span className="text-xs text-zinc-500">{new Date(r.created_at).toLocaleDateString()}</span> 
+                          </div> 
+                        ))} 
+                      </div> 
+                    )} 
                   </div>
                   <div className="rounded-2xl bg-emerald-900/40 border border-emerald-400/40 p-6 text-center backdrop-blur-md shadow-xl shadow-emerald-900/30">
                     <div className="text-4xl font-black text-emerald-400">₦{totalEarned}</div>
