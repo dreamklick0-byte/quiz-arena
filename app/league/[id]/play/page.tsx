@@ -20,7 +20,7 @@ interface League {
   questions: Question[];
 }
 
-export default function LeaguePlayPage({ params }: { params: { id: string } }) {
+export default function LeaguePlayPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [league, setLeague] = useState<League | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -30,9 +30,12 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
   const [score, setScore] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [id, setId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() { 
+      const { id } = await params;
+      setId(id);
       const supabase = getSupabaseClient(); 
       const { data: { user } } = await supabase.auth.getUser(); 
       if (!user) { router.push("/auth"); return; } 
@@ -41,7 +44,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       const { data: entry } = await supabase
         .from("league_entries")
         .select("finished, score")
-        .eq("league_id", params.id)
+        .eq("league_id", id)
         .eq("user_id", user.id)
         .maybeSingle();
     
@@ -52,7 +55,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       const { data: leagueData } = await supabase 
         .from("leagues") 
         .select("id, name, subject, questions") 
-        .eq("id", params.id) 
+        .eq("id", id) 
         .single(); 
     
       if (!leagueData) { router.push("/league"); return; } 
@@ -68,7 +71,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       setStartTime(Date.now()); 
     } 
     load();
-  }, [params.id, router]);
+  }, [params, router]);
 
   const q = questions[index];
   const meta = league ? getSubjectMeta(league.subject) : null;
@@ -87,7 +90,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
           time_seconds: timeTaken,
           finished: true
         })
-        .eq("league_id", params.id)
+        .eq("league_id", id)
         .eq("user_id", user?.id);
 
       router.push("/league");
@@ -97,7 +100,7 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
     setIndex(i => i + 1);
     setAnswered(false);
     setSelectedIndex(null);
-  }, [index, questions.length, score, startTime, params.id, router]);
+  }, [index, questions.length, score, startTime, id, router]);
 
   const pickOption = (i: number) => {
     if (answered) return;
