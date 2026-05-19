@@ -108,13 +108,19 @@ export default function AuthPage() {
             .eq("referral_code", refCode)
             .single();
 
+          console.log("Referral code:", refCode);
+          console.log("Referrer found:", referrer);
+
           if (referrer && referrer.id !== user.id) {
-            await supabase.from("referrals").insert({
-              referrer_id: referrer.id,
-              referee_id: user.id,
-              first_deposit_bonus_paid: false,
-              total_bonus_earned: 0,
-            });
+            const { error: refError } = await supabase
+              .from("referrals")
+              .insert({
+                referrer_id: referrer.id,
+                referee_id: user.id,
+                first_deposit_bonus_paid: false,
+                total_bonus_earned: 0,
+              });
+            console.log("Referral insert error:", refError);
           }
         }
 
