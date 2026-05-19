@@ -43,7 +43,7 @@ export default function ReferralPage() {
     });
   }, []);
 
-  const referralLink = `https://quiz-arena-three.vercel.app?ref=${code}`;
+  const referralLink = `https://www.quizarena.com.ng?ref=${code}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
