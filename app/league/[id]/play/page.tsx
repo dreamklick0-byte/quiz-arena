@@ -20,7 +20,7 @@
    questions: Question[]; 
  } 
  
- export default function LeaguePlayPage({ params }: { params: { id: string } }) { 
+ export default function LeaguePlayPage({ params }: { params: Promise<{ id: string }> }) { 
    const router = useRouter(); 
    const [leagueId, setLeagueId] = useState<string>(""); 
    const [league, setLeague] = useState<League | null>(null); 
@@ -33,9 +33,9 @@
    const [loading, setLoading] = useState(true); 
  
    useEffect(() => { 
-     const id = params.id; 
-     setLeagueId(id); 
      async function load() { 
+       const { id } = await params;
+       setLeagueId(id); 
        const supabase = getSupabaseClient(); 
        const { data: { user } } = await supabase.auth.getUser(); 
        if (!user) { router.push("/auth"); return; } 
@@ -68,7 +68,7 @@
        setStartTime(Date.now()); 
      } 
      load(); 
-   }, [params.id, router]); 
+   }, [params, router]); 
  
    const q = questions[index]; 
    const meta = league ? getSubjectMeta(league.subject) : null; 
