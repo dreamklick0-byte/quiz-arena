@@ -8,7 +8,13 @@ export default function ReferralPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [code, setCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState(0);
-  const [referees, setReferees] = useState<{ id: string; referee_id: string; created_at: string }[]>([]);
+  const [referees, setReferees] = useState<{ 
+    id: string; 
+    referee_id: string; 
+    created_at: string;
+    first_deposit_bonus_paid: boolean;
+    profiles: { display_name: string | null; email: string | null } | null;
+  }[]>([]);
   const [totalEarned, setTotalEarned] = useState(0);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,10 +42,10 @@ export default function ReferralPage() {
 
       const { data: refereeList } = await supabase 
         .from("referrals") 
-        .select("id, referee_id, created_at") 
+        .select("id, referee_id, created_at, first_deposit_bonus_paid, profiles:referee_id(display_name, email)") 
         .eq("referrer_id", uid) 
         .order("created_at", { ascending: false }); 
-      setReferees(refereeList || []); 
+      setReferees((refereeList as any) || []); 
 
       const { data: earnings } = await supabase
         .from("referral_earnings")
@@ -118,18 +124,6 @@ export default function ReferralPage() {
                   <div className="rounded-2xl bg-emerald-900/40 border border-emerald-400/40 p-6 text-center backdrop-blur-md shadow-xl shadow-emerald-900/30">
                     <div className="text-4xl font-black text-emerald-400">{referralCount}</div>
                     <div className="text-sm font-bold text-emerald-200 mt-1 uppercase tracking-wider">Friends Referred</div>
-
-                    {referees.length > 0 && ( 
-                      <div className="mt-6 space-y-2"> 
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3 text-left">Your Referrals</p> 
-                        {referees.map((r, i) => ( 
-                          <div key={r.id} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3"> 
-                            <span className="text-sm text-zinc-300">Referee #{i + 1}</span> 
-                            <span className="text-xs text-zinc-500">{new Date(r.created_at).toLocaleDateString()}</span> 
-                          </div> 
-                        ))} 
-                      </div> 
-                    )} 
                   </div>
                   <div className="rounded-2xl bg-emerald-900/40 border border-emerald-400/40 p-6 text-center backdrop-blur-md shadow-xl shadow-emerald-900/30">
                     <div className="text-4xl font-black text-emerald-400">₦{totalEarned}</div>
@@ -140,6 +134,40 @@ export default function ReferralPage() {
                     <div className="text-sm font-bold text-emerald-200 mt-1 uppercase tracking-wider">Pending Bonus</div>
                   </div>
                 </div>
+
+                {/* Friends Referred List */}
+                {referees.length > 0 && (
+                  <div className="rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-md">
+                    <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest text-zinc-500">Friends you've referred:</h3>
+                    <div className="space-y-3">
+                      {referees.map((r) => {
+                        const name = r.profiles?.display_name || (r.profiles?.email ? r.profiles.email.split("@")[0] : "Anonymous");
+                        const daysAgo = Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                        const timeText = daysAgo === 0 ? "Joined today" : daysAgo === 1 ? "Joined 1 day ago" : `Joined ${daysAgo} days ago`;
+
+                        return (
+                          <div key={r.id} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+                            <div>
+                              <p className="text-sm font-bold text-white">{name}</p>
+                              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{timeText}</p>
+                            </div>
+                            <div>
+                              {r.first_deposit_bonus_paid ? (
+                                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-black text-emerald-400 border border-emerald-500/30">
+                                  Bonus Earned ✓
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-zinc-500/20 px-3 py-1 text-[10px] font-black text-zinc-400 border border-zinc-500/30">
+                                  Awaiting first deposit
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* SECTION B — Your Referral Code */}
                 <div className="space-y-3">

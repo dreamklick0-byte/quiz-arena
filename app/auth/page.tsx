@@ -16,6 +16,14 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
 
+  const [refCode, setRefCode] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const code = new URLSearchParams(window.location.search).get("ref");
+      if (code) setRefCode(code);
+    }
+  }, []);
+
   const handleForgotPassword = async () => {
     setBusy(true);
     setForgotPasswordMessage(null);
@@ -89,6 +97,24 @@ export default function AuthPage() {
           if (profileError) {
             console.error("Error upserting profile:", profileError);
             // Continue signup flow even if profile upsert fails, it's optional per previous comment.
+          }
+        }
+
+        // Handle referral
+        if (refCode) {
+          const { data: referrer } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("referral_code", refCode)
+            .single();
+
+          if (referrer && referrer.id !== user.id) {
+            await supabase.from("referrals").insert({
+              referrer_id: referrer.id,
+              referee_id: user.id,
+              first_deposit_bonus_paid: false,
+              total_bonus_earned: 0,
+            });
           }
         }
 
