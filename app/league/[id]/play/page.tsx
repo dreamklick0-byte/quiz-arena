@@ -38,12 +38,12 @@ export default function LeaguePlayPage({ params }: { params: { id: string } }) {
       if (!user) { router.push("/auth"); return; } 
     
       // Check entry exists 
-      const { data: entry } = await supabase 
-        .from("league_entries") 
-        .select("finished, score") 
-        .eq("league_id", params.id) 
-        .eq("user_id", user.id) 
-        .maybeSingle(); 
+      const { data: entry } = await supabase
+        .from("league_entries")
+        .select("finished, score")
+        .eq("league_id", params.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
     
       // Already finished — go back 
       if (entry?.finished === true) { router.push("/league"); return; } 
