@@ -1,330 +1,434 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { PageShell } from "@/app/components/PageShell";
+import { useGamificationStore } from "@/lib/gamificationStore";
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 
-const PRIZES = [
-  { label: "₦20", amount: 20, type: "cash", color: "#10b981", text: "#fff" },
-  { label: "₦50", amount: 50, type: "cash", color: "#f59e0b", text: "#000" },
-  { label: "₦70", amount: 70, type: "cash", color: "#6366f1", text: "#fff" },
-  { label: "₦100", amount: 100, type: "cash", color: "#ec4899", text: "#fff" },
-  { label: "₦30", amount: 30, type: "cash", color: "#3b82f6", text: "#fff" },
-  { label: "₦110", amount: 110, type: "cash", color: "#ef4444", text: "#fff" },
-  { label: "₦60", amount: 60, type: "cash", color: "#8b5cf6", text: "#fff" },
-  { label: "2× Spin", amount: 0, type: "xp", color: "#ec4899", text: "#fff" },
-];
+interface Segment {
+  label: string;
+  type: "cash" | "xp" | "none";
+  amount: number;
+  weight: number;
+  color: string;
+}
 
-const SLICE = (2 * Math.PI) / PRIZES.length;
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
+}
 
-function drawWheel(canvas: HTMLCanvasElement, rotation: number) {
-  const ctx = canvas.getContext("2d")!;
+function drawWheel(
+  canvas: HTMLCanvasElement,
+  segments: Segment[],
+  rotationRadians: number
+) {
+  const ctx = canvas.getContext('2d')!;
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
-  const r = cx - 8;
+  const radius = cx - 10;
+  const segAngle = (2 * Math.PI) / segments.length;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const glow = ctx.createRadialGradient(cx, cy, r - 10, cx, cy, r + 8);
-  glow.addColorStop(0, "rgba(245,158,11,0.4)");
-  glow.addColorStop(1, "rgba(245,158,11,0)");
-  ctx.beginPath();
-  ctx.arc(cx, cy, r + 8, 0, 2 * Math.PI);
-  ctx.fillStyle = glow;
-  ctx.fill();
+  segments.forEach((seg, i) => {
+    // Start drawing from the top (-Math.PI/2) and apply rotation
+    const start = rotationRadians - Math.PI / 2 + i * segAngle;
+    const end = start + segAngle;
 
-  PRIZES.forEach((prize, i) => {
-    const start = rotation + i * SLICE;
-    const end = start + SLICE;
-
+    // Segment
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, start, end);
+    ctx.arc(cx, cy, radius, start, end);
     ctx.closePath();
-    ctx.fillStyle = prize.color;
+    ctx.fillStyle = seg.color;
     ctx.fill();
-    ctx.strokeStyle = "#0f0f1a";
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    // Label
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(start + SLICE / 2);
-    ctx.textAlign = "right";
-    ctx.fillStyle = prize.text;
-    ctx.font = "bold 13px 'Segoe UI', sans-serif";
-    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.rotate(start + segAngle / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 13px DM Sans, sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 4;
-    ctx.fillText(prize.label, r - 14, 5);
+    ctx.fillText(seg.label, radius - 14, 5);
     ctx.restore();
   });
 
-  const centerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
-  centerGrad.addColorStop(0, "#1e1b4b");
-  centerGrad.addColorStop(1, "#0f0f1a");
+
+  // Center circle
   ctx.beginPath();
   ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
-  ctx.fillStyle = centerGrad;
+  ctx.fillStyle = '#080818';
   ctx.fill();
-  ctx.strokeStyle = "#f59e0b";
+  ctx.strokeStyle = '#F5A623';
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  ctx.fillStyle = "#f59e0b";
-  ctx.font = "bold 10px 'Segoe UI', sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("SPIN", cx, cy + 4);
+  // Center logo or "SPIN" text
+  ctx.fillStyle = '#F5A623';
+  ctx.font = 'bold 10px DM Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SPIN', cx, cy);
+}
+
+function getTargetRotation(
+  segmentIndex: number,
+  totalSegments: number,
+  currentRotationRad: number
+): number {
+  const degreesPerSegment = 360 / totalSegments;
+  
+  // Each segment i occupies degrees from (i * degreesPerSegment) to ((i+1) * degreesPerSegment)
+  // We want the wheel to stop with segment [segmentIndex] at the top (pointer position)
+  // The target rotation is calculated to align the center of the segment with the pointer
+  const targetDegree = 360 - (segmentIndex * degreesPerSegment) - (degreesPerSegment / 2);
+  
+  // Add multiple full rotations for visual effect (5 full spins minimum)
+  const totalRotationDegrees = 360 * 5 + targetDegree;
+  
+  // Convert to radians
+  return (totalRotationDegrees * Math.PI) / 180;
+}
+
+
+function getSegmentUnderPointer(finalRotationRad: number, totalSegments: number, segments: Segment[], backendIndex: number): number {
+  const segmentAngle = (2 * Math.PI) / totalSegments;
+  const pointerAngle = -Math.PI / 2;
+  // Normalize pointer angle relative to wheel rotation
+  let relativeAngle = ((pointerAngle - finalRotationRad) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const index = Math.floor(relativeAngle / segmentAngle) % totalSegments;
+  
+  console.log('=== SPIN DEBUG ===');
+  console.log('Backend segmentIndex:', backendIndex);
+  console.log('Final rotation (rad):', finalRotationRad);
+  console.log('Final rotation (deg):', (finalRotationRad * 180 / Math.PI) % 360);
+  console.log('Visual segment index under pointer:', index);
+  console.log('Visual segment label:', segments[index]?.label);
+  console.log('Backend segment label:', segments[backendIndex]?.label);
+  console.log('Offset (visual - backend):', index - backendIndex);
+  console.log('Segment 0 start angle in drawWheel: rotationRadians + i * segAngle');
+  console.log('==================');
+  
+  return index;
 }
 
 export default function SpinPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
+  const [segments, setSegments] = useState<Segment[]>([]);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<(typeof PRIZES)[0] | null>(null);
-  const [canSpin, setCanSpin] = useState(false);
-  const [nextSpinAt, setNextSpinAt] = useState<Date | null>(null);
+  const [eligible, setEligible] = useState<boolean | null>(null);
+  const [nextSpinAt, setNextSpinAt] = useState<string | null>(null);
   const [countdown, setCountdown] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
+  const [currentRotation, setCurrentRotation] = useState(0);
+  const [showRewardPopup, setShowRewardPopup] = useState(false);
+  const [reward, setReward] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const rotationRef = useRef(0);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) drawWheel(canvas, rotationRef.current);
+  const { addCoins, addXP, coins: currentCoins } = useGamificationStore();
+
+  const fetchSegments = useCallback(async () => {
+    const res = await fetch('/api/spin-wheel/segments');
+    const data = await res.json();
+    if (data.segments) setSegments(data.segments);
   }, []);
 
-  useEffect(() => {
+  const checkEligibility = useCallback(async () => {
     const supabase = getSupabaseClient();
-    supabase.auth.getSession().then(async ({ data }) => {
-      const uid = data.session?.user?.id;
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      setUserId(uid);
-      const res = await fetch(`/api/spin?userId=${uid}`);
-      const json = await res.json();
-      setCanSpin(json.canSpin);
-      if (!json.canSpin && json.nextSpinAt) setNextSpinAt(new Date(json.nextSpinAt));
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       setLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!nextSpinAt) return;
-    const tick = () => {
-      const diff = nextSpinAt.getTime() - Date.now();
-      if (diff <= 0) {
-        setCanSpin(true);
-        setNextSpinAt(null);
-        setCountdown("");
-        return;
-      }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setCountdown(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [nextSpinAt]);
-
-  const handleSpin = async () => {
-    if (!canSpin || spinning || !userId) return;
-    setSpinning(true);
-    setResult(null);
-
-    const res = await fetch("/api/spin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
-    });
-    const json = await res.json();
-
-    if (!json.success) {
-      setSpinning(false);
-      if (json.nextSpinAt) {
-        setCanSpin(false);
-        setNextSpinAt(new Date(json.nextSpinAt));
-      }
       return;
     }
 
-    const prizeIndex = PRIZES.findIndex(p => p.label === json.prize.label);
-    const targetAngle = -(prizeIndex * SLICE + SLICE / 2);
-    const fullSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
-    const finalRotation = targetAngle - (rotationRef.current % (2 * Math.PI)) + fullSpins;
-    const startRotation = rotationRef.current;
+    const res = await fetch('/api/spin-wheel', { method: 'GET' });
+    const data = await res.json();
+    
+    if (data.error === 'Unauthorized') {
+       setEligible(null);
+    } else if (data.eligible === false) {
+      setEligible(false);
+      setNextSpinAt(data.nextSpinAt);
+    } else {
+      setEligible(true);
+    }
+    setLoading(false);
+  }, []);
 
-    const duration = 4500;
+  useEffect(() => {
+    fetchSegments();
+    checkEligibility();
+  }, [fetchSegments, checkEligibility]);
+
+  useEffect(() => {
+    if (segments.length > 0 && canvasRef.current) {
+      drawWheel(canvasRef.current, segments, currentRotation);
+    }
+  }, [segments, currentRotation]);
+
+  useEffect(() => {
+    if (!nextSpinAt) return;
+    const interval = setInterval(() => {
+      const diff = new Date(nextSpinAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setEligible(true);
+        setNextSpinAt(null);
+        setCountdown("");
+        clearInterval(interval);
+      } else {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setCountdown(`${h}h ${m}m ${s}s`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [nextSpinAt]);
+
+  const animateSpin = (
+    canvas: HTMLCanvasElement,
+    segments: Segment[],
+    startRotationRad: number,
+    targetRotationRad: number,
+    durationMs: number,
+    onComplete: () => void
+  ) => {
     const startTime = performance.now();
-    const canvas = canvasRef.current!;
 
-    const animate = (now: number) => {
+    function frame(now: number) {
       const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      rotationRef.current = startRotation + finalRotation * eased;
-      drawWheel(canvas, rotationRef.current);
+      const t = Math.min(elapsed / durationMs, 1);
+      const eased = easeOutQuart(t);
+      const currentRad = startRotationRad + (targetRotationRad - startRotationRad) * eased;
+      drawWheel(canvas, segments, currentRad);
 
       if (t < 1) {
-        animRef.current = requestAnimationFrame(animate);
+        requestAnimationFrame(frame);
       } else {
-        setSpinning(false);
-        setResult(json.prize);
-        setCanSpin(false);
-        setNextSpinAt(new Date(Date.now() + 24 * 60 * 60 * 1000));
+        drawWheel(canvas, segments, targetRotationRad);
+        onComplete();
       }
-    };
-    animRef.current = requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(frame);
   };
 
-  return (
-    <div className="min-h-screen text-white relative bg-[#0f0f1a]">
-      {/* BACKGROUND IMAGE */}
-      <img
-        src="https://images.unsplash.com/photo-1607522370275-f6fd4d877e5e?w=1920&q=80"
-        alt=""
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ opacity: 0.18 }}
-      />
-      <div className="fixed inset-0 bg-[#0f0f1a]/75 pointer-events-none z-0" />
+  const handleSpin = async () => {
+    if (spinning || !eligible) return;
 
-      <div className="relative z-10">
-        <PageShell overlay="transparent">
-          {/* HERO BANNER */}
-          <div
-            className="py-16 text-center relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #78350f 0%, #b45309 100%)" }}
-          >
-            <img
+    setSpinning(true);
+    // Reset rotation before spinning
+    setCurrentRotation(0);
+    
+    try {
+      const res = await fetch('/api/spin-wheel', { method: 'POST' });
+      const data = await res.json();
+
+      if (!data.eligible) {
+        setEligible(false);
+        setNextSpinAt(data.nextSpinAt);
+        setSpinning(false);
+        return;
+      }
+
+      const target = getTargetRotation(data.segmentIndex, segments.length, 0);
+
+      animateSpin(canvasRef.current!, segments, 0, target, 4500, async () => {
+        const finalRotation = target;
+        setCurrentRotation(finalRotation);
+        
+        // Debug log
+        getSegmentUnderPointer(finalRotation, segments.length, segments, data.segmentIndex);
+
+        // Wallet was already updated on backend in the POST handler
+        // Update local state to reflect the win
+        if (data.prize.type === 'cash') {
+          addCoins(data.prize.amount);
+        } else if (data.prize.type === 'xp') {
+          addXP(data.prize.amount);
+        }
+        
+        setReward({
+          ...data.prize,
+          oldBalance: currentCoins,
+          newBalance: data.prize.type === 'cash' ? currentCoins + data.prize.amount : currentCoins
+        });
+        
+        setShowRewardPopup(true);
+        setEligible(false);
+        
+        // Set next spin at tomorrow midnight UTC
+        const tomorrow = new Date();
+        tomorrow.setUTCHours(24, 0, 0, 0);
+        setNextSpinAt(tomorrow.toISOString());
+        
+        setSpinning(false);
+      });
+    } catch (err) {
+      console.error("Spin error:", err);
+      setSpinning(false);
+    }
+  };
+
+
+  const handleCollect = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      duration: 2000
+    });
+    setShowRewardPopup(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#080818] flex items-center justify-center">
+        <div className="text-white font-orbitron text-xl animate-pulse">LOADING ARENA...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#080818] text-white relative overflow-x-hidden">
+      <PageShell overlay="transparent">
+        {/* Header Section */}
+        <div className="relative py-16 text-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+             <img
               src="https://images.unsplash.com/photo-1627384113743-6bd5a479fffd?w=1920&q=80"
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ opacity: 0.15 }}
+              className="w-full h-full object-cover opacity-10"
               alt=""
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#78350f]/90 to-[#92400e]/90" />
-            <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full opacity-10">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <line
-                  key={i}
-                  x1="100"
-                  y1="100"
-                  x2={100+100*Math.cos(i*Math.PI/6)}
-                  y2={100+100*Math.sin(i*Math.PI/6)}
-                  stroke="#f59e0b"
-                  strokeWidth="1"
-                />
-              ))}
-            </svg>
-            <span className="absolute top-10 left-[15%] text-4xl opacity-20">🪙</span>
-            <span className="absolute top-20 right-[20%] text-4xl opacity-20">🪙</span>
-            <span className="absolute bottom-10 left-[25%] text-4xl opacity-20">🪙</span>
-            <span className="absolute bottom-16 right-[15%] text-4xl opacity-20">🪙</span>
-            <h1 className="text-white text-5xl md:text-6xl font-black relative z-10 drop-shadow-2xl" style={{ textShadow: "0 0 40px rgba(245,158,11,0.9), 0 4px 8px rgba(0,0,0,0.8)" }}>
-              Daily Spin & Win
-            </h1>
-            <p className="text-amber-100 text-xl font-black mt-3 relative z-10 drop-shadow-lg">
-              One free spin. Real cash prizes. Every day.
-            </p>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#080818]" />
           </div>
+          
+          <motion.h1 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-5xl md:text-6xl font-black font-orbitron text-[#F5A623] relative z-10"
+            style={{ textShadow: '0 0 20px rgba(245,166,35,0.5)' }}
+          >
+            Daily Spin
+          </motion.h1>
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-white/60 mt-4 relative z-10 font-medium"
+          >
+            Test your luck and win daily prizes!
+          </motion.p>
+        </div>
 
-          <div className="min-h-screen bg-transparent text-white flex flex-col items-center px-4 py-10">
-            <div className="relative mt-6 flex flex-col items-center">
-              <div className="relative z-10 mb-[-12px]">
-                <div style={{
-                  width: 0, height: 0,
-                  borderLeft: "14px solid transparent",
-                  borderRight: "14px solid transparent",
-                  borderTop: "28px solid #f59e0b",
-                  filter: "drop-shadow(0 2px 6px rgba(245,158,11,0.8))"
-                }} />
-              </div>
+        {/* Wheel Container */}
+        <div className="flex flex-col items-center justify-center pb-20">
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            {/* Pointer — centered at top, pointing DOWN into the wheel */}
+            <div style={{
+              position: 'absolute',
+              top: -18,                    // sits just above the wheel edge
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '12px solid transparent',
+              borderRight: '12px solid transparent',
+              borderTop: '22px solid #F5A623',  // points DOWNWARD
+              filter: 'drop-shadow(0 2px 8px rgba(245,166,35,0.9))',
+              zIndex: 20,
+            }} />
+
+            {/* Canvas */}
+            <div className={`relative ${!eligible && !spinning ? 'opacity-40 grayscale' : ''} transition-all duration-700`}>
               <canvas
                 ref={canvasRef}
-                width={320}
-                height={320}
-                className="rounded-full"
-                style={{ boxShadow: "0 0 40px rgba(245,158,11,0.25), 0 0 80px rgba(99,102,241,0.15)" }}
+                width={360}
+                height={360}
+                className="rounded-full shadow-[0_0_60px_rgba(245,166,35,0.15)]"
               />
             </div>
+          </div>
 
-            <div className="mt-8 text-center">
-              {loading ? (
-                <div className="text-zinc-500 text-sm">Loading...</div>
-              ) : !userId ? (
-                <a href="/auth" className="rounded-xl bg-[#7c3aed] px-8 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#6d28d9]">Sign in to Spin</a>
-              ) : canSpin ? (
-                <button
-                  onClick={handleSpin}
-                  disabled={spinning}
-                  className="rounded-xl bg-[#f59e0b] px-10 py-3 text-sm font-black text-black shadow-lg transition hover:bg-[#d97706] disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ boxShadow: "0 0 24px rgba(245,158,11,0.5)" }}
-                >
-                  {spinning ? "Spinning..." : "🎰 SPIN NOW"}
-                </button>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-8 py-3 text-base font-black text-amber-200">Already spun today</div>
-                  {countdown && <div className="text-sm font-bold text-white">Next spin in <span className="font-mono text-[#f59e0b] font-black text-lg">{countdown}</span></div>}
-                </div>
-              )}
-            </div>
-
-            {result && (
-              <div className="mt-8 w-full max-w-sm rounded-2xl border px-6 py-5 text-center" style={{ borderColor: result.color, backgroundColor: result.color + "22", boxShadow: `0 0 30px ${result.color}44` }}>
-                {result.type === "nothing" ? (
-                  <><div className="text-3xl mb-1">😅</div><div className="text-lg font-black text-zinc-300">Better luck tomorrow!</div><div className="text-xs text-zinc-500 mt-1">Come back in 24 hours</div></>
-                ) : result.type === "cash" ? (
-                  <><div className="text-3xl mb-1">🎉</div><div className="text-2xl font-black" style={{ color: result.color }}>{result.label} Won!</div><div className="text-xs text-zinc-400 mt-1">Credited to your wallet instantly</div></>
-                ) : result.type === "free_battle" ? (
-                  <><div className="text-3xl mb-1">⚔️</div><div className="text-xl font-black text-[#3b82f6]">Free Battle Entry!</div><div className="text-xs text-zinc-400 mt-1">Head to Battle to use it</div></>
-                ) : (
-                  <><div className="text-3xl mb-1">⚡</div><div className="text-xl font-black text-[#8b5cf6]">{result.label}!</div><div className="text-xs text-zinc-400 mt-1">Good luck!</div></>
-                )}
+          {/* Action Button / Countdown */}
+          <div className="mt-12 text-center">
+            {eligible ? (
+              <button
+                onClick={handleSpin}
+                disabled={spinning}
+                className="group relative px-12 py-4 bg-[#F5A623] rounded-2xl overflow-hidden transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+              >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform" />
+                <span className="relative text-[#080818] font-black text-xl font-orbitron">
+                  {spinning ? 'SPINNING...' : 'SPIN NOW'}
+                </span>
+              </button>
+            ) : (
+              <div className="bg-[#12122A] px-8 py-4 rounded-2xl border border-white/5">
+                <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Next spin in</p>
+                <p className="text-3xl font-black text-[#F5A623] font-orbitron mt-1">{countdown || '--:--:--'}</p>
               </div>
             )}
-
-            {/* INFO SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-4xl">
-              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
-                <div className="text-3xl mb-3">🕐</div>
-                <h4 className="text-white font-bold">24hr Cooldown</h4>
-                <p className="text-base font-semibold text-amber-100 mt-2">One free spin every 24 hours. Come back daily for more prizes.</p>
-              </div>
-              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
-                <div className="text-3xl mb-3">💰</div>
-                <h4 className="text-white font-bold">Real Cash Prizes</h4>
-                <p className="text-base font-semibold text-amber-100 mt-2">All winnings credited instantly to your Quiz Arena wallet.</p>
-              </div>
-              <div className="rounded-2xl bg-white/10 border border-amber-500/30 p-6 text-center backdrop-blur-md shadow-lg shadow-amber-900/20">
-                <div className="text-3xl mb-3">🎯</div>
-                <h4 className="text-white font-bold">8 Prize Tiers</h4>
-                <p className="text-base font-semibold text-amber-100 mt-2">Win between ₦20 and ₦110 on every spin. No losing spins.</p>
-              </div>
-            </div>
-
-            {/* PRIZE TABLE */}
-            <div className="mt-12 w-full max-w-sm">
-              <h4 className="text-white font-bold text-lg mb-4 text-center">Prize Breakdown</h4>
-              <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden backdrop-blur-sm">
-                {PRIZES.map((prize, idx) => (
-                  <div key={idx} className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: prize.color }} />
-                      <span className="text-sm text-zinc-300 font-medium">{prize.label}</span>
-                    </div>
-                    <span className="text-sm text-[#f59e0b] font-bold">
-                      {prize.amount > 0 ? `₦${prize.amount}` : "Special"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </PageShell>
-      </div>
+        </div>
+      </PageShell>
+
+      {/* Reward Popup */}
+      <AnimatePresence>
+        {showRewardPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="relative bg-[#1A1A35] border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl"
+            >
+              <div className="text-6xl mb-4">
+                {reward?.type === 'cash' ? '💰' : reward?.type === 'xp' ? '⭐' : '😅'}
+              </div>
+              <h2 className="text-2xl font-black text-white font-orbitron mb-2">
+                {reward?.type === 'none' ? 'TRY AGAIN' : 'CONGRATULATIONS!'}
+              </h2>
+              <p className="text-white/60 mb-6">
+                {reward?.type === 'none' 
+                  ? "Better luck tomorrow! Keep practicing to win big." 
+                  : `You won ${reward?.label}!`}
+              </p>
+
+              {reward?.type === 'cash' && (
+                <div className="bg-black/20 rounded-2xl p-4 mb-6 border border-white/5">
+                   <p className="text-xs text-white/40 uppercase font-bold mb-1">Wallet Balance</p>
+                   <div className="flex items-center justify-center gap-3">
+                      <span className="text-white/30 line-through">₦{reward.oldBalance}</span>
+                      <span className="text-2xl font-black text-green-400">₦{reward.newBalance}</span>
+                   </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleCollect}
+                className="w-full py-4 bg-[#F5A623] text-[#080818] font-black rounded-2xl font-orbitron hover:bg-[#FFD166] transition-colors"
+              >
+                COLLECT
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
