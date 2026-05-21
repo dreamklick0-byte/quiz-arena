@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient } from "../../lib/supabase";
 import { PageShell } from "../components/PageShell";
-import { useGamificationStore } from "@/lib/gamificationStore";
+import { useGamificationStore } from "../../lib/gamificationStore";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
