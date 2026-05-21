@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '../../../lib/supabase';
 import { jwtVerify } from 'jose';
-import { processTransaction, getWalletBalance } from '../../../lib/wallet';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const SPIN_WHEEL_SECRET = process.env.SPIN_WHEEL_SECRET || 'default-spin-wheel-secret-change-me';
 
@@ -62,25 +67,37 @@ export async function POST(req: NextRequest) {
     let newWalletBalance = 0;
     
     if (reward.type === 'cash' && reward.amount > 0) {
-      await processTransaction(
-        userId,
-        'win', // Using 'win' as it's a bonus win
-        reward.amount,
-        `spin_claim_${attemptId}`,
-        `Daily Spin Win: ${reward.label}`
-      );
-      newWalletBalance = await getWalletBalance(userId);
+      await supabaseAdmin.rpc('increment_wallet_balance', {
+        p_user_id: userId,
+        p_amount: reward.amount
+      });
+      
+      const { data: wallet } = await supabaseAdmin
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+      
+      newWalletBalance = wallet?.balance || 0;
     } else if (reward.type === 'xp' && reward.amount > 0) {
       const { data: xpRow } = await supabase.from("user_xp").select("xp").eq("user_id", userId).maybeSingle();
       const current = xpRow?.xp || 0;
       const newXP = current + reward.amount;
       await supabase.from("user_xp").upsert({ user_id: userId, xp: newXP }, { onConflict: "user_id" });
       
-      // Also trigger a gamification store update on frontend if possible, 
-      // but here we just update DB.
-      newWalletBalance = await getWalletBalance(userId); // Return balance anyway
+      const { data: wallet } = await supabaseAdmin
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+      newWalletBalance = wallet?.balance || 0;
     } else {
-      newWalletBalance = await getWalletBalance(userId);
+      const { data: wallet } = await supabaseAdmin
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+      newWalletBalance = wallet?.balance || 0;
     }
 
     return NextResponse.json({
@@ -94,3 +111,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
