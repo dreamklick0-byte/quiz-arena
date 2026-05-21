@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
-import { PageShell } from "@/app/components/PageShell";
+import { PageShell } from "../components/PageShell";
 import { useGamificationStore } from "@/lib/gamificationStore";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
