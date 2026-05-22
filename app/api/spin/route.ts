@@ -7,15 +7,15 @@ const supabase = createClient(
 )
 
 const PRIZES = [
-  { label: '₦20',              amount: 20,  type: 'cash'         },
-  { label: '₦50',              amount: 50,  type: 'cash'         },
-  { label: '₦70',              amount: 70,  type: 'cash'         },
-  { label: '₦100',             amount: 100, type: 'cash'         },
-  { label: 'Free Battle Entry',amount: 0,   type: 'free_battle'  },
-  { label: '2x XP',            amount: 0,   type: 'xp'           },
-  { label: 'Try Again',        amount: 0,   type: 'nothing'      },
-  { label: '₦110',             amount: 110, type: 'cash'         },
-]
+  { label: "₦20", amount: 20, type: "cash" },
+  { label: "₦50", amount: 50, type: "cash" },
+  { label: "₦70", amount: 70, type: "cash" },
+  { label: "₦100", amount: 100, type: "cash" },
+  { label: "₦30", amount: 30, type: "cash" },
+  { label: "₦110", amount: 110, type: "cash" },
+  { label: "₦60", amount: 60, type: "cash" },
+  { label: "2× Spin", amount: 0, type: "xp" },
+];
 
 export async function POST(req: NextRequest) {
   try {

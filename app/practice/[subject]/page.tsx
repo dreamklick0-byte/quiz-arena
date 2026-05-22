@@ -160,7 +160,7 @@ export default async function ExamTypeSelectionPage({ params }: PageProps) {
                 </div>
 
                 <p className="mt-3 text-center text-xs text-white/55">
-                  10 questions • 30s each • Instant explanations
+                  10 questions • 12s each • Instant explanations
                 </p>
               </div>
             </div>

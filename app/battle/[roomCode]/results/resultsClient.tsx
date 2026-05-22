@@ -10,6 +10,9 @@ import {
   safeRecordDailyActivity,
 } from "@/lib/activityRpc";
 import { supabase } from "@/lib/supabase";
+import { useGamificationStore } from "@/lib/gamificationStore";
+import VictoryScreen from "@/app/components/VictoryScreen";
+import DefeatScreen from "@/app/components/DefeatScreen";
 
 type RoomPlayer = {
   id: string;
@@ -31,6 +34,15 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     prize: number;
     rank: number;
   }[]>([]);
+  const [showVictory, setShowVictory] = useState(false);
+  const [victoryProps, setVictoryProps] = useState<any>(null);
+  const [showDefeat, setShowDefeat] = useState(false);
+  const [defeatProps, setDefeatProps] = useState<any>(null);
+  
+  const { 
+    xp, level, xpToNextLevel, rank: currentRank, 
+    addXP, addCoins, updateStreak 
+  } = useGamificationStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -80,10 +92,126 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
             if (prizeData.success && prizeData.results) {
               setPrizeResults(prizeData.results);
               setPrizesPaid(true);
+
+              // QUIZ ARENA EXPANSION — START
+              // Update gamification stats for the current user
+              const myUserId = sessionData?.session?.user?.id;
+              const myResult = prizeData.results.find((r: any) => r.user_id === myUserId);
+              
+              if (myResult) {
+                // Participation XP
+                let xpGained = 50; 
+                
+                const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                const opponent = prizeData.results.find((r: any) => r.user_id !== myUserId);
+
+                // Win Bonus
+                if (myResult.rank === 1) {
+                  xpGained += 150;
+                  
+                  // Prepare Victory Props
+                  setVictoryProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: room.subject || "General",
+                    score: myPlayer?.score || 0,
+                    totalQuestions: 10, 
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    coinsWon: myResult.prize || 0,
+                    xpGained: xpGained,
+                    oldRank: currentRank || 100,
+                    newRank: Math.max(1, (currentRank || 100) - 5), 
+                    currentXP: xp,
+                    xpToNextLevel: xpToNextLevel,
+                    level: level
+                  });
+                  
+                  setShowVictory(true);
+                  updateStreak('battle');
+                } else {
+                  // Loss - Prepare Defeat Props
+                  setDefeatProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: room.subject || "General",
+                    examType: "Private Battle",
+                    playerScore: myPlayer?.score || 0,
+                    opponentScore: opponent?.score || 0,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    xpEarned: xpGained,
+                  });
+                  setShowDefeat(true);
+                }
+                
+                addXP(xpGained);
+                if (myResult.prize > 0) {
+                  addCoins(myResult.prize);
+                }
+              }
+              // QUIZ ARENA EXPANSION — END
             }
           } else if (room.prizes_paid) {
             setPrizesPaid(true);
-            // We could fetch prize details here if needed, but for now just show +₦
+            
+            // If prizes were already paid, we still want to show victory if we won
+            const { data: sessionData } = await supabase.auth.getSession();
+            const myUserId = sessionData?.session?.user?.id;
+            
+            if (myUserId) {
+              const { data: roomResults } = await supabase
+                .from("battle_rooms")
+                .select("winner_id, second_place_id, third_place_id, player1_score, player2_score, player1_time_seconds, player2_time_seconds")
+                .eq("room_code", roomCode)
+                .single();
+              
+              if (roomResults && roomResults.winner_id === myUserId) {
+                // Check if we've already shown it for this room to avoid repeat on refresh
+                const flagKey = `victory-shown-${roomCode}`;
+                if (!sessionStorage.getItem(flagKey)) {
+                  // Re-calculate basic props for victory
+                  const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                  const opponent = normalizedPlayers.find(p => p.id !== (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                  
+                  setVictoryProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: roomSubject || "General",
+                    score: myPlayer?.score || 0,
+                    totalQuestions: 10,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    coinsWon: 0, // already paid
+                    xpGained: 200,
+                    oldRank: currentRank || 100,
+                    newRank: Math.max(1, (currentRank || 100) - 5),
+                    currentXP: xp,
+                    xpToNextLevel: xpToNextLevel,
+                    level: level
+                  });
+                  setShowVictory(true);
+                  sessionStorage.setItem(flagKey, "1");
+                }
+              } else if (roomResults && myUserId) {
+                // Loss/Draw - Check if we've already shown it
+                const flagKey = `defeat-shown-${roomCode}`;
+                if (!sessionStorage.getItem(flagKey)) {
+                  const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                  const opponent = normalizedPlayers.find(p => p.id !== (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+
+                  setDefeatProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: roomSubject || "General",
+                    examType: "Private Battle",
+                    playerScore: myPlayer?.score || 0,
+                    opponentScore: opponent?.score || 0,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    xpEarned: 50,
+                  });
+                  setShowDefeat(true);
+                  sessionStorage.setItem(flagKey, "1");
+                }
+              }
+            }
           }
         }
       } catch (e: unknown) {
@@ -213,7 +341,32 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
+    <>
+      {showVictory && victoryProps && (
+        <VictoryScreen
+          {...victoryProps}
+          onClose={() => setShowVictory(false)}
+          onShare={() => {
+            if (navigator.share) {
+              navigator.share({
+                title: 'I won a battle on Quiz Arena!',
+                text: `I just defeated ${victoryProps.opponentName} in ${victoryProps.subject}!`,
+                url: window.location.origin
+              });
+            }
+          }}
+          onRematch={handleRematch}
+        />
+      )}
+      {showDefeat && defeatProps && (
+        <DefeatScreen
+          {...defeatProps}
+          onClose={() => setShowDefeat(false)}
+          onRematch={handleRematch}
+          onPractice={() => router.push(`/practice/${roomSubject}`)}
+        />
+      )}
+      <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
         <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
@@ -369,7 +522,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           </Link>
         </footer>
       </div>
-    </div>
+    </>
   );
 }
 

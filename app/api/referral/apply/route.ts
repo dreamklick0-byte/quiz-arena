@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
       total_bonus_earned: 0,
     });
 
-    // Save referred_by on the referee's profile
+    // Save referred_by on the referee's profile (storing the CODE as per system requirements)
     await supabase
       .from("profiles")
-      .update({ referred_by: referrerProfile.id })
+      .update({ referred_by: referralCode.toUpperCase() })
       .eq("id", userId);
 
     return NextResponse.json({ success: true, message: "Referral applied successfully." });

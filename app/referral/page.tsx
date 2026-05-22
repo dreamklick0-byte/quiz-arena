@@ -34,19 +34,40 @@ export default function ReferralPage() {
       console.log("Profile fetch:", profile, "Error:", profileError); 
       if (profile?.referral_code) setCode(profile.referral_code); 
 
-      const { count } = await supabase
-        .from("referrals")
-        .select("*", { count: "exact", head: true })
-        .eq("referrer_id", uid);
-      setReferralCount(count || 0);
+      // Fetch referrals from profiles table where referred_by matches this user's code
+      if (profile?.referral_code) {
+        const { count, error: countError } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("referred_by", profile.referral_code);
+        
+        console.log("Referral count fetch:", count, "Error:", countError);
+        setReferralCount(count || 0);
 
-      const { data: refereeList } = await supabase 
-        .from("referrals") 
-        .select("id, referee_id, created_at, first_deposit_bonus_paid, profiles:referee_id(display_name, email)") 
-        .eq("referrer_id", uid) 
-        .order("created_at", { ascending: false }); 
-      setReferees((refereeList as any) || []); 
+        const { data: refereeList, error: listError } = await supabase
+          .from("profiles")
+          .select("id, display_name, email, created_at")
+          .eq("referred_by", profile.referral_code)
+          .order("created_at", { ascending: false });
 
+        console.log("Referee list fetch:", refereeList, "Error:", listError);
+        
+        // Transform profiles data to match the expected state structure
+        const transformedReferees = (refereeList || []).map(p => ({
+          id: p.id,
+          referee_id: p.id,
+          created_at: p.created_at,
+          first_deposit_bonus_paid: false, // We don't have this in profiles, defaulting to false
+          profiles: {
+            display_name: p.display_name,
+            email: p.email
+          }
+        }));
+        setReferees(transformedReferees);
+      } else {
+        setReferralCount(0);
+        setReferees([]);
+      }
       const { data: earnings } = await supabase
         .from("referral_earnings")
         .select("amount")

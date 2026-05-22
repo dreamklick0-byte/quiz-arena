@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { getWalletBalance } from "@/lib/wallet";
+import { StreakCalendar } from "@/app/components/StreakSystem";
+import { NotificationPreferences } from "@/app/components/NotificationSettings";
 
 type StreakRow = {
   current_streak: number;
@@ -149,6 +151,10 @@ export default function AccountPage() {
         </div>
 
         <div className="mx-auto max-w-lg px-4 py-10 space-y-8">
+          {/* QUIZ ARENA EXPANSION — START */}
+          <StreakCalendar />
+          {/* QUIZ ARENA EXPANSION — END */}
+
           {/* Progress Section */}
           <div className="rounded-3xl border border-white/10 bg-[#161627]/60 p-6 backdrop-blur-md shadow-2xl">
             <div className="flex items-center justify-between mb-6">
@@ -242,6 +248,12 @@ export default function AccountPage() {
               )}
             </div>
           </div>
+
+          {/* QUIZ ARENA EXPANSION — START */}
+          <div className="rounded-3xl border border-white/10 bg-[#161627]/60 p-6 backdrop-blur-md shadow-2xl">
+            <NotificationPreferences />
+          </div>
+          {/* QUIZ ARENA EXPANSION — END */}
 
           <div className="flex flex-col gap-4">
             <Link

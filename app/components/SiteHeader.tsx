@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
 import { usePathname } from "next/navigation";
+import { getSupabaseClient } from "@/lib/supabase";
+import { NotificationBell, NotificationCenter } from "./NotificationSystem";
+import { LevelUpBanner } from "./GamificationUI";
+import { useNotificationScheduler } from "./NotificationSettings";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -12,6 +15,9 @@ export function SiteHeader() {
   const [balance, setBalance] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  
+  const { checkActivityAndSchedule } = useNotificationScheduler();
 
   useEffect(() => {
     const checkMe = async () => {
@@ -52,7 +58,10 @@ export function SiteHeader() {
     supabase.auth.getSession().then(({ data }) => {
       const user = data.session?.user;
       setEmail(user?.email ?? null);
-      if (user?.id) fetchUserData(user.id);
+      if (user?.id) {
+        fetchUserData(user.id);
+        checkActivityAndSchedule(user.id);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
@@ -116,6 +125,9 @@ export function SiteHeader() {
                🔥 {streak} 
              </Link> 
            )} 
+           
+           <NotificationBell onClick={() => setNotifOpen(true)} />
+
            {email ? ( 
              <> 
                <span className="hidden max-w-[140px] truncate text-zinc-500 sm:inline">{email}</span> 
@@ -127,6 +139,9 @@ export function SiteHeader() {
          </div> 
        </div> 
  
+       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
+       <LevelUpBanner />
+
        {/* Mobile dropdown menu */} 
        {menuOpen && ( 
          <div className="md:hidden border-t border-white/10 bg-[#0f0f1a]/95 px-4 py-3 flex flex-col gap-3 text-sm text-zinc-400"> 

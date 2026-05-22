@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import { safeRecordDailyActivity } from '@/lib/activityRpc'
+import { useMotivationEngine, MotivationPopup } from './MotivationSystem'
+import { useGamificationStore } from '@/lib/gamificationStore'
 
 const supabase = getSupabaseClient()
 
@@ -30,9 +32,16 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [score, setScore] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(30)
+  const [timeLeft, setTimeLeft] = useState(12)
   const [finished, setFinished] = useState(false)
   const [answers, setAnswers] = useState<string[]>([])
+  
+  // QUIZ ARENA EXPANSION — START
+  const [streak, setStreak] = useState(0)
+  const [isLastWrong, setIsLastWrong] = useState(false)
+  const { currentMotivation, checkTriggers, dismiss } = useMotivationEngine()
+  const { addXP, addCoins, updateStreak } = useGamificationStore()
+  // QUIZ ARENA EXPANSION — END
 
   const currentQuestionId = questions[current]?.id
   const decodedSubject = decodeURIComponent(subject)
@@ -56,7 +65,13 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
   useEffect(() => {
     if (!finished) return;
     void safeRecordDailyActivity();
-  }, [finished]);
+
+    // QUIZ ARENA EXPANSION — START
+    const xpGained = score * 10; // 10 XP per correct answer
+    addXP(xpGained);
+    updateStreak('practice');
+    // QUIZ ARENA EXPANSION — END
+  }, [finished, score, addXP, updateStreak]);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -94,12 +109,32 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
     setSelected(answer)
     const correct = questions[current]?.correct_answer
     const isCorrect = answer === correct
+    
+    // QUIZ ARENA EXPANSION — START
+    const newScore = isCorrect ? score + 1 : score
+    const newStreak = isCorrect ? streak + 1 : 0
+    const isBounceBack = isCorrect && isLastWrong
+    const totalAnswered = answers.length + 1
+    const newAccuracy = (newScore / totalAnswered) * 100
+
+    checkTriggers({
+      streak: newStreak,
+      accuracy: newAccuracy,
+      isBounceBack,
+      totalQuestions: totalAnswered
+    })
+
+    setStreak(newStreak)
+    setIsLastWrong(!isCorrect)
+    // QUIZ ARENA EXPANSION — END
+
     if (isCorrect) setScore(s => s + 1)
     setAnswers(prev => [...prev, answer])
-  }, [current, questions, selected])
+  }, [current, questions, selected, score, streak, isLastWrong, answers.length, checkTriggers])
+
   useEffect(() => {
     if (loading || finished || selected !== null) return
-    const TIMER_SECONDS = 30
+    const TIMER_SECONDS = 12
     const start = Date.now()
     const id = window.setInterval(() => {
       const elapsed = (Date.now() - start) / 1000
@@ -115,7 +150,7 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
 
   useEffect(() => {
     const resetTimeout = setTimeout(() => {
-      setTimeLeft(30)
+      setTimeLeft(12)
       setSelected(null)
     }, 0)
     return () => clearTimeout(resetTimeout)
@@ -195,6 +230,9 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f1a', color: 'white', padding: '24px' }}>
+      {/* QUIZ ARENA EXPANSION — START */}
+      <MotivationPopup motivation={currentMotivation} onDismiss={dismiss} />
+      {/* QUIZ ARENA EXPANSION — END */}
       <div style={{ maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingTop: '16px' }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>← Back</button>
@@ -205,7 +243,7 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
         </div>
 
         <div style={{ background: '#1a1a2e', borderRadius: '8px', height: '6px', marginBottom: '8px' }}>
-          <div style={{ height: '100%', borderRadius: '8px', background: timeLeft > 15 ? '#10b981' : timeLeft > 7 ? '#f59e0b' : '#ef4444', width: `${(timeLeft / 30) * 100}%`, transition: 'width 1s linear' }} />
+          <div style={{ height: '100%', borderRadius: '8px', background: timeLeft > 6 ? '#10b981' : timeLeft > 3 ? '#f59e0b' : '#ef4444', width: `${(timeLeft / 12) * 100}%`, transition: 'width 1s linear' }} />
         </div>
         <div style={{ textAlign: 'right', color: '#888', fontSize: '13px', marginBottom: '24px' }}>{Math.ceil(timeLeft)}s</div>
 
