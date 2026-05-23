@@ -42,11 +42,12 @@ export async function POST(request: NextRequest) {
       // Get current value to increment manually as requested in STEP 1
       const { data: rankRow } = await supabase 
         .from('user_ranks') 
-        .select(column) 
+        .select('battle_wins, battle_losses') 
         .eq('user_id', userId) 
         .maybeSingle(); 
 
-      const newValue = (rankRow?.[column] || 0) + 1;
+      const currentVal = rankRow ? (rankRow as any)[column] : 0;
+      const newValue = (currentVal || 0) + 1;
 
       await supabase 
         .from('user_ranks') 
