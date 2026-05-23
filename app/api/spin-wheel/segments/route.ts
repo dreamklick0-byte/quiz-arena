@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient } from '../../../lib/supabase';
 
 const DEFAULT_SEGMENTS = [
   { id: '1', label: '₦50', type: 'cash', amount: 50, weight: 20, color: '#F5A623', is_active: true },

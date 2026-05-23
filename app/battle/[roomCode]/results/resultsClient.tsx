@@ -95,6 +95,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
 
               // QUIZ ARENA EXPANSION — START
               // Update gamification stats for the current user
+              const { data: sessionData } = await supabase.auth.getSession();
               const myUserId = sessionData?.session?.user?.id;
               const myResult = prizeData.results.find((r: any) => r.user_id === myUserId);
               
@@ -102,8 +103,10 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                 // Participation XP
                 let xpGained = 50; 
                 
-                const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
-                const opponent = prizeData.results.find((r: any) => r.user_id !== myUserId);
+                // Get current user's player ID from localStorage
+                const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+                const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
+                const opponent = roomPlayers?.find((p: any) => p.user_id !== myUserId);
 
                 // Win Bonus
                 if (myResult.rank === 1) {
@@ -168,9 +171,11 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                 // Check if we've already shown it for this room to avoid repeat on refresh
                 const flagKey = `victory-shown-${roomCode}`;
                 if (!sessionStorage.getItem(flagKey)) {
+                  // Get current user's player ID from localStorage
+                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
                   // Re-calculate basic props for victory
-                  const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
-                  const opponent = normalizedPlayers.find(p => p.id !== (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                  const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
+                  const opponent = normalizedPlayers.find(p => p.id !== myLocalPlayerId);
                   
                   setVictoryProps({
                     playerName: myPlayer?.player_name || "You",
@@ -194,8 +199,9 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                 // Loss/Draw - Check if we've already shown it
                 const flagKey = `defeat-shown-${roomCode}`;
                 if (!sessionStorage.getItem(flagKey)) {
-                  const myPlayer = normalizedPlayers.find(p => p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
-                  const opponent = normalizedPlayers.find(p => p.id !== (typeof window !== "undefined" ? localStorage.getItem("playerId") : null));
+                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+                  const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
+                  const opponent = normalizedPlayers.find(p => p.id !== myLocalPlayerId);
 
                   setDefeatProps({
                     playerName: myPlayer?.player_name || "You",
@@ -519,7 +525,6 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
             className="w-full rounded-xl border border-white/10 bg-[#0f0f1a]/60 px-5 py-3 text-center text-sm font-semibold text-zinc-200 transition hover:border-[#7c3aed]/40 hover:text-white active:scale-[0.99]"
           >
             Back to Home
-          </Link>
           </Link>
         </footer>
       </div>
