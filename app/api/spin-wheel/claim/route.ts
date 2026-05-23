@@ -59,41 +59,25 @@ export async function POST(req: NextRequest) {
     if (profileUpdateError) throw profileUpdateError;
 
     // 4. Apply reward
-    let newWalletBalance = 0;
-    
     if (reward.type === 'cash' && reward.amount > 0) {
       await supabaseAdmin.rpc('increment_wallet_balance', {
         p_user_id: userId,
         p_amount: reward.amount
       });
-      
-      const { data: wallet } = await supabaseAdmin
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-      
-      newWalletBalance = wallet?.balance || 0;
     } else if (reward.type === 'xp' && reward.amount > 0) {
-      const { data: xpRow } = await supabase.from("user_xp").select("xp").eq("user_id", userId).maybeSingle();
+      const { data: xpRow } = await supabaseAdmin.from("user_xp").select("xp").eq("user_id", userId).maybeSingle();
       const current = xpRow?.xp || 0;
       const newXP = current + reward.amount;
-      await supabase.from("user_xp").upsert({ user_id: userId, xp: newXP }, { onConflict: "user_id" });
-      
-      const { data: wallet } = await supabaseAdmin
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-      newWalletBalance = wallet?.balance || 0;
-    } else {
-      const { data: wallet } = await supabaseAdmin
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-      newWalletBalance = wallet?.balance || 0;
+      await supabaseAdmin.from("user_xp").upsert({ user_id: userId, xp: newXP }, { onConflict: "user_id" });
     }
+
+    const { data: wallet } = await supabaseAdmin
+      .from('wallets')
+      .select('balance')
+      .eq('user_id', userId)
+      .single();
+
+    const newWalletBalance = wallet?.balance || 0;
 
     return NextResponse.json({
       success: true,
@@ -106,4 +90,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
