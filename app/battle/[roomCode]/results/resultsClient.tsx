@@ -520,6 +520,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           >
             Back to Home
           </Link>
+          </Link>
         </footer>
       </div>
     </>
