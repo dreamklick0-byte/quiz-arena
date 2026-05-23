@@ -97,20 +97,20 @@ export default function SpinPage() {
         const { data: { user } } = await supabase.auth.getUser(); 
         if (!user) { setLoading(false); return; } 
 
-        const today = new Date().toISOString().split("T")[0]; 
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); 
         const { data } = await supabase 
           .from("daily_spins") 
           .select("spun_at") 
           .eq("user_id", user.id) 
-          .gte("spun_at", today) 
+          .gte("spun_at", twentyFourHoursAgo) 
+          .order("spun_at", { ascending: false }) 
+          .limit(1) 
           .maybeSingle(); 
 
         if (data) { 
           setCanSpin(false); 
-          const tomorrow = new Date(); 
-          tomorrow.setDate(tomorrow.getDate() + 1); 
-          tomorrow.setHours(0, 0, 0, 0); 
-          const diff = tomorrow.getTime() - Date.now(); 
+          const lastSpinTime = data?.spun_at ? new Date(data.spun_at).getTime() : Date.now(); 
+          const diff = (lastSpinTime + 24 * 60 * 60 * 1000) - Date.now(); 
           const h = Math.floor(diff / 3600000); 
           const m = Math.floor((diff % 3600000) / 60000); 
           setNextSpinTime(`${h}h ${m}m`); 
@@ -132,7 +132,7 @@ export default function SpinPage() {
     const winIndex = Math.floor(Math.random() * SEGMENTS.length); 
     const numSegments = SEGMENTS.length; 
     const arc = (2 * Math.PI) / numSegments; 
-    const targetAngle = 2 * Math.PI * 5 + (numSegments - winIndex) * arc - arc / 2; 
+    const targetAngle = 2 * Math.PI * 5 + (numSegments - winIndex) * arc; 
     const startRotation = rotationRef.current; 
     const totalRotation = startRotation + targetAngle; 
     const duration = 4000; 
@@ -179,10 +179,8 @@ export default function SpinPage() {
       } 
 
       setCanSpin(false); 
-      const tomorrow = new Date(); 
-      tomorrow.setDate(tomorrow.getDate() + 1); 
-      tomorrow.setHours(0, 0, 0, 0); 
-      const diff = tomorrow.getTime() - Date.now(); 
+      const lastSpinTime = data?.spun_at ? new Date(data.spun_at).getTime() : Date.now(); 
+      const diff = (lastSpinTime + 24 * 60 * 60 * 1000) - Date.now(); 
       const h = Math.floor(diff / 3600000); 
       const m = Math.floor((diff % 3600000) / 60000); 
       setNextSpinTime(`${h}h ${m}m`); 
