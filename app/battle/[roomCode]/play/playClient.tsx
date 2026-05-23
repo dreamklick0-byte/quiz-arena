@@ -99,23 +99,19 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
    const supabase = getSupabaseClient(); 
    const isCorrect = answerIndex !== null && answerIndex === q.correctIndex; 
  
-   // Update room_players score for live updates (use user_id not playerId) 
-   if (isCorrect && playerId) { 
-     const { data: currentPlayer } = await supabase 
-       .from("room_players") 
-       .select("score") 
-       .eq("room_id", room.id) 
-       .eq("user_id", playerId) 
-       .single(); 
- 
-     if (currentPlayer) { 
-       await supabase 
-         .from("room_players") 
-         .update({ score: (currentPlayer.score ?? 0) + 1 }) 
-         .eq("room_id", room.id) 
-         .eq("user_id", playerId); 
-     } 
-   } 
+    const { data: currentPlayer } = await supabase 
+      .from("room_players") 
+      .select("id, score") 
+      .eq("room_id", room.id) 
+      .eq("user_id", playerId) 
+      .single(); 
+
+    if (currentPlayer) { 
+      await supabase 
+        .from("room_players") 
+        .update({ score: (currentPlayer.score ?? 0) + 1 }) 
+        .eq("id", currentPlayer.id); 
+    } 
  
    // Try to save to battle_answers — don't block if it fails 
    try { 
@@ -196,6 +192,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         .update(updateData)
         .eq("room_code", room.room_code);
 
+      await supabase 
+        .from("room_players") 
+        .update({ finished: true }) 
+        .eq("room_id", room.id) 
+        .eq("user_id", playerId); 
+
       // Check if ALL players finished
       const { data: updatedRoom } = await supabase
         .from("battle_rooms")
@@ -246,32 +248,22 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     if (index >= TOTAL_QUESTIONS - 1) {
       const supabase = getSupabaseClient();
       const currentPlayers = playersRef.current;
-      // Get player position directly from DB instead of relying on local state 
-      const { data: myPlayerRow } = await supabase 
-        .from("room_players") 
-        .select("id, user_id, joined_at") 
-        .eq("room_id", room.id) 
-        .eq("user_id", playerId) 
-        .single(); 
       
-      if (!myPlayerRow) { console.error("Player row not found"); return; } 
-      
-      const { data: allPlayers } = await supabase 
-        .from("room_players") 
-        .select("user_id, joined_at") 
-        .eq("room_id", room.id) 
-        .order("joined_at", { ascending: true }); 
-      
-      const myIdx = (allPlayers || []).findIndex(p => p.user_id === playerId) + 1; 
-      if (myIdx <= 0) { console.error("Player index not found"); return; } 
+      // Determine player key (player1, player2, etc.) based on join order
+      const myIdx = players.findIndex(p => p.id === playerId) + 1;
+      if (myIdx <= 0) { 
+        console.error("Player index not found"); 
+        router.replace(`/battle/${roomCode}/results`);
+        return; 
+      }
       const playerKey = `player${myIdx}`;
-      
+
       const { data: answers } = await supabase
         .from("battle_answers")
         .select("is_correct")
         .eq("room_code", room.room_code)
         .eq("user_id", playerId);
-      
+
       const finalScore = answers?.filter(a => a.is_correct).length ?? 0;
       const finishedAt = Date.now();
       const timeTaken = playerStartedAt ? Math.round((finishedAt - playerStartedAt) / 1000) : 120;
@@ -281,14 +273,23 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       updateData[`${playerKey}_score`] = finalScore;
       updateData[`${playerKey}_time_seconds`] = timeTaken;
 
-      let allFinished = false;
       try {
+        // Update battle_rooms with player's final stats
         const { error: finErr } = await supabase
           .from("battle_rooms")
           .update(updateData)
           .eq("room_code", room.room_code);
+        
         if (finErr) throw finErr;
 
+        // Mark this player as finished in room_players so the waiting screen shows 
+        await supabase 
+          .from("room_players") 
+          .update({ finished: true }) 
+          .eq("room_id", room.id) 
+          .eq("user_id", playerId); 
+
+        // Check if everyone is done to update room status
         const { data: updatedRoom } = await supabase
           .from("battle_rooms")
           .select("*")
@@ -296,8 +297,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
           .single();
 
         if (updatedRoom) {
-          allFinished = true;
-          for (let i = 1; i <= currentPlayers.length; i++) {
+          let allFinished = true;
+          // Check only for the players that actually joined the room
+          for (let i = 1; i <= players.length; i++) {
             if (!updatedRoom[`player${i}_finished`]) {
               allFinished = false;
               break;
@@ -309,17 +311,13 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
               .from("battle_rooms")
               .update({ status: "finished", ends_at: new Date().toISOString() })
               .eq("room_code", room.room_code);
+            
+            router.replace(`/battle/${roomCode}/results`);
           }
         }
       } catch (e: unknown) {
-        setError((e as Error)?.message ?? "Failed to finish game.");
+        console.error("Failed to finish game:", e);
       }
-      // Only redirect when ALL players have finished or timer expired 
-      if (allFinished) { 
-        router.replace(`/battle/${roomCode}/results`); 
-      } else { 
-        // Wait for opponent - show waiting screen (room status will trigger redirect) 
-      } 
       return;
     }
 
