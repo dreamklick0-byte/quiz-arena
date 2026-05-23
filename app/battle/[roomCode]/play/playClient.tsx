@@ -48,6 +48,7 @@ type PlayerRow = {
 
 export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   const router = useRouter();
+  const supabase = getSupabaseClient();
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -478,6 +479,17 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
   }
 
   if (myPlayer?.finished && room.status === "active" && !room.ends_at) {
+    // If timer hits 0, force finish and go to results 
+    if (globalTimeLeft <= 0) { 
+      supabase 
+        .from("battle_rooms") 
+        .update({ status: "finished", ends_at: new Date().toISOString() }) 
+        .eq("room_code", roomCode) 
+        .then(() => { 
+          router.replace(`/battle/${roomCode}/results`); 
+        }); 
+    } 
+
     return (
       <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
         <div className="mx-auto max-w-lg text-center">
@@ -490,6 +502,14 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
             {Math.ceil(globalTimeLeft)}
           </p>
           <p className="text-zinc-500">seconds remaining</p>
+          {globalTimeLeft <= 10 && ( 
+            <button 
+              onClick={() => router.replace(`/battle/${roomCode}/results`)} 
+              className="mt-6 px-6 py-3 rounded-xl bg-[#7c3aed] text-white font-bold text-sm" 
+            > 
+              View Results Now → 
+            </button> 
+          )} 
         </div>
       </div>
     );
