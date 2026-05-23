@@ -197,34 +197,90 @@ export default function SpinPage() {
 
   return ( 
     <PageShell overlay="rgba(15, 15, 26, 0.8)"> 
+      <style>{` 
+        @keyframes pulse { 
+          0%, 100% { transform: scale(1); opacity: 0.7; } 
+          50% { transform: scale(1.2); opacity: 1; } 
+        } 
+        @keyframes twinkle { 
+          0%, 100% { opacity: 0.2; transform: scale(1); } 
+          50% { opacity: 1; transform: scale(1.5); } 
+        } 
+      `}</style> 
       <div className="min-h-screen flex flex-col items-center justify-center py-10 px-4" 
-        style={{ background: "linear-gradient(135deg, #0f0f1a 0%, #1e1b4b 100%)" }}> 
-        <h1 className="text-4xl font-black text-yellow-400 mb-2">Daily Spin</h1> 
-        <p className="text-gray-400 mb-8">Test your luck and win daily prizes!</p> 
+        style={{ 
+          background: "linear-gradient(135deg, #0a0015 0%, #0f0f1a 40%, #1a0a2e 70%, #0d1117 100%)", 
+          position: "relative", 
+          overflow: "hidden", 
+        }}> 
+        {/* Animated background orbs */} 
+        <div style={{ 
+          position: "absolute", top: "10%", left: "5%", width: "300px", height: "300px", 
+          background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)", 
+          borderRadius: "50%", filter: "blur(40px)", animation: "pulse 4s ease-in-out infinite", 
+          pointerEvents: "none", 
+        }} /> 
+        <div style={{ 
+          position: "absolute", top: "50%", right: "5%", width: "250px", height: "250px", 
+          background: "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)", 
+          borderRadius: "50%", filter: "blur(50px)", animation: "pulse 6s ease-in-out infinite reverse", 
+          pointerEvents: "none", 
+        }} /> 
+        <div style={{ 
+          position: "absolute", bottom: "10%", left: "20%", width: "200px", height: "200px", 
+          background: "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)", 
+          borderRadius: "50%", filter: "blur(40px)", animation: "pulse 5s ease-in-out infinite", 
+          pointerEvents: "none", 
+        }} /> 
+
+        {/* Stars */} 
+        {Array.from({length: 60}).map((_, i) => ( 
+          <div key={i} style={{ 
+            position: "absolute", 
+            width: i % 3 === 0 ? "3px" : "2px", 
+            height: i % 3 === 0 ? "3px" : "2px", 
+            background: i % 5 === 0 ? "#f59e0b" : "#ffffff", 
+            borderRadius: "50%", 
+            top: `${Math.sin(i * 137.5) * 50 + 50}%`, 
+            left: `${Math.cos(i * 137.5) * 50 + 50}%`, 
+            opacity: 0.4 + (i % 4) * 0.15, 
+            animation: `twinkle ${2 + (i % 3)}s ease-in-out infinite`, 
+            animationDelay: `${(i % 10) * 0.3}s`, 
+            pointerEvents: "none", 
+          }} /> 
+        ))} 
+
+        <h1 className="text-4xl font-black text-yellow-400 mb-2" style={{ position: "relative", zIndex: 10 }}>Daily Spin</h1> 
+        <p className="text-gray-400 mb-8" style={{ position: "relative", zIndex: 10 }}>Test your luck and win daily prizes!</p> 
 
         {/* Pointer */} 
         <div className="w-0 h-0 mb-[-10px] z-10" 
           style={{ borderLeft: "12px solid transparent", borderRight: "12px solid transparent", 
-            borderTop: "24px solid #f59e0b" }} /> 
+            borderTop: "24px solid #f59e0b", position: "relative" }} /> 
 
         {/* Wheel */} 
-        <canvas 
-          ref={canvasRef} 
-          width={380} 
-          height={380} 
-          className="cursor-pointer rounded-full" 
-          onClick={handleSpin} 
-        /> 
+        <div style={{ 
+          position: "relative", zIndex: 10, 
+          filter: "drop-shadow(0 0 30px rgba(124,58,237,0.6)) drop-shadow(0 0 60px rgba(245,158,11,0.3))", 
+        }}> 
+          <canvas 
+            ref={canvasRef} 
+            width={380} 
+            height={380} 
+            className="cursor-pointer rounded-full" 
+            onClick={handleSpin} 
+          /> 
+        </div> 
 
         {/* Result */} 
         {result && ( 
-          <div className="mt-6 text-2xl font-bold text-yellow-400 animate-bounce"> 
+          <div className="mt-6 text-2xl font-bold text-yellow-400 animate-bounce" style={{ position: "relative", zIndex: 10 }}> 
             🎉 You won: {result}! 
           </div> 
         )} 
 
         {/* Button / Cooldown */} 
-        <div className="mt-6"> 
+        <div className="mt-6" style={{ position: "relative", zIndex: 10 }}> 
           {loading ? ( 
             <div className="text-gray-400">Loading...</div> 
           ) : canSpin ? ( 
