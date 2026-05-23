@@ -132,9 +132,16 @@ export default function SpinPage() {
     const winIndex = Math.floor(Math.random() * SEGMENTS.length); 
     const numSegments = SEGMENTS.length; 
     const arc = (2 * Math.PI) / numSegments; 
-    const targetAngle = 2 * Math.PI * 5 + (numSegments - winIndex) * arc; 
+
+    // Pointer is at top = -Math.PI/2 
+    // We want winIndex segment center to land at top 
+    // Segment i center is at: rotation + i*arc + arc/2 
+    // We want that = -Math.PI/2 (mod 2PI) 
+    const spins = 2 * Math.PI * 6; // 6 full rotations 
+    const targetSegmentCenter = -Math.PI / 2 - (winIndex * arc + arc / 2); 
+    const totalRotation = spins + targetSegmentCenter - (rotationRef.current % (2 * Math.PI)); 
     const startRotation = rotationRef.current; 
-    const totalRotation = startRotation + targetAngle; 
+    const finalRotation = startRotation + totalRotation; 
     const duration = 4000; 
     const startTime = performance.now(); 
 
@@ -142,13 +149,13 @@ export default function SpinPage() {
       const elapsed = now - startTime; 
       const progress = Math.min(elapsed / duration, 1); 
       const ease = 1 - Math.pow(1 - progress, 4); 
-      const current = startRotation + (totalRotation - startRotation) * ease; 
+      const current = startRotation + (finalRotation - startRotation) * ease; 
       rotationRef.current = current; 
       drawWheel(current); 
       if (progress < 1) { 
         requestAnimationFrame(animate); 
       } else { 
-        rotationRef.current = totalRotation % (2 * Math.PI); 
+        rotationRef.current = finalRotation; 
         setSpinning(false); 
         const won = SEGMENTS[winIndex]; 
         setResult(won.label); 
@@ -179,8 +186,7 @@ export default function SpinPage() {
       } 
 
       setCanSpin(false); 
-      const lastSpinTime = data?.spun_at ? new Date(data.spun_at).getTime() : Date.now(); 
-      const diff = (lastSpinTime + 24 * 60 * 60 * 1000) - Date.now(); 
+      const diff = 24 * 60 * 60 * 1000; 
       const h = Math.floor(diff / 3600000); 
       const m = Math.floor((diff % 3600000) / 60000); 
       setNextSpinTime(`${h}h ${m}m`); 
