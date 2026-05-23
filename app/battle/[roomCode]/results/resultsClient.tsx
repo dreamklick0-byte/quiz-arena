@@ -373,160 +373,161 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
         />
       )}
       <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
-        <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
-      </div>
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -left-36 top-16 h-80 w-80 rounded-full bg-[#7c3aed]/20 blur-3xl" />
+          <div className="absolute -right-24 bottom-24 h-80 w-80 rounded-full bg-[#f59e0b]/10 blur-3xl" />
+        </div>
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-lg flex-col">
-        <header className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#7c3aed]">
-            Quiz Arena
-          </p>
-          <h1 className="mt-3 bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
-            Results
-          </h1>
-          <p className="mt-2 text-xs font-medium text-zinc-500">
-            Room: <span className="text-zinc-300">{roomCode}</span>
-          </p>
-          {subjectLabel && (
-            <p className="mt-2 text-sm font-medium text-zinc-400">
-              Subject:{" "}
-              <span className="text-white">
-                {subjectEmoji}
-                {subjectLabel}
-              </span>
+        <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-lg flex-col">
+          <header className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#7c3aed]">
+              Quiz Arena
             </p>
-          )}
-        </header>
+            <h1 className="mt-3 bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+              Results
+            </h1>
+            <p className="mt-2 text-xs font-medium text-zinc-500">
+              Room: <span className="text-zinc-300">{roomCode}</span>
+            </p>
+            {subjectLabel && (
+              <p className="mt-2 text-sm font-medium text-zinc-400">
+                Subject:{" "}
+                <span className="text-white">
+                  {subjectEmoji}
+                  {subjectLabel}
+                </span>
+              </p>
+            )}
+          </header>
 
-        <main className="mt-8 flex-1">
-          <div className="rounded-2xl border border-white/10 bg-[#161627]/90 p-5 shadow-xl shadow-black/40">
-            {loading ? (
-              <div className="text-center">
-                <p className="text-sm text-zinc-300">Loading final scores…</p>
-              </div>
-            ) : error ? (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
-            ) : normalizedPlayers.length < 2 ? (
-              <div className="text-center">
-                <p className="text-sm font-semibold text-white">
-                  Waiting for both players…
-                </p>
-                <p className="mt-2 text-xs text-zinc-400">
-                  Once both scores are available, the winner will appear here.
-                </p>
-              </div>
-            ) : (
-              <div>
+          <main className="mt-8 flex-1">
+            <div className="rounded-2xl border border-white/10 bg-[#161627]/90 p-5 shadow-xl shadow-black/40">
+              {loading ? (
                 <div className="text-center">
-                  {winner?.type === "draw" ? (
-                    <div className="space-y-1">
-                      <p className="text-lg font-bold text-[#f59e0b]">🤝 Draw!</p>
-                      <p className="text-xs text-zinc-400">Both players finished with the same score and time.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {winner?.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null) ? (
-                        <>
-                          <p className="text-lg font-bold text-[#f59e0b]">🏆 You win!</p>
-                          {normalizedPlayers[0].score === normalizedPlayers[1].score && (
-                            <p className="text-xs text-zinc-400">(faster time)</p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-lg font-bold text-zinc-400">Better luck next time!</p>
-                      )}
-                      <p className="text-sm font-semibold text-white">
-                        Winner:{" "}
-                        {
-                          normalizedPlayers.find((p) => p.id === winner?.id)
-                            ?.player_name
-                        }{" "}
-                        🏆
-                      </p>
-                    </div>
-                  )}
-                  <p className="mt-4 text-xs text-zinc-500 uppercase tracking-wider">Final Standings</p>
+                  <p className="text-sm text-zinc-300">Loading final scores…</p>
                 </div>
+              ) : error ? (
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                  {error}
+                </div>
+              ) : normalizedPlayers.length < 2 ? (
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-white">
+                    Waiting for both players…
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    Once both scores are available, the winner will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-center">
+                    {winner?.type === "draw" ? (
+                      <div className="space-y-1">
+                        <p className="text-lg font-bold text-[#f59e0b]">🤝 Draw!</p>
+                        <p className="text-xs text-zinc-400">Both players finished with the same score and time.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {winner?.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null) ? (
+                          <>
+                            <p className="text-lg font-bold text-[#f59e0b]">🏆 You win!</p>
+                            {normalizedPlayers[0].score === normalizedPlayers[1].score && (
+                              <p className="text-xs text-zinc-400">(faster time)</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-lg font-bold text-zinc-400">Better luck next time!</p>
+                        )}
+                        <p className="text-sm font-semibold text-white">
+                          Winner:{" "}
+                          {
+                            normalizedPlayers.find((p) => p.id === winner?.id)
+                              ?.player_name
+                          }{" "}
+                          🏆
+                        </p>
+                      </div>
+                    )}
+                    <p className="mt-4 text-xs text-zinc-500 uppercase tracking-wider">Final Standings</p>
+                  </div>
 
-                <div className="mt-6 grid gap-3">
-                  {normalizedPlayers.map((p, idx) => {
-                    const isWinner = winner?.type === "winner" && winner.id === p.id;
-                    const isMe = p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null);
-                    return (
-                      <div
-                        key={p.id}
-                        className={`rounded-2xl border bg-[#0f0f1a]/50 p-4 transition-all ${
-                          isWinner
-                            ? "border-[#f59e0b]/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] bg-[#f59e0b]/5"
-                            : "border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                              isWinner ? "bg-[#f59e0b] text-black" : "bg-zinc-800 text-zinc-400"
-                            }`}>
-                              {idx + 1}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-white">
-                                {isMe ? "You" : p.player_name} {isWinner ? "🏆" : ""}
-                              </p>
-                              <p className="text-[11px] text-zinc-500">
-                                {p.score}/10 — {formatTime(p.time_seconds || 0)}
-                              </p>
-                              {prizesPaid && (
-                                <p className="text-[10px] font-bold text-emerald-400 mt-1">
-                                  {prizeResults.find(pr => pr.user_id === p.id)?.prize && prizeResults.find(pr => pr.user_id === p.id)!.prize > 0 
-                                    ? `+₦${Math.floor(prizeResults.find(pr => pr.user_id === p.id)!.prize)}` 
-                                    : "+₦0"}
+                  <div className="mt-6 grid gap-3">
+                    {normalizedPlayers.map((p, idx) => {
+                      const isWinner = winner?.type === "winner" && winner.id === p.id;
+                      const isMe = p.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null);
+                      return (
+                        <div
+                          key={p.id}
+                          className={`rounded-2xl border bg-[#0f0f1a]/50 p-4 transition-all ${
+                            isWinner
+                              ? "border-[#f59e0b]/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] bg-[#f59e0b]/5"
+                              : "border-white/10"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                                isWinner ? "bg-[#f59e0b] text-black" : "bg-zinc-800 text-zinc-400"
+                              }`}>
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-white">
+                                  {isMe ? "You" : p.player_name} {isWinner ? "🏆" : ""}
                                 </p>
-                              )}
+                                <p className="text-[11px] text-zinc-500">
+                                  {p.score}/10 — {formatTime(p.time_seconds || 0)}
+                                </p>
+                                {prizesPaid && (
+                                  <p className="text-[10px] font-bold text-emerald-400 mt-1">
+                                    {prizeResults.find(pr => pr.user_id === p.id)?.prize && prizeResults.find(pr => pr.user_id === p.id)!.prize > 0 
+                                      ? `+₦${Math.floor(prizeResults.find(pr => pr.user_id === p.id)!.prize)}` 
+                                      : "+₦0"}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-xl font-black ${isWinner ? "text-[#f59e0b]" : "text-zinc-400"}`}>
-                              {p.score}
-                            </p>
+                            <div className="text-right">
+                              <p className={`text-xl font-black ${isWinner ? "text-[#f59e0b]" : "text-zinc-400"}`}>
+                                {p.score}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </main>
+              )}
+            </div>
+          </main>
 
-        <footer className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {!loading && !error && normalizedPlayers.length >= 2 && (
-            <button
-              type="button"
-              onClick={handleRematch}
-              disabled={rematchBusy}
-              className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-5 py-3 text-center text-sm font-semibold text-[#f59e0b] transition hover:bg-[#f59e0b]/25 disabled:opacity-60 sm:col-span-2"
+          <footer className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {!loading && !error && normalizedPlayers.length >= 2 && (
+              <button
+                type="button"
+                onClick={handleRematch}
+                disabled={rematchBusy}
+                className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-5 py-3 text-center text-sm font-semibold text-[#f59e0b] transition hover:bg-[#f59e0b]/25 disabled:opacity-60 sm:col-span-2"
+              >
+                {rematchBusy ? "Creating room…" : "⚔️ Rematch (new room)"}
+              </button>
+            )}
+            <Link
+              href="/battle"
+              className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99]"
             >
-              {rematchBusy ? "Creating room…" : "⚔️ Rematch (new room)"}
-            </button>
-          )}
-          <Link
-            href="/battle"
-            className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99]"
-          >
-            Play Again
-          </Link>
-          <Link
-            href="/"
-            className="w-full rounded-xl border border-white/10 bg-[#0f0f1a]/60 px-5 py-3 text-center text-sm font-semibold text-zinc-200 transition hover:border-[#7c3aed]/40 hover:text-white active:scale-[0.99]"
-          >
-            Back to Home
-          </Link>
-        </footer>
+              Play Again
+            </Link>
+            <Link
+              href="/"
+              className="w-full rounded-xl border border-white/10 bg-[#0f0f1a]/60 px-5 py-3 text-center text-sm font-semibold text-zinc-200 transition hover:border-[#7c3aed]/40 hover:text-white active:scale-[0.99]"
+            >
+              Back to Home
+            </Link>
+          </footer>
+        </div>
       </div>
     </>
   );
