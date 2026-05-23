@@ -134,6 +134,7 @@ export default function SpinPage() {
 
   const handleSpin = async () => { 
     if (spinning || !canSpin) return; 
+    setCanSpin(false); 
     setSpinning(true); 
     setResult(null); 
 
@@ -179,12 +180,17 @@ export default function SpinPage() {
       const { data: { user } } = await supabase.auth.getUser(); 
       if (!user) return; 
 
-      await supabase.from("daily_spins").insert({ 
+      const { error: spinInsertError } = await supabase.from("daily_spins").insert({ 
         user_id: user.id, 
         prize_label: seg.label, 
         prize_amount: seg.prize_amount, 
         spun_at: new Date().toISOString(), 
       }); 
+      if (spinInsertError) { 
+        console.error("daily_spins insert error:", spinInsertError); 
+        alert("Spin save failed: " + spinInsertError.message); 
+        return; 
+      } 
 
       if (seg.prize_type === "cash" && seg.prize_amount > 0) { 
         await supabase.rpc("increment_wallet_balance", { 
