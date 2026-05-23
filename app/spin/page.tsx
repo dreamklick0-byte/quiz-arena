@@ -192,7 +192,7 @@ export default function SpinPage() {
   }; 
 
   return ( 
-    <PageShell> 
+    <PageShell overlay="rgba(15, 15, 26, 0.8)"> 
       <div className="min-h-screen flex flex-col items-center justify-center py-10 px-4" 
         style={{ background: "linear-gradient(135deg, #0f0f1a 0%, #1e1b4b 100%)" }}> 
         <h1 className="text-4xl font-black text-yellow-400 mb-2">Daily Spin</h1> 
