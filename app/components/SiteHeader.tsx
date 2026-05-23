@@ -94,6 +94,9 @@ export function SiteHeader() {
            <Link href="/players" className="transition hover:text-[#f59e0b]">Players Online</Link> 
            <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">💰 Refer & Earn</Link> 
            <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">🎡 Daily Spin</Link> 
+           <Link href="/rank" style={{ color: '#f59e0b', fontWeight: 'bold' }}> 
+             🏆 My Rank 
+           </Link> 
            {isAdmin && ( 
              <Link href="/admin" className="transition hover:text-zinc-300 font-bold text-[#7c3aed]">Admin</Link> 
            )} 
@@ -154,6 +157,9 @@ export function SiteHeader() {
            <Link href="/players" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">👥 Players Online</Link> 
            <Link href="/referral" onClick={() => setMenuOpen(false)} className="text-emerald-500 font-semibold hover:text-emerald-400 transition">💰 Refer & Earn</Link> 
            <Link href="/spin" onClick={() => setMenuOpen(false)} className="text-[#f59e0b] font-semibold hover:text-yellow-300 transition">🎡 Daily Spin</Link> 
+           <Link href="/rank" onClick={() => setMenuOpen(false)} style={{ color: '#f59e0b', fontWeight: 'bold' }}> 
+             🏆 My Rank 
+           </Link> 
            {isAdmin && ( 
              <Link href="/admin" onClick={() => setMenuOpen(false)} className="text-[#7c3aed] font-bold hover:text-zinc-300 transition">Admin</Link> 
            )} 

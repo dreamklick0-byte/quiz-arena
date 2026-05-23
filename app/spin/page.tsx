@@ -212,6 +212,12 @@ export default function SpinPage() {
       } 
 
       if (seg.prize_type === "xp" && seg.prize_amount > 0) { 
+        await supabase.rpc("award_xp", { 
+          p_user_id: user.id, 
+          p_amount: seg.prize_amount, 
+          p_source: "daily_spin", 
+          p_description: `Won ${seg.label} on daily spin`, 
+        }); 
         await supabase.rpc("increment_user_xp", { 
           p_user_id: user.id, 
           p_amount: seg.prize_amount, 
