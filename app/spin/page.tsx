@@ -98,13 +98,6 @@ export default function SpinPage() {
         const { data: { user } } = await supabase.auth.getUser(); 
         if (!user) { setLoading(false); return; } 
 
-        const { data: xpData } = await supabase 
-          .from("user_xp") 
-          .select("xp") 
-          .eq("user_id", user.id) 
-          .maybeSingle(); 
-        setUserXp(xpData?.xp || 0); 
-
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); 
         const { data } = await supabase 
           .from("daily_spins") 
@@ -130,6 +123,25 @@ export default function SpinPage() {
       } 
     }; 
     checkCooldown(); 
+  }, []); 
+
+  useEffect(() => { 
+    const fetchXp = async () => { 
+      try { 
+        const supabase = getSupabaseClient(); 
+        const { data: { user } } = await supabase.auth.getUser(); 
+        if (!user) return; 
+        const { data: xpData } = await supabase 
+          .from("user_xp") 
+          .select("xp") 
+          .eq("user_id", user.id) 
+          .maybeSingle(); 
+        setUserXp(xpData?.xp || 0); 
+      } catch (e) { 
+        console.error("XP fetch error:", e); 
+      } 
+    }; 
+    fetchXp(); 
   }, []); 
 
   const handleSpin = async () => { 
