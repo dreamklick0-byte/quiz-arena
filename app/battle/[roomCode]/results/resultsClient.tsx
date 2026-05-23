@@ -44,195 +44,6 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     addXP, addCoins, updateStreak 
   } = useGamificationStore();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: room, error: roomErr } = await supabase
-          .from("battle_rooms")
-          .select("*")
-          .eq("room_code", roomCode)
-          .single();
-
-        if (roomErr) throw roomErr;
-        if (!cancelled) setRoomSubject(room.subject ?? null);
-
-        const { data: roomPlayers, error: playersErr } = await supabase
-          .from("room_players")
-          .select("id, player_name, user_id")
-          .eq("room_id", room.id)
-          .order("joined_at", { ascending: true });
-
-        if (playersErr) throw playersErr;
-
-        const merged: RoomPlayer[] = (roomPlayers ?? []).map((p, idx) => {
-          const pIdx = room.host_id === p.user_id ? 1 : 2;
-          return {
-            id: p.id,
-            player_name: p.player_name,
-            score: room[`player${pIdx}_score`],
-            time_seconds: room[`player${pIdx}_time_seconds`],
-          };
-        });
-
-        if (!cancelled) {
-          setPlayers(merged);
-          
-          // Trigger prize distribution if not paid
-          if (!room.prizes_paid && room.status === 'finished') {
-            const res = await fetch('/api/battle/distribute-prizes', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ roomCode })
-            });
-            const prizeData = await res.json();
-            if (prizeData.success && prizeData.results) {
-              setPrizeResults(prizeData.results);
-              setPrizesPaid(true);
-
-              // QUIZ ARENA EXPANSION — START
-              // Update gamification stats for the current user
-              const { data: sessionData } = await supabase.auth.getSession();
-              const myUserId = sessionData?.session?.user?.id;
-              const myResult = prizeData.results.find((r: any) => r.user_id === myUserId);
-              
-              if (myResult) {
-                // Participation XP
-                let xpGained = 50; 
-                
-                // Get current user's player ID from localStorage
-                const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
-                const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
-                const opponent = roomPlayers?.find((p: any) => p.user_id !== myUserId);
-
-                // Win Bonus
-                if (myResult.rank === 1) {
-                  xpGained += 150;
-                  
-                  // Prepare Victory Props
-                  setVictoryProps({
-                    playerName: myPlayer?.player_name || "You",
-                    opponentName: opponent?.player_name || "Opponent",
-                    subject: room.subject || "General",
-                    score: (myPlayer as any)?.score || 0,
-                    totalQuestions: 10, 
-                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
-                    coinsWon: myResult.prize || 0,
-                    xpGained: xpGained,
-                    oldRank: currentRank || 100,
-                    newRank: Math.max(1, (currentRank || 100) - 5), 
-                    currentXP: xp,
-                    xpToNextLevel: xpToNextLevel,
-                    level: level
-                  });
-                  
-                  setShowVictory(true);
-                  updateStreak('battle');
-                } else {
-                  // Loss - Prepare Defeat Props
-                  setDefeatProps({
-                    playerName: myPlayer?.player_name || "You",
-                    opponentName: opponent?.player_name || "Opponent",
-                    subject: room.subject || "General",
-                    examType: "Private Battle",
-                    playerScore: myPlayer?.score || 0,
-                    opponentScore: opponent?.score || 0,
-                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
-                    xpEarned: xpGained,
-                  });
-                  setShowDefeat(true);
-                }
-                
-                addXP(xpGained);
-                if (myResult.prize > 0) {
-                  addCoins(myResult.prize);
-                }
-              }
-              // QUIZ ARENA EXPANSION — END
-            }
-          } else if (room.prizes_paid) {
-            setPrizesPaid(true);
-            
-            // If prizes were already paid, we still want to show victory if we won
-            const { data: sessionData } = await supabase.auth.getSession();
-            const myUserId = sessionData?.session?.user?.id;
-            
-            if (myUserId) {
-              const { data: roomResults } = await supabase
-                .from("battle_rooms")
-                .select("winner_id, second_place_id, third_place_id, player1_score, player2_score, player1_time_seconds, player2_time_seconds")
-                .eq("room_code", roomCode)
-                .single();
-              
-              if (roomResults && roomResults.winner_id === myUserId) {
-                // Check if we've already shown it for this room to avoid repeat on refresh
-                const flagKey = `victory-shown-${roomCode}`;
-                if (!sessionStorage.getItem(flagKey)) {
-                  // Get current user's player ID from localStorage
-                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
-                  // Re-calculate basic props for victory
-                  const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
-                  const opponent = normalizedPlayers.find(p => p.id !== myLocalPlayerId);
-                  
-                  setVictoryProps({
-                    playerName: myPlayer?.player_name || "You",
-                    opponentName: opponent?.player_name || "Opponent",
-                    subject: roomSubject || "General",
-                    score: myPlayer?.score || 0,
-                    totalQuestions: 10,
-                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
-                    coinsWon: 0, // already paid
-                    xpGained: 200,
-                    oldRank: currentRank || 100,
-                    newRank: Math.max(1, (currentRank || 100) - 5),
-                    currentXP: xp,
-                    xpToNextLevel: xpToNextLevel,
-                    level: level
-                  });
-                  setShowVictory(true);
-                  sessionStorage.setItem(flagKey, "1");
-                }
-              } else if (roomResults && myUserId) {
-                // Loss/Draw - Check if we've already shown it
-                const flagKey = `defeat-shown-${roomCode}`;
-                if (!sessionStorage.getItem(flagKey)) {
-                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
-                  const myPlayer = normalizedPlayers.find(p => p.id === myLocalPlayerId);
-                  const opponent = normalizedPlayers.find(p => p.id !== myLocalPlayerId);
-
-                  setDefeatProps({
-                    playerName: myPlayer?.player_name || "You",
-                    opponentName: opponent?.player_name || "Opponent",
-                    subject: roomSubject || "General",
-                    examType: "Private Battle",
-                    playerScore: myPlayer?.score || 0,
-                    opponentScore: opponent?.score || 0,
-                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
-                    xpEarned: 50,
-                  });
-                  setShowDefeat(true);
-                  sessionStorage.setItem(flagKey, "1");
-                }
-              }
-            }
-          }
-        }
-      } catch (e: unknown) {
-        if (!cancelled) setError((e as Error)?.message ?? "Failed to load results.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [roomCode]);
-
   const normalizedPlayers = useMemo(() => {
     const mapped = players.map((p) => ({
       ...p,
@@ -264,6 +75,195 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     // Since we sorted mapped, a is the winner (either higher score or faster time)
     return { type: "winner" as const, id: a.id };
   }, [normalizedPlayers]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: room, error: roomErr } = await supabase
+          .from("battle_rooms")
+          .select("*")
+          .eq("room_code", roomCode)
+          .single();
+
+        if (roomErr) throw roomErr;
+        if (!cancelled) setRoomSubject(room.subject ?? null);
+
+        const { data: roomPlayers, error: playersErr } = await supabase
+          .from("room_players")
+          .select("id, player_name, user_id")
+          .eq("room_id", room.id)
+          .order("joined_at", { ascending: true });
+
+        if (playersErr) throw playersErr;
+
+        const merged: RoomPlayer[] = (roomPlayers ?? []).map((p, idx) => {
+          const pIdx = room.host_id === p.user_id ? 1 : 2;
+          return {
+            id: p.id,
+            player_name: p.player_name,
+            score: (room as any)[`player${pIdx}_score`],
+            time_seconds: (room as any)[`player${pIdx}_time_seconds`],
+          };
+        });
+
+        if (!cancelled) {
+          setPlayers(merged);
+          
+          // Trigger prize distribution if not paid
+          if (!room.prizes_paid && room.status === 'finished') {
+            const res = await fetch('/api/battle/distribute-prizes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roomCode })
+            });
+            const prizeData = await res.json();
+            if (prizeData.success && prizeData.results) {
+              setPrizeResults(prizeData.results);
+              setPrizesPaid(true);
+
+              // QUIZ ARENA EXPANSION — START
+              // Update gamification stats for the current user
+              const { data: sessionData } = await supabase.auth.getSession();
+              const myUserId = sessionData?.session?.user?.id;
+              const myResult = prizeData.results.find((r: any) => r.user_id === myUserId);
+              
+              if (myResult) {
+                // Participation XP
+                let xpGained = 50; 
+                
+                // Get current user's player ID from localStorage
+                const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+                const myPlayer = merged.find(p => p.id === myLocalPlayerId);
+                const opponent = roomPlayers?.find((p: any) => p.user_id !== myUserId);
+
+                // Win Bonus
+                if (myResult.rank === 1) {
+                  xpGained += 150;
+                  
+                  // Prepare Victory Props
+                  setVictoryProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: room.subject || "General",
+                    score: myPlayer?.score || 0,
+                    totalQuestions: 10, 
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    coinsWon: myResult.prize || 0,
+                    xpGained: xpGained,
+                    oldRank: currentRank || 100,
+                    newRank: Math.max(1, (currentRank || 100) - 5), 
+                    currentXP: xp,
+                    xpToNextLevel: xpToNextLevel,
+                    level: level
+                  });
+                  
+                  setShowVictory(true);
+                  updateStreak('battle');
+                } else {
+                  // Loss - Prepare Defeat Props
+                  setDefeatProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: room.subject || "General",
+                    examType: "Private Battle",
+                    playerScore: myPlayer?.score || 0,
+                    opponentScore: (opponent as any)?.score || 0,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    xpEarned: xpGained,
+                  });
+                  setShowDefeat(true);
+                }
+                
+                addXP(xpGained);
+                if (myResult.prize > 0) {
+                  addCoins(myResult.prize);
+                }
+              }
+              // QUIZ ARENA EXPANSION — END
+            }
+          } else if (room.prizes_paid) {
+            setPrizesPaid(true);
+            
+            // If prizes were already paid, we still want to show victory if we won
+            const { data: sessionData } = await supabase.auth.getSession();
+            const myUserId = sessionData?.session?.user?.id;
+            
+            if (myUserId) {
+              const { data: roomResults } = await supabase
+                .from("battle_rooms")
+                .select("winner_id, second_place_id, third_place_id, player1_score, player2_score, player1_time_seconds, player2_time_seconds")
+                .eq("room_code", roomCode)
+                .single();
+              
+              if (roomResults && roomResults.winner_id === myUserId) {
+                // Check if we've already shown it for this room to avoid repeat on refresh
+                const flagKey = `victory-shown-${roomCode}`;
+                if (!cancelled && !sessionStorage.getItem(flagKey)) {
+                  // Get current user's player ID from localStorage
+                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+                  // Re-calculate basic props for victory
+                  const myPlayer = merged.find(p => p.id === myLocalPlayerId);
+                  const opponent = merged.find(p => p.id !== myLocalPlayerId);
+                  
+                  setVictoryProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: roomSubject || "General",
+                    score: myPlayer?.score || 0,
+                    totalQuestions: 10,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    coinsWon: 0, // already paid
+                    xpGained: 200,
+                    oldRank: currentRank || 100,
+                    newRank: Math.max(1, (currentRank || 100) - 5),
+                    currentXP: xp,
+                    xpToNextLevel: xpToNextLevel,
+                    level: level
+                  });
+                  setShowVictory(true);
+                  sessionStorage.setItem(flagKey, "1");
+                }
+              } else if (roomResults && myUserId) {
+                // Loss/Draw - Check if we've already shown it
+                const flagKey = `defeat-shown-${roomCode}`;
+                if (!cancelled && !sessionStorage.getItem(flagKey)) {
+                  const myLocalPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+                  const myPlayer = merged.find(p => p.id === myLocalPlayerId);
+                  const opponent = merged.find(p => p.id !== myLocalPlayerId);
+
+                  setDefeatProps({
+                    playerName: myPlayer?.player_name || "You",
+                    opponentName: opponent?.player_name || "Opponent",
+                    subject: roomSubject || "General",
+                    examType: "Private Battle",
+                    playerScore: myPlayer?.score || 0,
+                    opponentScore: opponent?.score || 0,
+                    accuracy: ((myPlayer?.score || 0) / 10) * 100,
+                    xpEarned: 50,
+                  });
+                  setShowDefeat(true);
+                  sessionStorage.setItem(flagKey, "1");
+                }
+              }
+            }
+          }
+        }
+      } catch (e: unknown) {
+        if (!cancelled) setError((e as Error)?.message ?? "Failed to load results.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomCode]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Flame, Sword, Trophy, Book, Coins, Check, CheckAll, X, Clock } from 'lucide-react';
+import { Bell, Flame, Sword, Trophy, Book, Coins, Check, X, Clock } from 'lucide-react';
 import { useGamificationStore, Notification as NotificationType } from '@/lib/gamificationStore';
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {

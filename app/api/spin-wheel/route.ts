@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '../../../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseClient, getAdminClient } from '../../../lib/supabase';
 
 function selectWeightedSegment(segments: any[]): number {
   const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
@@ -117,6 +111,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Update wallet if cash prize
     if (selectedSegment.type === 'cash' && selectedSegment.amount > 0) {
+      const supabaseAdmin = getAdminClient();
       const { error: walletError } = await supabaseAdmin
         .rpc('increment_wallet_balance', {
           p_user_id: user.id,

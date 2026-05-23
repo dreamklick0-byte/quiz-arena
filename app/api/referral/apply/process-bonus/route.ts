@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from "@/lib/supabase";
 
 const FIRST_DEPOSIT_RATE = 0.05;   // 5% of first deposit
 const RECURRING_RATE = 0.005;      // 0.5% of every future deposit
@@ -12,6 +7,7 @@ const RECURRING_RATE = 0.005;      // 0.5% of every future deposit
 // Called from verify/route.ts after every successful deposit
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getAdminClient();
     const { userId, depositAmount } = await req.json();
 
     if (!userId || !depositAmount) {

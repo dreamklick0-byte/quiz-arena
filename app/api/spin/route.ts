@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getAdminClient } from '@/lib/supabase'
 
 const PRIZES = [
   { label: "₦20", amount: 20, type: "cash" },
@@ -19,6 +14,7 @@ const PRIZES = [
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getAdminClient();
     const { userId } = await req.json()
 
     if (!userId) {
@@ -95,6 +91,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const supabase = getAdminClient();
     const { searchParams } = new URL(req.url)
     const userId = searchParams.get('userId')
 

@@ -282,8 +282,7 @@ export default function SpinPage() {
     confetti({
       particleCount: 100,
       spread: 70,
-      origin: { y: 0.6 },
-      duration: 2000
+      origin: { y: 0.6 }
     });
     setShowRewardPopup(false);
   };

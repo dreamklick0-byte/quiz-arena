@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient, getAdminClient } from '@/lib/supabase';
 import { jwtVerify } from 'jose';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const SPIN_WHEEL_SECRET = process.env.SPIN_WHEEL_SECRET || 'default-spin-wheel-secret-change-me';
 
@@ -19,6 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
+    const supabaseAdmin = getAdminClient();
     const secret = new TextEncoder().encode(SPIN_WHEEL_SECRET);
 
     // 1. Verify JWT
