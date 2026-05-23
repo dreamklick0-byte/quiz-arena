@@ -5,10 +5,10 @@ import { PageShell } from "@/app/components/PageShell";
 
 const SEGMENTS = [ 
   { label: "₦20",      color: "#7c3aed", prize_amount: 20,  prize_type: "cash" }, 
-  { label: "₦30",     color: "#a855f7", prize_amount: 30, prize_type: "cash" }, 
-  { label: "₦50",     color: "#6d28d9", prize_amount: 50, prize_type: "cash" }, 
-  { label: "30 XP",     color: "#9333ea", prize_amount: 30, prize_type: "xp" }, 
-  { label: "₦80",     color: "#7c3aed", prize_amount: 80, prize_type: "cash" }, 
+  { label: "₦30",      color: "#a855f7", prize_amount: 30,  prize_type: "cash" }, 
+  { label: "25 XP",    color: "#6d28d9", prize_amount: 25,  prize_type: "xp"   }, 
+  { label: "30 XP",    color: "#9333ea", prize_amount: 30,  prize_type: "xp"   }, 
+  { label: "40 XP",    color: "#7c3aed", prize_amount: 40,  prize_type: "xp"   }, 
   { label: "100 XP",   color: "#4c1d95", prize_amount: 100, prize_type: "xp"   }, 
   { label: "50 XP",    color: "#5b21b6", prize_amount: 50,  prize_type: "xp"   }, 
   { label: "Try again",color: "#3b0764", prize_amount: 0,   prize_type: "none" }, 
