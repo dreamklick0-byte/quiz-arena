@@ -117,7 +117,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                     playerName: myPlayer?.player_name || "You",
                     opponentName: opponent?.player_name || "Opponent",
                     subject: room.subject || "General",
-                    score: myPlayer?.score || 0,
+                    score: (myPlayer as any)?.score || 0,
                     totalQuestions: 10, 
                     accuracy: ((myPlayer?.score || 0) / 10) * 100,
                     coinsWon: myResult.prize || 0,
