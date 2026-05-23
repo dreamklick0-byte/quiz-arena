@@ -115,12 +115,13 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
  
    // Try to save to battle_answers — don't block if it fails 
    try { 
-     await supabase.from("battle_answers").insert({ 
+     const { error: answerErr } = await supabase.from("battle_answers").insert({ 
        room_code: room.room_code, 
        user_id: playerId, 
        question_index: index, 
        is_correct: isCorrect, 
      }); 
+     if (answerErr) console.error("battle_answers insert error:", JSON.stringify(answerErr)); 
    } catch (e) { 
      console.warn("battle_answers insert failed (non-fatal):", e); 
    } 
@@ -143,7 +144,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
   const handleForceFinish = useCallback(async () => {
     const currentPlayers = playersRef.current;
-    const myPlayerInRef = playerId ? currentPlayers.find(p => p.id === playerId) : null;
+    const myPlayerInRef = playerId ? currentPlayers.find(p => p.user_id === playerId) : null;
     
     if (!room?.id || !playerId || !myPlayerInRef || myPlayerInRef.finished) return;
     const supabase = getSupabaseClient();
@@ -250,7 +251,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       const currentPlayers = playersRef.current;
       
       // Determine player key (player1, player2, etc.) based on join order
-      const myIdx = players.findIndex(p => p.id === playerId) + 1;
+      const myIdx = players.findIndex(p => p.user_id === playerId) + 1;
       if (myIdx <= 0) { 
         console.error("Player index not found"); 
         router.replace(`/battle/${roomCode}/results`);
