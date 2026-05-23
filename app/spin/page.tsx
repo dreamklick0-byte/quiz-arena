@@ -21,6 +21,7 @@ export default function SpinPage() {
   const [canSpin, setCanSpin] = useState(true); 
   const [nextSpinTime, setNextSpinTime] = useState<string | null>(null); 
   const [loading, setLoading] = useState(true); 
+  const [userXp, setUserXp] = useState<number>(0); 
   const rotationRef = useRef(0); 
 
   const drawWheel = useCallback((rotation: number) => { 
@@ -96,6 +97,13 @@ export default function SpinPage() {
         const supabase = getSupabaseClient(); 
         const { data: { user } } = await supabase.auth.getUser(); 
         if (!user) { setLoading(false); return; } 
+
+        const { data: xpData } = await supabase 
+          .from("user_xp") 
+          .select("xp") 
+          .eq("user_id", user.id) 
+          .maybeSingle(); 
+        setUserXp(xpData?.xp || 0); 
 
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); 
         const { data } = await supabase 
@@ -190,6 +198,7 @@ export default function SpinPage() {
           p_user_id: user.id, 
           p_amount: seg.prize_amount, 
         }); 
+        setUserXp(prev => prev + seg.prize_amount); 
       } 
 
       setCanSpin(false); 
@@ -259,6 +268,25 @@ export default function SpinPage() {
 
         <h1 className="text-4xl font-black text-yellow-400 mb-2" style={{ position: "relative", zIndex: 10 }}>Daily Spin</h1> 
         <p className="text-gray-400 mb-8" style={{ position: "relative", zIndex: 10 }}>Test your luck and win daily prizes!</p> 
+
+        <div style={{ 
+          position: "relative", zIndex: 10, 
+          display: "flex", gap: "16px", marginBottom: "24px", 
+        }}> 
+          <div style={{ 
+            background: "rgba(124,58,237,0.2)", 
+            border: "1px solid #7c3aed", 
+            borderRadius: "16px", 
+            padding: "12px 24px", 
+            textAlign: "center", 
+            backdropFilter: "blur(10px)", 
+          }}> 
+            <p style={{ color: "#a78bfa", fontSize: "12px", fontWeight: "bold", 
+              letterSpacing: "2px", margin: 0 }}>YOUR XP</p> 
+            <p style={{ color: "#f59e0b", fontSize: "28px", fontWeight: "900", 
+              margin: 0 }}>⚡ {userXp.toLocaleString()}</p> 
+          </div> 
+        </div> 
 
         {/* Pointer */} 
         <div className="w-0 h-0 mb-[-10px] z-10" 
