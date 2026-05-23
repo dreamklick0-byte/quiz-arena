@@ -13,6 +13,8 @@ import { supabase } from "@/lib/supabase";
 import { useGamificationStore } from "@/lib/gamificationStore";
 import VictoryScreen from "@/app/components/VictoryScreen";
 import DefeatScreen from "@/app/components/DefeatScreen";
+import { getRankFromXp, TIER_COLORS } from '@/lib/rankSystem';
+import { getSupabaseClient } from "@/lib/supabase";
 
 type RoomPlayer = {
   id: string;
@@ -38,6 +40,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   const [victoryProps, setVictoryProps] = useState<any>(null);
   const [showDefeat, setShowDefeat] = useState(false);
   const [defeatProps, setDefeatProps] = useState<any>(null);
+  const [playerRanks, setPlayerRanks] = useState<Record<string, any>>({});
   
   const { 
     xp, level, xpToNextLevel, rank: currentRank, 
@@ -274,6 +277,59 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
   const winnerPlayerId =
     winner?.type === "winner" ? winner.id : null;
 
+  useEffect(() => { 
+    const fetchPlayerRanks = async () => { 
+      try { 
+        const supabaseClient = getSupabaseClient(); 
+        const playerIds = players.map((p: any) => p.user_id).filter(Boolean); 
+        if (playerIds.length === 0) return; 
+  
+        const { data } = await supabaseClient 
+          .from('user_ranks') 
+          .select('user_id, current_rank, rank_tier, total_xp') 
+          .in('user_id', playerIds); 
+  
+        if (data) { 
+          const rankMap: Record<string, any> = {}; 
+          data.forEach((r: any) => { rankMap[r.user_id] = r; }); 
+          setPlayerRanks(rankMap); 
+        } 
+      } catch (e) { 
+        console.error('Fetch player ranks error:', e); 
+      } 
+    }; 
+  
+    if (players?.length > 0) fetchPlayerRanks(); 
+  }, [players]);
+
+  useEffect(() => { 
+    const awardBattleXp = async () => { 
+      try { 
+        const supabaseClient = getSupabaseClient(); 
+        const { data: { user } } = await supabaseClient.auth.getUser(); 
+        if (!user) return; 
+  
+        const isWinner = winner?.type === 'winner' && winner.id === (typeof window !== "undefined" ? localStorage.getItem("playerId") : null); 
+  
+        await fetch('/api/battle/award-xp', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            userId: user.id, 
+            result: isWinner ? 'win' : 'loss', 
+            subject: roomSubject || 'General', 
+          }), 
+        }); 
+      } catch (e) { 
+        console.error('XP award error:', e); 
+      } 
+    }; 
+  
+    if (winner) { 
+      awardBattleXp(); 
+    } 
+  }, [winner, roomSubject]);
+
   useEffect(() => {
     if (loading || error || normalizedPlayers.length < 2 || !roomSubject) {
       return;
@@ -475,6 +531,27 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
                               <div>
                                 <p className="text-sm font-bold text-white">
                                   {isMe ? "You" : p.player_name} {isWinner ? "🏆" : ""}
+                                  {(() => {
+                                    const pRank = playerRanks[p.id];
+                                    if (!pRank) return null;
+                                    const rank = getRankFromXp(pRank.total_xp || 0);
+                                    const color = TIER_COLORS[rank.tier];
+                                    return (
+                                      <span style={{ 
+                                        marginLeft: '8px', 
+                                        fontSize: '10px', 
+                                        color: color, 
+                                        fontWeight: 'bold', 
+                                        background: `${color}22`, 
+                                        padding: '1px 6px', 
+                                        borderRadius: '10px', 
+                                        border: `1px solid ${color}44`,
+                                        verticalAlign: 'middle'
+                                      }}> 
+                                        {rank.emoji} {rank.name} 
+                                      </span> 
+                                    );
+                                  })()}
                                 </p>
                                 <p className="text-[11px] text-zinc-500">
                                   {p.score}/10 — {formatTime(p.time_seconds || 0)}

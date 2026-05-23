@@ -70,6 +70,26 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
     const xpGained = score * 10; // 10 XP per correct answer
     addXP(xpGained);
     updateStreak('practice');
+
+    const awardPracticeXp = async () => { 
+      try { 
+        const supabaseClient = getSupabaseClient(); 
+        const { data: { user } } = await supabaseClient.auth.getUser(); 
+        if (!user) return; 
+        await fetch('/api/battle/award-xp', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            userId: user.id, 
+            result: 'practice', 
+            subject: decodedSubject || 'Practice', 
+          }), 
+        }); 
+      } catch (e) { 
+        console.error('Practice XP error:', e); 
+      } 
+    }; 
+    awardPracticeXp();
     // QUIZ ARENA EXPANSION — END
   }, [finished, score, addXP, updateStreak]);
 

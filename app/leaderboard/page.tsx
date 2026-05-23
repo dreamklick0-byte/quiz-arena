@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { SUBJECTS } from "@/app/data/practiceQuestions";
 import { getSupabaseClient } from "@/lib/supabase";
+import { getRankFromXp, TIER_COLORS } from '@/lib/rankSystem';
 
 type Row = {
   user_id: string;
@@ -15,6 +16,7 @@ type Row = {
 export default function LeaderboardPage() {
   const [subject, setSubject] = useState(SUBJECTS[0]?.slug ?? "maths");
   const [rows, setRows] = useState<Row[]>([]);
+  const [rankMap, setRankMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +36,26 @@ export default function LeaderboardPage() {
       .eq("subject", subject)
       .order("wins", { ascending: false })
       .limit(25)
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (cancelled) return;
         if (err) setError(err.message);
-        else setRows((data as Row[]) ?? []);
+        else {
+          setRows((data as Row[]) ?? []);
+          
+          // Fetch ranks for these users
+          const userIds = (data as Row[]).map(r => r.user_id).filter(Boolean);
+          if (userIds.length > 0) {
+            const { data: rankData } = await supabase
+              .from('user_ranks')
+              .select('user_id, total_xp, current_rank, rank_tier')
+              .in('user_id', userIds);
+            
+            if (rankData) {
+              const map = Object.fromEntries(rankData.map(r => [r.user_id, r]));
+              setRankMap(map);
+            }
+          }
+        }
         setLoading(false);
       });
     return () => {
@@ -136,6 +154,26 @@ export default function LeaderboardPage() {
                       </span>
                       <span className="text-base font-bold text-white group-hover:translate-x-1 transition-transform">
                         {r.player_label?.trim() || "Player"}
+                        {(() => {
+                          const playerRank = rankMap[r.user_id];
+                          const xp = playerRank?.total_xp || 0;
+                          const rank = getRankFromXp(xp);
+                          const color = TIER_COLORS[rank.tier];
+                          return (
+                            <span style={{ 
+                              marginLeft: '8px', 
+                              fontSize: '11px', 
+                              color: color, 
+                              fontWeight: 'bold', 
+                              background: `${color}22`, 
+                              padding: '2px 8px', 
+                              borderRadius: '20px', 
+                              border: `1px solid ${color}44`, 
+                            }}> 
+                              {rank.emoji} {rank.name} 
+                            </span> 
+                          ); 
+                        })()}
                       </span>
                     </div>
                     <div className="text-right">
