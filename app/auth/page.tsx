@@ -19,8 +19,10 @@ export default function AuthPage() {
   const [refCode, setRefCode] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const code = new URLSearchParams(window.location.search).get("ref");
-      if (code) setRefCode(code);
+      const fromUrl = new URLSearchParams(window.location.search).get("ref");
+      const fromStorage = localStorage.getItem('pendingRefCode');
+      const code = fromUrl || fromStorage;
+      if (code) setRefCode(code.toUpperCase());
     }
   }, []);
 
@@ -108,6 +110,7 @@ export default function AuthPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: user.id, referralCode: refCode }),
             });
+            localStorage.removeItem('pendingRefCode');
           } catch (refErr) {
             console.error('Referral apply error:', refErr);
           }

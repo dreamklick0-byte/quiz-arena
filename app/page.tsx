@@ -16,6 +16,15 @@ export default function LandingPage() {
   ];
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) {
+        localStorage.setItem('pendingRefCode', ref.toUpperCase());
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const newParticles = Array.from({ length: 20 }).map((_, i) => ({
       id: i,
       size: Math.random() * 2 + 2,
