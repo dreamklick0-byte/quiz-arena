@@ -426,19 +426,28 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       : "";
 
   async function handleRematch() { 
-    if (!myUserId || !currentRoomData) return; 
     setRematchBusy(true); 
     try { 
       const sb = getSupabaseClient(); 
-      // Signal to opponent that we want a rematch 
+      const { data: { user } } = await sb.auth.getUser(); 
+      if (!user) { router.push('/battle'); return; } 
+
+      const { data: room } = await sb 
+        .from('battle_rooms') 
+        .select('*') 
+        .eq('room_code', roomCode) 
+        .single(); 
+
+      if (!room) { router.push('/battle'); return; } 
+
       await sb 
         .from('battle_rooms') 
-        .update({ rematch_requested_by: myUserId }) 
+        .update({ rematch_requested_by: user.id }) 
         .eq('room_code', roomCode); 
+
       setRematchStatus('sent'); 
-    } catch { 
-      // fallback 
-      router.push('/battle'); 
+    } catch (e) { 
+      console.error('handleRematch error:', e); 
     } finally { 
       setRematchBusy(false); 
     } 
