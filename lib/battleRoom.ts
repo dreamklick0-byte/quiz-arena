@@ -28,4 +28,34 @@ export async function createBattleRoom(roomCode: string, subject: string, userId
    return room; 
  } 
 
+export async function findQuickMatch(subject: string, userId: string, stakeAmount: number) { 
+  const supabase = getSupabaseClient(); 
+
+  const { data: rooms, error } = await supabase 
+    .from("battle_rooms") 
+    .select("id, room_code, subject, stake_amount, status, host_id, max_players") 
+    .eq("status", "waiting") 
+    .eq("subject", subject) 
+    .eq("stake_amount", stakeAmount) 
+    .eq("max_players", 2) 
+    .neq("host_id", userId) 
+    .order("created_at", { ascending: true }) 
+    .limit(5); 
+
+  if (error || !rooms || rooms.length === 0) return null; 
+
+  for (const room of rooms) { 
+    const { count } = await supabase 
+      .from("room_players") 
+      .select("*", { count: "exact", head: true }) 
+      .eq("room_id", room.id); 
+
+    if ((count ?? 0) < room.max_players) { 
+      return room; 
+    } 
+  } 
+
+  return null; 
+} 
+
 
