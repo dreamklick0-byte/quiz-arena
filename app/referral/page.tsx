@@ -78,7 +78,7 @@ export default function ReferralPage() {
     });
   }, []);
 
-  const referralLink = `https://www.quizarena.com.ng?ref=${code}`;
+  const referralLink = `https://www.quizarena.com.ng/auth?ref=${code}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
