@@ -100,6 +100,19 @@ export default function AuthPage() {
           }
         }
 
+        // Apply referral code if present
+        if (refCode && user?.id) {
+          try {
+            await fetch('/api/referral/apply', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id, referralCode: refCode }),
+            });
+          } catch (refErr) {
+            console.error('Referral apply error:', refErr);
+          }
+        }
+
         // Handle referral
         if (refCode) {
           const { data: referrer } = await supabase
