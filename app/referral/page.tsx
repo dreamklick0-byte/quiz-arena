@@ -64,13 +64,15 @@ export default function ReferralPage() {
         setReferralCount(0);
         setReferees([]);
       }
-      const { data: earnings } = await supabase
-        .from("referral_earnings")
-        .select("amount")
-        .eq("referrer_id", uid);
-      const total = (earnings || []).reduce((sum, e) => sum + (e.amount || 0), 0);
-      setTotalEarned(total);
-      setLoading(false);
+      try { 
+        const { data: earnings } = await supabase 
+          .from("referral_earnings") 
+          .select("amount") 
+          .eq("referrer_id", uid); 
+        const total = (earnings || []).reduce((sum, e) => sum + (e.amount || 0), 0); 
+        setTotalEarned(total); 
+      } catch (_) {} 
+      setLoading(false); 
     });
   }, []);
 
