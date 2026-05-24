@@ -411,7 +411,9 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
             return { ...prev, ...newRoomData };
           });
           if (newRoomData?.status === 'finished' || newRoomData?.ends_at) { 
-            router.replace(`/battle/${roomCode}/results`); 
+            setTimeout(() => { 
+              router.replace(`/battle/${roomCode}/results`); 
+            }, 500); 
           } 
         }
       )
@@ -478,17 +480,17 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
     );
   }
 
-  if (myPlayer?.finished && room.status === "active" && !room.ends_at) {
-    // If timer hits 0, force finish and go to results 
+  if (myPlayer?.finished && room.status !== "finished") { 
     if (globalTimeLeft <= 0) { 
-      supabase 
-        .from("battle_rooms") 
-        .update({ status: "finished", ends_at: new Date().toISOString() }) 
-        .eq("room_code", roomCode) 
-        .then(() => { 
-          router.replace(`/battle/${roomCode}/results`); 
-        }); 
-    } 
+       const sb = getSupabaseClient(); 
+       sb.from("battle_rooms") 
+         .update({ status: "finished", ends_at: new Date().toISOString() }) 
+         .eq("room_code", roomCode) 
+         .then(() => { 
+           router.replace(`/battle/${roomCode}/results`); 
+         }); 
+       return null; 
+     } 
 
     return (
       <div className="min-h-screen bg-[#0f0f1a] text-zinc-100 px-4 py-10">
