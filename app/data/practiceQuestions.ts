@@ -905,10 +905,20 @@ export const QUESTIONS_BY_SLUG: Record<string, Question[]> = {
   current_affairs: CURRENT_AFFAIRS,
 };
 
-export function getQuestionsForSubject(slug: string): Question[] | null {
-  const list = QUESTIONS_BY_SLUG[slug];
-  return list ?? null;
-}
+function shuffleArray<T>(array: T[]): T[] { 
+  const arr = [...array]; 
+  for (let i = arr.length - 1; i > 0; i--) { 
+    const j = Math.floor(Math.random() * (i + 1)); 
+    [arr[i], arr[j]] = [arr[j], arr[i]]; 
+  } 
+  return arr; 
+} 
+ 
+ export function getQuestionsForSubject(slug: string): Question[] | null { 
+   const list = QUESTIONS_BY_SLUG[slug]; 
+   if (!list) return null; 
+   return shuffleArray(list); 
+ }
 
 export function getSubjectMeta(slug: string): SubjectMeta | undefined {
   return SUBJECTS.find((s) => s.slug === slug);
