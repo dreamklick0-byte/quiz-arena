@@ -387,7 +387,9 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id ?? "";
 
-      const room = await createBattleRoom(sub, name, userId);
+      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+      const newRoomCode = generateRoomCode(); 
+      const room = await createBattleRoom(newRoomCode, sub, userId);
       const nextCode = room.room_code;
       
       if (typeof window !== "undefined") {
