@@ -405,9 +405,33 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           if (updated.rematch_accepted && updated.rematch_room_code) { 
             setRematchRoomCode(updated.rematch_room_code); 
             setRematchStatus('accepted'); 
-            setTimeout(() => { 
-              router.push(`/battle/${updated.rematch_room_code}`); 
-            }, 1500); 
+            const initJoin = async () => {
+              const { data: { user: currentUser } } = await sb.auth.getUser(); 
+              if (currentUser) { 
+                const p1name = typeof window !== 'undefined' 
+                  ? window.localStorage.getItem('playerName')?.trim() || 'Player' 
+                  : 'Player'; 
+                const { data: newRoomRow } = await sb 
+                  .from('battle_rooms') 
+                  .select('id') 
+                  .eq('room_code', updated.rematch_room_code) 
+                  .single(); 
+                if (newRoomRow) { 
+                  await sb.from('room_players').insert({ 
+                    room_id: newRoomRow.id, 
+                    player_name: p1name, 
+                    user_id: currentUser.id, 
+                    score: 0, 
+                    finished: false, 
+                    is_ready: true, 
+                  }); 
+                } 
+              } 
+              setTimeout(() => { 
+                router.push(`/battle/${updated.rematch_room_code}`); 
+              }, 800); 
+            };
+            initJoin();
           } 
         }) 
         .subscribe(); 
@@ -458,12 +482,42 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     setRematchBusy(true); 
     try { 
       const sb = getSupabaseClient(); 
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const name = typeof window !== 'undefined' 
         ? window.localStorage.getItem('playerName')?.trim() || 'Player' 
         : 'Player'; 
       const { generateRoomCode } = await import('@/app/battle/battleUtils'); 
       const newCode = generateRoomCode(); 
-      await createBattleRoom(newCode, currentRoomData.subject, myUserId, currentRoomData.stake_amount); 
+      
+      const { data: newRoom, error: roomErr } = await sb 
+        .from('battle_rooms') 
+        .insert({ 
+          room_code: newCode, 
+          max_players: 2, 
+          subject: currentRoomData?.subject || 'maths', 
+          host_id: user.id, 
+          status: 'waiting', 
+          stake_amount: currentRoomData?.stake_amount || 0, 
+          prize_pool: currentRoomData?.stake_amount 
+            ? Math.floor(currentRoomData.stake_amount * 1.6) 
+            : 0, 
+        }) 
+        .select('id, room_code') 
+        .single(); 
+ 
+      if (roomErr || !newRoom) throw roomErr; 
+ 
+      await sb.from('room_players').insert({ 
+        room_id: newRoom.id, 
+        player_name: name, 
+        user_id: user.id, 
+        score: 0, 
+        finished: false, 
+        is_ready: true, 
+      }); 
+
       // Signal accepted with new room code 
       await sb 
         .from('battle_rooms') 
