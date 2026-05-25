@@ -67,17 +67,21 @@ export async function POST(req: Request) {
       else if (actualPlayers === 3) prize1 = playerPool * 0.60;
       else if (actualPlayers === 4) prize1 = playerPool * 0.50;
 
-      if (prize1 > 0 && winner.user_id) {
-        await processTransaction(
-          winner.user_id,
-          'win',
-          prize1,
-          `win-${roomCode}`,
-          `Won Private Room - ${room.subject} ₦${room.stake_amount} stake`
-        );
-      }
-      updates.winner_id = winner.user_id;
-      results.push({ ...winner, prize: prize1, rank: 1 });
+      if (prize1 > 0 && winner.user_id) { 
+        try { 
+          await processTransaction( 
+            winner.user_id, 
+            'win', 
+            prize1, 
+            `win-${roomCode}`, 
+            `Won Private Room - ${room.subject} ₦${room.stake_amount} stake` 
+          ); 
+        } catch (txErr) { 
+          console.error('Prize transaction error (non-fatal):', txErr); 
+        } 
+      } 
+      updates.winner_id = winner.user_id; 
+      results.push({ ...winner, prize: prize1, rank: 1 }); 
     }
 
     if (actualPlayers >= 3) {
