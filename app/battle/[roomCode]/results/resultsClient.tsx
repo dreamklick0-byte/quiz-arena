@@ -541,14 +541,16 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
     setRematchStatus('idle'); 
   } 
 
-  if (showVictory && !victorySoundPlayed) {
-    setVictorySoundPlayed(true);
-    try {
-      const winAudio = new Audio("/QUIZ_ARENA_CHAMPION_SONG.mp3");
-      winAudio.volume = 0.8;
-      winAudio.play().catch(() => {});
-    } catch (_) {}
-  }
+  useEffect(() => {
+    if (showVictory && !victorySoundPlayed) {
+      setVictorySoundPlayed(true);
+      try {
+        const winAudio = new Audio("/QUIZ_ARENA_CHAMPION_SONG.mp3");
+        winAudio.volume = 0.8;
+        winAudio.play().catch(() => {});
+      } catch (_) {}
+    }
+  }, [showVictory, victorySoundPlayed]);
 
   return (
     <>
