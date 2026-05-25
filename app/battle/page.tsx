@@ -207,111 +207,123 @@ export default function BattleLobbyPage() {
     }
   };
 
-  const handleQuickMatch = async () => { 
-   if (!playerName.trim()) { setError("Please enter your name first."); return; } 
-   setBusy(true); 
-   setError(null); 
-   setFindingOpponent(true); 
-   setSearchingMsg("Searching for opponent..."); 
-   const supabase = getSupabaseClient(); 
-   let queueId: string | null = null; 
- 
-   try { 
-     const { data: { user } } = await supabase.auth.getUser(); 
-     const userId = user?.id; 
-     if (!userId) throw new Error("Please sign in to play."); 
- 
-     if (quickStake > 0) { 
-       const balance = await getWalletBalance(userId); 
-       if (balance < quickStake) throw new Error(`Insufficient balance. Need ₦${quickStake}, have ₦${balance}.`); 
-     } 
- 
-     // Clean up any old entries for this user 
-     await supabase.from("matchmaking_queue").delete().eq("user_id", userId); 
- 
-     // Atomically find opponent or join queue 
-     const { data: matchResult, error: matchError } = await supabase.rpc('match_quick_battle', { 
-       p_user_id: userId, 
-       p_stake_amount: quickStake, 
-       p_subject: quickSubject 
-     }); 
-     if (matchError) throw matchError; 
- 
-     if (matchResult.matched === true) { 
-       // Found a waiting player — create the room and send both players in 
-       setSearchingMsg("Opponent found! Starting battle..."); 
-       const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
-       const roomCode = generateRoomCode(6); 
- 
-       const room = await createBattleRoom(roomCode, quickSubject, userId, quickStake); 
-       const player = await insertRoomPlayer(room.id, playerName); 
-       persistIdentity(player.id); 
-       localStorage.setItem("createdRoomCode", roomCode); 
- 
-       if (quickStake > 0) { 
-         await processTransaction(userId, "stake", quickStake, `qm-${roomCode}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
-       } 
- 
-       // Tell the waiting player the room is ready 
-       await supabase.from("matchmaking_queue") 
-         .update({ status: "matched", room_id: room.id, room_code: roomCode }) 
-         .eq("id", matchResult.opponent_queue_id); 
- 
-       await supabase.from("battle_rooms") 
-         .update({ guest_id: matchResult.opponent_id, started_at: new Date().toISOString() }) 
-         .eq("id", room.id); 
- 
-       // Go straight to battle — no room code shown 
-       router.push(`/battle/${roomCode}/play`); 
- 
-     } else { 
-       // No opponent yet — wait silently until one appears 
-       queueId = matchResult.queue_id; 
-       const startTime = Date.now(); 
-       let dots = 0; 
- 
-       while (Date.now() - startTime < 120000) { 
-         await new Promise(r => setTimeout(r, 2000)); 
-         dots = (dots + 1) % 4; 
-         setSearchingMsg("Finding you an opponent" + ".".repeat(dots + 1)); 
- 
-         const { data: myEntry } = await supabase 
-           .from("matchmaking_queue") 
-           .select("status, room_id, room_code") 
-           .eq("id", queueId) 
-           .maybeSingle(); 
- 
-         if (!myEntry) throw new Error("Session lost. Please try again."); 
- 
-         if (myEntry.status === "matched" && myEntry.room_code) { 
-           setSearchingMsg("Opponent found! Joining battle..."); 
-           const player = await insertRoomPlayer(myEntry.room_id, playerName); 
-           persistIdentity(player.id); 
- 
-           if (quickStake > 0) { 
-             await processTransaction(userId, "stake", quickStake, `qm-${myEntry.room_code}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
-           } 
- 
-           // Go straight to battle — no room code shown 
-           router.push(`/battle/${myEntry.room_code}/play`); 
-           await supabase.from("matchmaking_queue").delete().eq("id", queueId); 
-           return; 
-         } 
-       } 
- 
-       await supabase.from("matchmaking_queue").delete().eq("id", queueId); 
-       throw new Error("No opponent found. Try again in a moment."); 
-     } 
- 
-   } catch (err: unknown) { 
-     if (queueId) await supabase.from("matchmaking_queue").delete().eq("id", queueId); 
-     setError((err as Error)?.message ?? "Matchmaking failed."); 
-   } finally { 
-     setBusy(false); 
-     setFindingOpponent(false); 
-     setSearchingMsg("Searching for opponent..."); 
-   } 
- };
+  const handleQuickMatch = async () => {
+    if (!playerName.trim()) {
+      setError("Please enter your name first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setFindingOpponent(true);
+    setSearchingMsg("Searching for opponent...");
+    const supabase = getSupabaseClient();
+    let queueId: string | null = null;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      if (!userId) throw new Error("Please sign in to play.");
+
+      if (quickStake > 0) {
+        const balance = await getWalletBalance(userId);
+        if (balance < quickStake) throw new Error(`Insufficient balance. Need ₦${quickStake}, have ₦${balance}.`);
+      }
+
+      // 1. Call the new quick-match API route
+      const response = await fetch("/api/battle/quick-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, playerName, quickSubject, quickStake }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Matchmaking failed");
+      }
+
+      const matchResult = await response.json();
+
+      if (matchResult.matched === true) {
+        // Found a waiting player — room already created by server
+        setSearchingMsg("Opponent found! Starting battle...");
+        
+        persistIdentity(matchResult.playerId);
+        localStorage.setItem("createdRoomCode", matchResult.roomCode);
+
+        if (quickStake > 0) {
+          await processTransaction(
+            userId,
+            "stake",
+            quickStake,
+            `qm-${matchResult.roomCode}-${userId}-${Date.now()}`,
+            `Quick match ₦${quickStake}`
+          );
+        }
+
+        // Go straight to battle
+        router.push(`/battle/${matchResult.roomCode}/play`);
+        return;
+
+      } else {
+        // No opponent yet — poll the status
+        queueId = matchResult.queueId;
+        const startTime = Date.now();
+        let dots = 0;
+
+        while (Date.now() - startTime < 120000) {
+          await new Promise(r => setTimeout(r, 2000));
+          dots = (dots + 1) % 4;
+          setSearchingMsg("Finding you an opponent" + ".".repeat(dots + 1));
+
+          const pollResponse = await fetch(`/api/battle/quick-match?queueId=${queueId}`);
+          if (!pollResponse.ok) throw new Error("Matchmaking session error.");
+          
+          const myEntry = await pollResponse.json();
+
+          if (myEntry.status === "matched" && myEntry.room_code) {
+            setSearchingMsg("Opponent found! Joining battle...");
+            
+            // Join the room as player
+            const player = await insertRoomPlayer(myEntry.room_id, playerName);
+            persistIdentity(player.id);
+
+            if (quickStake > 0) {
+              await processTransaction(
+                userId,
+                "stake",
+                quickStake,
+                `qm-${myEntry.room_code}-${userId}-${Date.now()}`,
+                `Quick match ₦${quickStake}`
+              );
+            }
+
+            // Go straight to battle
+            router.push(`/battle/${myEntry.room_code}/play`);
+            
+            // Clean up queue entry (server-side handles matched status, but we can delete now)
+            await supabase.from("matchmaking_queue").delete().eq("id", queueId);
+            return;
+          }
+        }
+
+        // Timeout
+        if (queueId) await supabase.from("matchmaking_queue").delete().eq("id", queueId);
+        throw new Error("No opponent found. Try again in a moment.");
+      }
+
+    } catch (err: unknown) {
+      if (queueId) {
+        const supabase = getSupabaseClient();
+        await supabase.from("matchmaking_queue").delete().eq("id", queueId);
+      }
+      setError((err as Error)?.message ?? "Matchmaking failed.");
+    } finally {
+      setBusy(false);
+      setFindingOpponent(false);
+      setSearchingMsg("Searching for opponent...");
+    }
+  };
+
 
   const handleLeagueMatch = async () => {
     if (!playerName.trim()) {
