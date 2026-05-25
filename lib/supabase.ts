@@ -13,7 +13,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder'
-)
+);
 
 // Use a lazy initializer for the admin client to avoid errors on the client-side
 let adminClient: SupabaseClient | null = null;
