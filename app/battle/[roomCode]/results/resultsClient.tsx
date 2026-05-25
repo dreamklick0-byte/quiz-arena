@@ -125,7 +125,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           setPlayers(merged);
           
           // Trigger prize distribution if not paid
-          if (!room.prizes_paid && room.status === 'finished') {
+          if (!room.is_paid && room.status === 'finished') { 
             const res = await fetch('/api/battle/distribute-prizes', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -196,7 +196,7 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
               }
               // QUIZ ARENA EXPANSION — END
             }
-          } else if (room.prizes_paid) {
+          } else if (room.is_paid) {
             setPrizesPaid(true);
             
             // If prizes were already paid, we still want to show victory if we won

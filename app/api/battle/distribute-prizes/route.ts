@@ -15,9 +15,9 @@ export async function POST(req: Request) {
       .single();
 
     if (roomErr) throw roomErr;
-    if (room.prizes_paid) {
-      return NextResponse.json({ success: true, message: "Prizes already paid." });
-    }
+    if (room.is_paid) { 
+      return NextResponse.json({ success: true, message: "Prizes already paid." }); 
+    } 
 
     // 2. Get all players from room_players
     const { data: players, error: playersErr } = await supabase
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     }
 
     const results: BattleResult[] = [];
-    const updates: Record<string, string | boolean | number | null> = { prizes_paid: true };
+    const updates: Record<string, string | boolean | number | null> = { is_paid: true }; 
 
     if (actualPlayers >= 2) {
       // 1st Place
