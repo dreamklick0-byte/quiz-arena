@@ -554,21 +554,22 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
 
   return (
     <>
-      {showVictory && victoryProps && (
-          {...victoryProps}
-          onClose={() => setShowVictory(false)}
-          onShare={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: 'I won a battle on Quiz Arena!',
-                text: `I just defeated ${victoryProps.opponentName} in ${victoryProps.subject}!`,
-                url: window.location.origin
-              });
-            }
-          }}
-          onRematch={handleRematch}
-        />
-      )}
+      {showVictory && victoryProps && ( 
+        <VictoryScreen 
+          {...victoryProps} 
+          onClose={() => setShowVictory(false)} 
+          onShare={() => { 
+            if (navigator.share) { 
+              navigator.share({ 
+                title: 'I won a battle on Quiz Arena!', 
+                text: `I just defeated ${victoryProps.opponentName} in ${victoryProps.subject}!`, 
+                url: window.location.origin 
+              }); 
+            } 
+          }} 
+          onRematch={handleRematch} 
+        /> 
+      )} 
       {showDefeat && defeatProps && (
         <DefeatScreen
           {...defeatProps}
