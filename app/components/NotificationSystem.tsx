@@ -129,9 +129,14 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
                       Mark all as read
                     </button>
                   </div>
-                  {notifications.map((notification) => (
-                    <NotificationItem key={notification.id} notification={notification} />
-                  ))}
+                  <div className="flex flex-col">
+                    {[...notifications]
+                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                      .map((notification) => (
+                        <NotificationItem key={notification.id} notification={notification} />
+                      ))
+                    }
+                  </div>
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-12 text-center">

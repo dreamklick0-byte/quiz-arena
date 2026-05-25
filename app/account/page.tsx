@@ -98,8 +98,7 @@ export default function AccountPage() {
   const signOut = async () => {
     const supabase = getSupabaseClient();
     await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    window.location.href = "/";
   };
 
   if (loading) {
