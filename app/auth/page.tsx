@@ -147,7 +147,14 @@ export default function AuthPage() {
         });
         if (signInError) throw signInError;
 
-        // Redirect to homepage /
+        // Play welcome song for new signup 
+        try { 
+          const welcomeAudio = new Audio('/Quiz_Arena_Welcome_song.mp3'); 
+          welcomeAudio.volume = 0.8; 
+          welcomeAudio.play().catch(() => {}); 
+        } catch (_) {} 
+
+        // Redirect to homepage / 
         router.push("/");
         router.refresh();
       } else {
