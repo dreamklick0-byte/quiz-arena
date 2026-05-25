@@ -157,7 +157,7 @@ export default function ReferralPage() {
                 {/* Friends Referred List */}
                 {referees.length > 0 && (
                   <div className="rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-md">
-                    <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest text-zinc-500">Friends you've referred:</h3>
+                    <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest">Friends you've referred:</h3>
                     <div className="space-y-3">
                       {referees.map((r) => {
                         const name = r.profiles?.display_name || (r.profiles?.email ? r.profiles.email.split("@")[0] : "Anonymous");
@@ -167,8 +167,8 @@ export default function ReferralPage() {
                         return (
                           <div key={r.id} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3">
                             <div>
-                              <p className="text-sm font-bold text-white">{name}</p>
-                              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{timeText}</p>
+                              <p className="text-base font-black text-white">{name}</p>
+                              <p className="text-xs text-emerald-300 font-black uppercase tracking-wider mt-0.5">{timeText}</p>
                             </div>
                             <div>
                               {r.first_deposit_bonus_paid ? (
