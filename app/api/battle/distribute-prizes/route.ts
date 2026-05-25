@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js"; 
 import { processTransaction } from "@/lib/wallet";
 
 export async function POST(req: Request) {
   try {
     const { roomCode } = await req.json();
-    const supabase = getSupabaseClient();
+    const supabase = createClient( 
+      process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+      process.env.SUPABASE_SERVICE_ROLE_KEY! 
+    ); 
 
     // 1. Get room details
     const { data: room, error: roomErr } = await supabase
