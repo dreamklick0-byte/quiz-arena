@@ -1,9 +1,13 @@
 import { getSupabaseClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js"; 
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'stake' | 'win' | 'refund';
 
 export async function getWalletBalance(userId: string): Promise<number> {
-  const supabase = getSupabaseClient();
+  const supabase = createClient( 
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  ); 
   const { data, error } = await supabase
     .from("wallets")
     .select("balance")
@@ -28,7 +32,10 @@ export async function getWalletBalance(userId: string): Promise<number> {
 }
 
 export async function ensureWalletExists(userId: string) {
-  const supabase = getSupabaseClient();
+  const supabase = createClient( 
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  ); 
   const { error } = await supabase
     .from("wallets")
     .select("id")
@@ -47,7 +54,10 @@ export async function processTransaction(
   reference: string,
   description: string
 ) {
-  const supabase = getSupabaseClient();
+  const supabase = createClient( 
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  ); 
   
   // 1. Create transaction record
   const { error: txError } = await supabase.from("transactions").insert({
