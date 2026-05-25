@@ -80,24 +80,26 @@ export function SiteHeader() {
     };
   }, [pathname]);
 
-  useEffect(() => {
-    const updatePresence = async () => {
-      try {
-        const { getSupabaseClient } = await import('@/lib/supabase');
-        const sb = getSupabaseClient();
-        const { data: { user } } = await sb.auth.getUser();
-        if (!user) return;
-        await sb
-          .from('user_presence')
-          .upsert({ user_id: user.id, last_seen: new Date().toISOString() }, { onConflict: 'user_id' });
-      } catch (e) {
-        // silent fail
-      }
-    };
-    updatePresence();
-    const interval = setInterval(updatePresence, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => { 
+   const updatePresence = async () => { 
+     try { 
+       const sb = getSupabaseClient(); 
+       const { data: { user } } = await sb.auth.getUser(); 
+       if (!user) return; 
+       await sb 
+         .from('user_presence') 
+         .upsert( 
+           { user_id: user.id, last_seen: new Date().toISOString() }, 
+           { onConflict: 'user_id', ignoreDuplicates: false } 
+         ); 
+     } catch (e) { 
+       // silent fail - presence is non-critical 
+     } 
+   }; 
+   updatePresence(); 
+   const interval = setInterval(updatePresence, 60000); 
+   return () => clearInterval(interval); 
+ }, []); 
 
   return ( 
      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0f0f1a]/90 backdrop-blur-md"> 

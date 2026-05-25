@@ -147,7 +147,8 @@ export default function BattleLobbyPage() {
       localStorage.setItem("createdRoomCode", roomCode);
       router.push(`/battle/${roomCode}`);
     } catch (e: unknown) {
-      setError((e as Error)?.message ?? "Failed to create room.");
+      const msg = (e as Error)?.message ?? "Failed to create room.";
+      setError(msg.includes("supabase") || msg.includes("Key") ? "Failed to create room. Please try again." : msg);
     } finally {
       setBusy(false);
     }
@@ -201,7 +202,8 @@ export default function BattleLobbyPage() {
       persistIdentity(player.id);
       router.push(`/battle/${room.room_code}`);
     } catch (e: unknown) {
-      setError((e as Error)?.message ?? "Failed to join room.");
+      const msg = (e as Error)?.message ?? "Failed to join room.";
+      setError(msg.includes("supabase") || msg.includes("Key") ? "Failed to join room. Please try again." : msg);
     } finally {
       setBusy(false);
     }
@@ -316,7 +318,8 @@ export default function BattleLobbyPage() {
         const supabase = getSupabaseClient();
         await supabase.from("matchmaking_queue").delete().eq("id", queueId);
       }
-      setError((err as Error)?.message ?? "Matchmaking failed.");
+      const msg = (err as Error)?.message ?? "Matchmaking failed."; 
+      setError(msg.includes("supabase") || msg.includes("Key") ? "Matchmaking failed. Please try again." : msg);
     } finally {
       setBusy(false);
       setFindingOpponent(false);
@@ -438,8 +441,8 @@ export default function BattleLobbyPage() {
       }
 
     } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message);
+      const msg = (err as Error)?.message ?? "Matchmaking failed.";
+      setError(msg.includes("supabase") || msg.includes("Key") ? "Matchmaking failed. Please try again." : msg);
     } finally {
       setBusy(false);
       setFindingOpponent(false);
