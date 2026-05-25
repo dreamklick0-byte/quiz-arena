@@ -119,25 +119,25 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {notifications.length > 0 ? (
-                <div className="flex flex-col">
-                  <div className="p-4 flex justify-end">
-                    <button
-                      onClick={markAllRead}
-                      className="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
-                  <div className="flex flex-col">
-                    {[...notifications]
-                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                      .map((notification) => (
-                        <NotificationItem key={notification.id} notification={notification} />
-                      ))
-                    }
-                  </div>
-                </div>
+              {notifications.length > 0 ? ( 
+                 <div className="flex flex-col"> 
+                   <div className="p-4 flex justify-end"> 
+                     <button 
+                       onClick={markAllRead} 
+                       className="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1" 
+                     > 
+                       Mark all as read 
+                     </button> 
+                   </div> 
+                   <div className="flex flex-col"> 
+                     {[...notifications] 
+                       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) 
+                       .map((notification) => ( 
+                         <NotificationItem key={notification.id} notification={notification} /> 
+                       )) 
+                     } 
+                   </div> 
+                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-12 text-center">
                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
