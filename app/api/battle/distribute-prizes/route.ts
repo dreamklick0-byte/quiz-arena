@@ -27,15 +27,15 @@ export async function POST(req: Request) {
     
     if (playersErr) throw playersErr;
 
-    // We also need time_seconds, but it's stored in battle_rooms for player1-4
-    const playersWithTime = players.map((p, idx) => {
-      const pIdx = idx + 1;
-      return {
-        ...p,
-        time_seconds: room[`player${pIdx}_time_seconds`] || 120,
-        score: room[`player${pIdx}_score`] || 0
-      };
-    });
+    // Map each player to their correct score using host_id to determine player index 
+    const playersWithTime = players.map((p) => { 
+      const pIdx = room.host_id === p.user_id ? 1 : 2; 
+      return { 
+        ...p, 
+        time_seconds: room[`player${pIdx}_time_seconds`] || 120, 
+        score: room[`player${pIdx}_score`] || 0 
+      }; 
+    }); 
 
     // 3. Rank players: Score DESC, Time ASC
     playersWithTime.sort((a, b) => {
