@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { SUBJECTS } from "@/app/data/practiceQuestions";
@@ -29,7 +29,8 @@ export default function PlayersPage() {
   const [challengeModal, setChallengeModal] = useState<ChallengeModal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null); 
+  const challengeChannelRef = useRef<any>(null);
 
   useEffect(() => {
     let heartbeatInterval: ReturnType<typeof setInterval>;
@@ -162,12 +163,15 @@ export default function PlayersPage() {
  
       if (insertError) throw insertError; 
  
-      // Listen for opponent to accept then redirect challenger to play 
-      const listenChannel = supabase.channel(`challenge-accepted:${newRoomCode}`) 
+      // Listen for opponent to accept then redirect challenger to waiting room 
+      if (challengeChannelRef.current) { 
+        supabase.removeChannel(challengeChannelRef.current); 
+      } 
+      challengeChannelRef.current = supabase.channel(`challenge-accepted:${newRoomCode}`) 
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battle_requests' }, (payload) => { 
           const updated = payload.new as any; 
           if (updated.room_code === newRoomCode && updated.status === 'accepted') { 
-            supabase.removeChannel(listenChannel); 
+            if (challengeChannelRef.current) supabase.removeChannel(challengeChannelRef.current); 
             window.location.href = `/battle/${newRoomCode}`; 
           } 
         }).subscribe(); 
