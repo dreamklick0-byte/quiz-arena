@@ -131,7 +131,9 @@ export default function PlayersPage() {
       }
 
       // Create room first so opponent can join it on accept 
-      const { generateRoomCode, createBattleRoom, insertRoomPlayer } = await import("@/app/battle/battleUtils"); 
+      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+      const { createBattleRoom } = await import("@/lib/battleRoom"); 
+      const { insertRoomPlayer } = await import("@/lib/battleRoomPlayer"); 
       const newRoomCode = generateRoomCode(6); 
       const room = await createBattleRoom(newRoomCode, subject, currentUser.id, stakeAmount); 
       await insertRoomPlayer(room.id, currentUser.display_name); 
