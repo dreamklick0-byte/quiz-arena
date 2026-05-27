@@ -163,18 +163,24 @@ export default function PlayersPage() {
  
       if (insertError) throw insertError; 
  
-      // Listen for opponent to accept then redirect challenger to waiting room 
-      if (challengeChannelRef.current) { 
-        supabase.removeChannel(challengeChannelRef.current); 
-      } 
-      challengeChannelRef.current = supabase.channel(`challenge-accepted:${newRoomCode}`) 
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battle_requests' }, (payload) => { 
-          const updated = payload.new as any; 
-          if (updated.room_code === newRoomCode && updated.status === 'accepted') { 
-            if (challengeChannelRef.current) supabase.removeChannel(challengeChannelRef.current); 
-            window.location.href = `/battle/${newRoomCode}`; 
-          } 
-        }).subscribe(); 
+      // Poll every 2 seconds to check if challenge was accepted 
+      if (challengeChannelRef.current) clearInterval(challengeChannelRef.current); 
+      challengeChannelRef.current = setInterval(async () => { 
+        const { data } = await supabase 
+          .from('battle_requests') 
+          .select('status') 
+          .eq('room_code', newRoomCode) 
+          .maybeSingle(); 
+        if (data?.status === 'accepted') { 
+          clearInterval(challengeChannelRef.current); 
+          window.location.href = `/battle/${newRoomCode}`; 
+        } 
+        if (data?.status === 'declined' || data?.status === 'cancelled') { 
+          clearInterval(challengeChannelRef.current); 
+          setSuccessMsg(null); 
+          setError('Challenge was declined or cancelled.'); 
+        } 
+      }, 2000); 
  
       setChallengeModal(null); 
       setSuccessMsg( 
