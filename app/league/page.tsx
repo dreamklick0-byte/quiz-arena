@@ -110,6 +110,14 @@ export default function LeaguePage() {
      }
      setBusy(league.id);
      setError(null);
+
+     // Check if league registration window has closed 
+     if ((league as any).starts_at && new Date() > new Date((league as any).starts_at)) { 
+       setError("This league has already started. Registration is closed."); 
+       setBusy(null); 
+       return; 
+     } 
+
      try {
        const balance = await getWalletBalance(user.id);
        if (balance < league.entry_fee) {
@@ -257,6 +265,15 @@ export default function LeaguePage() {
                 >
                   {busy === l.id ? "JOINING..." : `JOIN FOR ₦${l.entry_fee}`}
                 </button>
+              )}
+
+              {(l.status === 'finished' || l.status === 'completed') && ( 
+                   <button 
+                     onClick={() => router.push(`/league/${l.id}/results`)} 
+                     className="w-full mt-2 rounded-xl bg-[#7c3aed]/30 border border-[#7c3aed]/50 px-4 py-2 text-sm font-bold text-white hover:bg-[#7c3aed]/50" 
+                   > 
+                     🏆 View Results 
+                   </button> 
               )}
             </div>
           );

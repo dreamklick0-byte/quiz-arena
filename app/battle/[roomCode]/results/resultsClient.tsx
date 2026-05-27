@@ -372,37 +372,86 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
       ? `${getSubjectMeta(roomSubject)!.emoji} `
       : "";
 
-  async function handleRematch() {
-    const name =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("playerName")?.trim()
-        : "";
-    const sub = roomSubject ?? "maths";
-    if (!name) {
-      router.push("/battle");
-      return;
-    }
-    setRematchBusy(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id ?? "";
-
-      const room = await createBattleRoom(sub, name, userId);
-      const nextCode = room.room_code;
-      
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("playerName", name);
-        window.localStorage.setItem("createdRoomCode", nextCode);
-      }
-      router.push(`/battle/${nextCode}`);
-    } catch {
-      router.push("/battle");
-    } finally {
-      setRematchBusy(false);
-    }
-  }
-
-  return (
+  const [rematchStatus, setRematchStatus] = useState<'idle'|'sent'|'received'|'accepted'|'declined'>('idle'); 
+ 
+   async function handleRematch() { 
+     setRematchBusy(true); 
+     try { 
+       const sb = getSupabaseClient(); 
+       const { data: { user } } = await sb.auth.getUser(); 
+       if (!user) { router.push('/battle'); return; } 
+       await sb.from('battle_rooms') 
+         .update({ rematch_requested_by: user.id }) 
+         .eq('room_code', roomCode); 
+       setRematchStatus('sent'); 
+     } catch (e) { 
+       console.error('handleRematch error:', e); 
+     } finally { 
+       setRematchBusy(false); 
+     } 
+   } 
+ 
+   async function handleAcceptRematch() { 
+     setRematchBusy(true); 
+     try { 
+       const sb = getSupabaseClient(); 
+       const { data: { user } } = await sb.auth.getUser(); 
+       if (!user) return; 
+       const name = typeof window !== 'undefined' ? localStorage.getItem('playerName')?.trim() || 'Player' : 'Player'; 
+       const { generateRoomCode } = await import('@/app/battle/battleUtils'); 
+       const newCode = generateRoomCode(); 
+       const { data: roomInfo } = await sb.from('battle_rooms').select('subject, stake_amount').eq('room_code', roomCode).single(); 
+       const { data: newRoom } = await sb.from('battle_rooms').insert({ 
+         room_code: newCode, max_players: 2, 
+         subject: roomInfo?.subject || 'maths', 
+         host_id: user.id, status: 'waiting', 
+         stake_amount: roomInfo?.stake_amount || 0, 
+         prize_pool: roomInfo?.stake_amount ? Math.floor(roomInfo.stake_amount * 1.6) : 0, 
+       }).select('id, room_code').single(); 
+       if (!newRoom) throw new Error('Failed to create room'); 
+       await sb.from('room_players').insert({ room_id: newRoom.id, player_name: name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+       await sb.from('battle_rooms').update({ rematch_accepted: true, rematch_room_code: newCode }).eq('room_code', roomCode); 
+       setRematchStatus('accepted'); 
+       setTimeout(() => router.push(`/battle/${newCode}`), 800); 
+     } catch (e) { 
+       console.error('handleAcceptRematch error:', e); 
+       setRematchBusy(false); 
+     } 
+   } 
+ 
+   async function handleDeclineRematch() { 
+     const sb = getSupabaseClient(); 
+     await sb.from('battle_rooms').update({ rematch_requested_by: null }).eq('room_code', roomCode); 
+     setRematchStatus('idle'); 
+   } 
+ 
+   useEffect(() => { 
+     const sb = getSupabaseClient(); 
+     let userId: string | null = null; 
+     sb.auth.getUser().then(({ data: { user } }) => { userId = user?.id || null; }); 
+     const channel = sb.channel(`rematch:${roomCode}`) 
+       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battle_rooms' }, (payload) => { 
+         const updated = payload.new as any; 
+         if (updated.room_code !== roomCode) return; 
+         if (updated.rematch_requested_by && updated.rematch_requested_by !== userId && !updated.rematch_accepted) { 
+           setRematchStatus('received'); 
+         } 
+         if (updated.rematch_accepted && updated.rematch_room_code) { 
+           sb.auth.getUser().then(async ({ data: { user } }) => { 
+             if (!user) return; 
+             const p1name = typeof window !== 'undefined' ? localStorage.getItem('playerName')?.trim() || 'Player' : 'Player'; 
+             const { data: newRoomRow } = await sb.from('battle_rooms').select('id').eq('room_code', updated.rematch_room_code).single(); 
+             if (newRoomRow) { 
+               await sb.from('room_players').insert({ room_id: newRoomRow.id, player_name: p1name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+             } 
+             setTimeout(() => router.push(`/battle/${updated.rematch_room_code}`), 800); 
+           }); 
+         } 
+       }).subscribe(); 
+     return () => { sb.removeChannel(channel); }; 
+   }, [roomCode, router]); 
+ 
+   return (
     <>
       {showVictory && victoryProps && (
         <VictoryScreen
@@ -581,16 +630,33 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
           </main>
 
           <footer className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {!loading && !error && normalizedPlayers.length >= 2 && (
-              <button
-                type="button"
-                onClick={handleRematch}
-                disabled={rematchBusy}
-                className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-5 py-3 text-center text-sm font-semibold text-[#f59e0b] transition hover:bg-[#f59e0b]/25 disabled:opacity-60 sm:col-span-2"
-              >
-                {rematchBusy ? "Creating room…" : "⚔️ Rematch (new room)"}
-              </button>
-            )}
+               <> 
+                 {rematchStatus === 'idle' && ( 
+                   <button type="button" onClick={handleRematch} disabled={rematchBusy} 
+                     className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-5 py-3 text-center text-sm font-semibold text-[#f59e0b] transition hover:bg-[#f59e0b]/25 disabled:opacity-60 sm:col-span-2"> 
+                     {rematchBusy ? 'Sending...' : '⚔️ Play Again (Rematch)'} 
+                   </button> 
+                 )} 
+                 {rematchStatus === 'sent' && ( 
+                   <div className="w-full rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-5 py-3 text-center text-sm text-[#f59e0b] sm:col-span-2"> 
+                     ⏳ Waiting for opponent to accept rematch... 
+                   </div> 
+                 )} 
+                 {rematchStatus === 'received' && ( 
+                   <div className="w-full rounded-xl border border-[#7c3aed]/60 bg-[#7c3aed]/20 px-5 py-4 sm:col-span-2"> 
+                     <p className="text-center text-sm font-bold text-white mb-3">⚔️ Opponent wants a rematch!</p> 
+                     <div className="flex gap-2"> 
+                       <button onClick={handleAcceptRematch} disabled={rematchBusy} className="flex-1 rounded-xl bg-emerald-600 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-60">✅ Accept</button> 
+                       <button onClick={handleDeclineRematch} className="flex-1 rounded-xl bg-red-700/60 py-2 text-sm font-bold text-white hover:bg-red-600">❌ Decline</button> 
+                     </div> 
+                   </div> 
+                 )} 
+                 {rematchStatus === 'accepted' && ( 
+                   <div className="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-center text-sm text-emerald-400 sm:col-span-2"> 
+                     ✅ Rematch accepted! Redirecting... 
+                   </div> 
+                 )} 
+               </> 
             <Link
               href="/battle"
               className="w-full rounded-xl bg-[#7c3aed] px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-[#7c3aed]/25 transition hover:bg-[#6d28d9] active:scale-[0.99]"

@@ -248,6 +248,14 @@ export default function BattleLobbyPage() {
        persistIdentity(player.id); 
        localStorage.setItem("createdRoomCode", roomCode); 
  
+         // Tell waiting player which room to join 
+         await supabase.from("matchmaking_queue") 
+           .update({ status: "matched", room_id: room.id, room_code: roomCode }) 
+           .eq("id", matchResult.opponent_queue_id); 
+         await supabase.from("battle_rooms") 
+           .update({ status: "active", guest_id: matchResult.opponent_id }) 
+           .eq("id", room.id); 
+ 
        if (quickStake > 0) { 
          await processTransaction(userId, "stake", quickStake, `qm-${roomCode}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
        } 
