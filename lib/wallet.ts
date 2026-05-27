@@ -1,4 +1,12 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase"; 
+import { createClient } from "@supabase/supabase-js"; 
+ 
+function getServiceClient() { 
+  return createClient( 
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  ); 
+} 
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'stake' | 'win' | 'refund';
 
@@ -47,9 +55,8 @@ export async function processTransaction(
   reference: string,
   description: string
 ) {
-  const supabase = getSupabaseClient();
-  
-  // 1. Create transaction record
+  const supabase = getServiceClient(); 
+  // 1. Create transaction record 
   const { error: txError } = await supabase.from("transactions").insert({
     user_id: userId,
     type,
