@@ -112,7 +112,9 @@ export default function BattleRequestListener() {
     setError(null);
 
     try {
-      const { stake_amount, challenger_id, challenger_name, subject, id } = incomingRequest;
+      const { stake_amount, challenger_id, challenger_name, id } = incomingRequest;
+      const roomCode = (incomingRequest as any).room_code;
+      if (!roomCode) throw new Error("No room code found on challenge request.");
 
       // Check both wallets have enough
       const [challengerBalance, myBalance] = await Promise.all([
@@ -139,36 +141,39 @@ export default function BattleRequestListener() {
         return;
       }
 
-      // Create the battle room (challenger is player 1)
-      const { data: sessionData } = await supabase.auth.getSession(); 
-      const userId = sessionData?.session?.user?.id; 
-      if (!userId) throw new Error("Not logged in"); 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) throw new Error("Not logged in");
 
-      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
-      const roomCode = generateRoomCode(6); 
+      // Get the room the challenger already created
+      const { data: roomRow } = await supabase
+        .from("battle_rooms")
+        .select("id")
+        .eq("room_code", roomCode)
+        .single();
+      if (!roomRow) throw new Error("Battle room not found.");
 
-      const room = await createBattleRoom(
-        roomCode, 
-        subject,
-        userId,
-        stake_amount
-      );
-      // const roomCode = room.room_code; // roomCode is already defined above
+      // Add acceptor as player 2
+      const { data: existingPlayer } = await supabase
+        .from("room_players")
+        .select("id")
+        .eq("room_id", roomRow.id)
+        .eq("user_id", userId)
+        .maybeSingle();
 
-      // Add myself (opponent) as player 2
-      const roomId = room.id; // Use room.id directly instead of getRoomIdFromCode(roomCode)
-      const player = await insertRoomPlayer(roomId, currentUserName);
-      // const playerId = player.id; // playerId not used here
+      if (!existingPlayer) {
+        await supabase.from("room_players").insert({
+          room_id: roomRow.id,
+          player_name: currentUserName,
+          user_id: userId,
+          score: 0,
+          finished: false,
+          is_ready: true,
+        });
+      }
 
-      // Deduct stakes from both wallets simultaneously
+      // Deduct acceptor stake and activate room
       await Promise.all([
-        processTransaction(
-          challenger_id,
-          "stake",
-          stake_amount,
-          `challenge-${id}`,
-          `Staked ₦${stake_amount} for challenge vs ${currentUserName}`
-        ),
         processTransaction(
           currentUserId,
           "stake",
@@ -176,22 +181,17 @@ export default function BattleRequestListener() {
           `challenge-accept-${id}`,
           `Staked ₦${stake_amount} for challenge vs ${challenger_name}`
         ),
+        supabase
+          .from("battle_rooms")
+          .update({ guest_id: userId, status: "waiting" })
+          .eq("room_code", roomCode),
       ]);
 
-      // Mark request as accepted and save room code
+      // Mark request as accepted
       await supabase
         .from("battle_requests")
         .update({ status: "accepted", room_code: roomCode })
         .eq("id", id);
-
-      // Link guest_id and activate room
-      const { data: guestSession } = await supabase.auth.getSession(); 
-      const guestId = guestSession?.session?.user?.id; 
-
-      await supabase
-        .from("battle_rooms")
-        .update({ guest_id: guestId, status: "active" })
-        .eq("id", roomId);
 
       // Save player identity and redirect to battle room
       localStorage.setItem("playerName", currentUserName);
