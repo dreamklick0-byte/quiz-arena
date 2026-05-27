@@ -348,11 +348,18 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       }
 
       setRoom(roomRow);
-      const list = getQuestionsForSubject(roomRow.subject);
-      if (!list || list.length < TOTAL_QUESTIONS) {
-        throw new Error("Question bank missing for this subject.");
-      }
-      setQuestions(list.slice(0, TOTAL_QUESTIONS));
+      const list = getQuestionsForSubject(roomRow.subject); 
+      if (!list || list.length < TOTAL_QUESTIONS) { 
+        throw new Error("Question bank missing for this subject."); 
+      } 
+      // Use room_code as seed so both players get identical question order 
+      const seed = roomRow.room_code.split('').reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0); 
+      const seededList = [...list]; 
+      for (let i = seededList.length - 1; i > 0; i--) { 
+        const j = (seed * (i + 1)) % (i + 1); 
+        [seededList[i], seededList[j]] = [seededList[j], seededList[i]]; 
+      } 
+      setQuestions(seededList.slice(0, TOTAL_QUESTIONS)); 
 
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
