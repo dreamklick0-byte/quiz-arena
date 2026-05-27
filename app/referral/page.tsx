@@ -44,26 +44,22 @@ export default function ReferralPage() {
         console.log("Referral count fetch:", count, "Error:", countError);
         setReferralCount(count || 0);
 
-        const { data: refereeList, error: listError } = await supabase
-          .from("profiles")
-          .select("id, display_name, email, created_at")
-          .eq("referred_by", profile.referral_code)
-          .order("created_at", { ascending: false });
-
-        console.log("Referee list fetch:", refereeList, "Error:", listError);
-        
-        // Transform profiles data to match the expected state structure
-        const transformedReferees = (refereeList || []).map(p => ({
-          id: p.id,
-          referee_id: p.id,
-          created_at: p.created_at,
-          first_deposit_bonus_paid: false, // We don't have this in profiles, defaulting to false
-          profiles: {
-            display_name: p.display_name,
-            email: p.email
-          }
-        }));
-        setReferees(transformedReferees);
+        const { data: refereeList, error: listError } = await supabase 
+          .rpc("get_referred_users", { p_referral_code: profile.referral_code }); 
+ 
+        console.log("Referee list fetch:", refereeList, "Error:", listError); 
+ 
+        const transformedReferees = (refereeList || []).map((p: any) => ({ 
+          id: p.id, 
+          referee_id: p.id, 
+          created_at: p.created_at, 
+          first_deposit_bonus_paid: false, 
+          profiles: { 
+            display_name: p.display_name, 
+            email: p.email 
+          } 
+        })); 
+        setReferees(transformedReferees); 
       } else {
         setReferralCount(0);
         setReferees([]);
