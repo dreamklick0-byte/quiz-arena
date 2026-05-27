@@ -18,7 +18,7 @@ interface League {
   prize_pool: number;
   guaranteed_first: number;
   guaranteed_second: number;
-  status: 'open' | 'active' | 'completed';
+  status: 'open' | 'active' | 'completed' | 'finished';
   ends_at: string;
 }
 
