@@ -362,7 +362,8 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         // Use database questions 
         questionPool = dbQuestions.map((q: any) => { 
           const opts: string[] = [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean); 
-          const correctIdx = opts.findIndex((o: string) => o === q.correct_answer); 
+          const letterMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 }; 
+          const correctIdx = letterMap[q.correct_answer?.toUpperCase()] ?? 0; 
           return { 
             id: q.id, 
             question: q.question, 
