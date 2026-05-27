@@ -352,11 +352,23 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       if (!list || list.length < TOTAL_QUESTIONS) { 
         throw new Error("Question bank missing for this subject."); 
       } 
-      // Use room_code as seed so both players get identical question order 
-      const seed = roomRow.room_code.split('').reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0); 
+      // Seeded shuffle using room_code - same room = same questions, different rooms = different questions 
+      const seedStr = roomRow.room_code; 
+      let seedNum = 0; 
+      for (let i = 0; i < seedStr.length; i++) { 
+        seedNum = (seedNum * 31 + seedStr.charCodeAt(i)) >>> 0; 
+      } 
+      // Mulberry32 PRNG for deterministic shuffle 
+      const rand = () => { 
+        seedNum += 0x6D2B79F5; 
+        let t = seedNum; 
+        t = Math.imul(t ^ (t >>> 15), t | 1); 
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61); 
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296; 
+      }; 
       const seededList = [...list]; 
       for (let i = seededList.length - 1; i > 0; i--) { 
-        const j = (seed * (i + 1)) % (i + 1); 
+        const j = Math.floor(rand() * (i + 1)); 
         [seededList[i], seededList[j]] = [seededList[j], seededList[i]]; 
       } 
       setQuestions(seededList.slice(0, TOTAL_QUESTIONS)); 
