@@ -360,19 +360,20 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
 
       if (dbQuestions && dbQuestions.length >= TOTAL_QUESTIONS) { 
         // Use database questions 
-        questionPool = dbQuestions.map((q: any) => {
-          const options = Array.isArray(q.options) ? q.options : JSON.parse(q.options || '[]');
-          const correctIndex = options.indexOf(q.correct_answer);
+        questionPool = dbQuestions.map((q: any) => { 
+          const opts: string[] = Array.isArray(q.options) 
+            ? q.options 
+            : JSON.parse(q.options || '[]'); 
+          const correctIdx = opts.findIndex( 
+            (o: string) => o === q.correct_answer 
+          ); 
           return { 
             id: q.id, 
             question: q.question, 
-            options: options as [string, string, string, string], 
-            correctIndex: correctIndex >= 0 ? correctIndex : 0, 
-            explanation: '',
-            correctAnswer: q.correct_answer, 
-            subject: q.subject, 
-            examType: q.exam_type, 
-          } as any;
+            options: opts as [string, string, string, string], 
+            correctIndex: (correctIdx >= 0 ? correctIdx : 0) as 0 | 1 | 2 | 3, 
+            explanation: q.explanation || '', 
+          }; 
         }); 
       } else { 
         // Fallback to local questions 
