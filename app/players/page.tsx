@@ -165,28 +165,34 @@ export default function PlayersPage() {
  
       // Poll every 2 seconds to check if challenge was accepted 
       if (challengeChannelRef.current) clearInterval(challengeChannelRef.current); 
-      challengeChannelRef.current = setInterval(async () => { 
-        const { data } = await supabase 
-          .from('battle_requests') 
-          .select('status') 
-          .eq('room_code', newRoomCode) 
-          .maybeSingle(); 
-        if (data?.status === 'accepted') { 
-          clearInterval(challengeChannelRef.current); 
-          window.location.href = `/battle/${newRoomCode}`; 
-        } 
-        if (data?.status === 'declined' || data?.status === 'cancelled') { 
-          clearInterval(challengeChannelRef.current); 
-          setSuccessMsg(null); 
-          setError('Challenge was declined or cancelled.'); 
+      const capturedRoomCode = newRoomCode; 
+      const pollId = setInterval(async () => { 
+        try { 
+          const sb = getSupabaseClient(); 
+          const { data } = await sb 
+            .from('battle_requests') 
+            .select('status') 
+            .eq('room_code', capturedRoomCode) 
+            .maybeSingle(); 
+          if (data?.status === 'accepted') { 
+            clearInterval(pollId); 
+            window.location.href = `/battle/${capturedRoomCode}`; 
+          } 
+          if (data?.status === 'declined' || data?.status === 'cancelled') { 
+            clearInterval(pollId); 
+            setSuccessMsg(null); 
+            setError('Challenge was declined or cancelled.'); 
+          } 
+        } catch (err) { 
+          console.error('Poll error:', err); 
         } 
       }, 2000); 
+      challengeChannelRef.current = pollId; 
  
       setChallengeModal(null); 
       setSuccessMsg( 
         `⚔️ Challenge sent to ${opponent.display_name}! Waiting for their response…` 
       ); 
-      setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: unknown) {
       setError((e as Error)?.message ?? "Failed to send challenge. Please try again.");
     } finally {
