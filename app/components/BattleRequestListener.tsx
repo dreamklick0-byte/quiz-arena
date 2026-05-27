@@ -298,31 +298,7 @@ export default function BattleRequestListener() {
               ✕ Decline
             </button>
             <button
-              onClick={async () => { 
-                try { 
-                  const supabase = (await import("@/lib/supabase")).getSupabaseClient(); 
-                  const { data: sessionData } = await supabase.auth.getSession(); 
-                  const userId = sessionData?.session?.user?.id; 
-                  if (!userId) { alert("Not logged in"); return; } 
-                  
-                  const roomCode = (incomingRequest as any).room_code || (incomingRequest as any).roomCode; 
-                  
-                  const { error: updateError } = await supabase 
-                    .from("battle_rooms") 
-                    .update({ guest_id: userId, status: "active" }) 
-                    .eq("room_code", roomCode); 
-                  if (updateError) { alert("Room update error: " + updateError.message); return; } 
-                  
-                  await supabase 
-                    .from("battle_requests") 
-                    .update({ status: "accepted" }) 
-                    .eq("id", (incomingRequest as any).id); 
-                  
-                  window.location.href = "/battle/" + roomCode + "/play"; 
-                } catch (err) { 
-                  alert("Failed: " + String(err)); 
-                } 
-              }} 
+              onClick={handleAccept}
               disabled={busy}
               className="flex-1 rounded-xl bg-[#7c3aed] py-2.5 text-xs font-extrabold text-white hover:bg-[#6d28d9] disabled:opacity-50 transition"
             >

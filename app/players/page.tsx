@@ -130,21 +130,49 @@ export default function PlayersPage() {
         );
       }
 
-      const { error: insertError } = await supabase.from("battle_requests").insert({
-        challenger_id: currentUser.id,
-        challenger_name: currentUser.display_name,
-        opponent_id: opponent.user_id,
-        subject,
-        stake_amount: stakeAmount,
-        status: "pending",
-      });
-
-      if (insertError) throw insertError;
-
-      setChallengeModal(null);
-      setSuccessMsg(
-        `⚔️ Challenge sent to ${opponent.display_name}! Waiting for their response…`
-      );
+      // Create room first so opponent can join it on accept 
+      const { generateRoomCode, createBattleRoom, insertRoomPlayer } = await import("@/app/battle/battleUtils"); 
+      const newRoomCode = generateRoomCode(6); 
+      const room = await createBattleRoom(newRoomCode, subject, currentUser.id, stakeAmount); 
+      await insertRoomPlayer(room.id, currentUser.display_name); 
+      localStorage.setItem("playerName", currentUser.display_name); 
+ 
+      // Deduct challenger stake immediately 
+      const { processTransaction } = await import("@/lib/wallet"); 
+      await processTransaction( 
+        currentUser.id, 
+        "stake", 
+        stakeAmount, 
+        `challenge-send-${Date.now()}`, 
+        `Staked ₦${stakeAmount} for challenge vs ${opponent.display_name}` 
+      ); 
+ 
+      const { error: insertError } = await supabase.from("battle_requests").insert({ 
+        challenger_id: currentUser.id, 
+        challenger_name: currentUser.display_name, 
+        opponent_id: opponent.user_id, 
+        subject, 
+        stake_amount: stakeAmount, 
+        status: "pending", 
+        room_code: newRoomCode, 
+      }); 
+ 
+      if (insertError) throw insertError; 
+ 
+      // Listen for opponent to accept then redirect challenger to play 
+      const listenChannel = supabase.channel(`challenge-accepted:${newRoomCode}`) 
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battle_requests' }, (payload) => { 
+          const updated = payload.new as any; 
+          if (updated.room_code === newRoomCode && updated.status === 'accepted') { 
+            supabase.removeChannel(listenChannel); 
+            window.location.href = `/battle/${newRoomCode}/play`; 
+          } 
+        }).subscribe(); 
+ 
+      setChallengeModal(null); 
+      setSuccessMsg( 
+        `⚔️ Challenge sent to ${opponent.display_name}! Waiting for their response…` 
+      ); 
       setTimeout(() => setSuccessMsg(null), 6000);
     } catch (e: unknown) {
       setError((e as Error)?.message ?? "Failed to send challenge. Please try again.");

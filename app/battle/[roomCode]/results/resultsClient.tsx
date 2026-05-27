@@ -409,7 +409,11 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
          prize_pool: roomInfo?.stake_amount ? Math.floor(roomInfo.stake_amount * 1.6) : 0, 
        }).select('id, room_code').single(); 
        if (!newRoom) throw new Error('Failed to create room'); 
-       await sb.from('room_players').insert({ room_id: newRoom.id, player_name: name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+       // Insert acceptor into room_players with duplicate guard 
+       const { data: existingAcceptor } = await sb.from('room_players').select('id').eq('room_id', newRoom.id).eq('user_id', user.id).maybeSingle(); 
+       if (!existingAcceptor) { 
+         await sb.from('room_players').insert({ room_id: newRoom.id, player_name: name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+       } 
        await sb.from('battle_rooms').update({ rematch_accepted: true, rematch_room_code: newCode }).eq('room_code', roomCode); 
        setRematchStatus('accepted'); 
        setTimeout(() => router.push(`/battle/${newCode}`), 800); 
@@ -442,7 +446,10 @@ export function ResultsClient({ roomCode }: { roomCode: string }) {
              const p1name = typeof window !== 'undefined' ? localStorage.getItem('playerName')?.trim() || 'Player' : 'Player'; 
              const { data: newRoomRow } = await sb.from('battle_rooms').select('id').eq('room_code', updated.rematch_room_code).single(); 
              if (newRoomRow) { 
-               await sb.from('room_players').insert({ room_id: newRoomRow.id, player_name: p1name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+               const { data: existingPlayer } = await sb.from('room_players').select('id').eq('room_id', newRoomRow.id).eq('user_id', user.id).maybeSingle(); 
+               if (!existingPlayer) { 
+                 await sb.from('room_players').insert({ room_id: newRoomRow.id, player_name: p1name, user_id: user.id, score: 0, finished: false, is_ready: true }); 
+               } 
              } 
              setTimeout(() => router.push(`/battle/${updated.rematch_room_code}`), 800); 
            }); 
