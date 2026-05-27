@@ -352,7 +352,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       const subjectSlug = roomRow.subject; 
       const { data: dbQuestions, error: qErr } = await supabase 
         .from("questions") 
-        .select("id, question, options, correct_answer, subject, exam_type") 
+        .select("id, question, option_a, option_b, option_c, option_d, correct_answer, explanation, subject, exam_type") 
         .eq("subject", subjectSlug) 
         .limit(500); 
 
@@ -361,12 +361,8 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       if (dbQuestions && dbQuestions.length >= TOTAL_QUESTIONS) { 
         // Use database questions 
         questionPool = dbQuestions.map((q: any) => { 
-          const opts: string[] = Array.isArray(q.options) 
-            ? q.options 
-            : JSON.parse(q.options || '[]'); 
-          const correctIdx = opts.findIndex( 
-            (o: string) => o === q.correct_answer 
-          ); 
+          const opts: string[] = [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean); 
+          const correctIdx = opts.findIndex((o: string) => o === q.correct_answer); 
           return { 
             id: q.id, 
             question: q.question, 
