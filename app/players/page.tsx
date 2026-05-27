@@ -30,7 +30,8 @@ export default function PlayersPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null); 
-  const challengeChannelRef = useRef<any>(null);
+  const challengeChannelRef = useRef<any>(null); 
+  const pollIntervalRef = useRef<any>(null);
 
   useEffect(() => {
     let heartbeatInterval: ReturnType<typeof setInterval>;
@@ -164,9 +165,9 @@ export default function PlayersPage() {
       if (insertError) throw insertError; 
  
       // Poll every 2 seconds to check if challenge was accepted 
-      if (challengeChannelRef.current) clearInterval(challengeChannelRef.current); 
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); 
       const capturedRoomCode = newRoomCode; 
-      const pollId = setInterval(async () => { 
+      pollIntervalRef.current = setInterval(async () => { 
         try { 
           const sb = getSupabaseClient(); 
           const { data } = await sb 
@@ -175,11 +176,13 @@ export default function PlayersPage() {
             .eq('room_code', capturedRoomCode) 
             .maybeSingle(); 
           if (data?.status === 'accepted') { 
-            clearInterval(pollId); 
+            clearInterval(pollIntervalRef.current); 
+            pollIntervalRef.current = null; 
             window.location.href = `/battle/${capturedRoomCode}`; 
           } 
           if (data?.status === 'declined' || data?.status === 'cancelled') { 
-            clearInterval(pollId); 
+            clearInterval(pollIntervalRef.current); 
+            pollIntervalRef.current = null; 
             setSuccessMsg(null); 
             setError('Challenge was declined or cancelled.'); 
           } 
@@ -187,7 +190,6 @@ export default function PlayersPage() {
           console.error('Poll error:', err); 
         } 
       }, 2000); 
-      challengeChannelRef.current = pollId; 
  
       setChallengeModal(null); 
       setSuccessMsg( 
