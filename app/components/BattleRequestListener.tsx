@@ -197,7 +197,7 @@ export default function BattleRequestListener() {
       localStorage.setItem("playerName", currentUserName);
 
       setIncomingRequest(null);
-      router.push(`/battle/${roomCode}/play`);
+      router.push(`/battle/${roomCode}`);
     } catch (e: unknown) {
       setError((e as Error)?.message ?? "Something went wrong. Please try again.");
     } finally {
