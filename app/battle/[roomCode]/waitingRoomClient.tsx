@@ -173,16 +173,17 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
           const playerRows = (data ?? []) as PlayerRow[];
           setPlayers(playerRows);
 
-          // Auto-start 2-player battle when both are ready
-          if (playerRows.length >= (room.max_players ?? 2) && playerRows.every(p => p.is_ready)) {
-            if (isCreator && room.status === "waiting") {
-              // Only creator updates the status to active
-              await supabase
-                .from("battle_rooms")
-                .update({ status: "active", current_question: 0, started_at: new Date().toISOString() })
-                .eq("id", room.id);
-            }
-          }
+          // Auto-start 2-player battle when both are ready 
+          if (playerRows.length >= (room.max_players ?? 2) && playerRows.every(p => p.is_ready)) { 
+            if (room.status === "waiting") { 
+              // Any player can trigger — .eq("status","waiting") prevents double-fire 
+              await supabase 
+                .from("battle_rooms") 
+                .update({ status: "active", current_question: 0, started_at: new Date().toISOString() }) 
+                .eq("id", room.id) 
+                .eq("status", "waiting"); 
+            } 
+          } 
         }
       )
       .subscribe();
@@ -231,14 +232,12 @@ export function WaitingRoomClient({ roomCode }: { roomCode: string }) {
       const allReady = playerData && playerData.length >= (roomData?.max_players ?? 2) && playerData.every(p => p.is_ready); 
     
       if (allReady && roomData?.status === "waiting") { 
-        // Check if this user is the creator 
-        const creatorCode = localStorage.getItem("createdRoomCode"); 
-        if (creatorCode === roomCode) { 
-          await supabase 
-            .from("battle_rooms") 
-            .update({ status: "active", current_question: 0, started_at: new Date().toISOString() }) 
-            .eq("id", room.id); 
-        } 
+        // Any player can trigger — .eq("status","waiting") prevents double-fire 
+        await supabase 
+          .from("battle_rooms") 
+          .update({ status: "active", current_question: 0, started_at: new Date().toISOString() }) 
+          .eq("id", room.id) 
+          .eq("status", "waiting"); 
       } 
     }, 2000); 
 
