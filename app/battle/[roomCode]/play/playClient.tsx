@@ -348,17 +348,41 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       }
 
       setRoom(roomRow);
-      const list = getQuestionsForSubject(roomRow.subject, false); 
-      if (!list || list.length < TOTAL_QUESTIONS) { 
-        throw new Error("Question bank missing for this subject."); 
+      // Fetch questions from Supabase database (all exam types for this subject) 
+      const subjectSlug = roomRow.subject; 
+      const { data: dbQuestions, error: qErr } = await supabase 
+        .from("questions") 
+        .select("id, question, options, correct_answer, subject, exam_type") 
+        .eq("subject", subjectSlug) 
+        .limit(500); 
+
+      let questionPool: Question[] = []; 
+
+      if (dbQuestions && dbQuestions.length >= TOTAL_QUESTIONS) { 
+        // Use database questions 
+        questionPool = dbQuestions.map((q: any) => ({ 
+          id: q.id, 
+          question: q.question, 
+          options: Array.isArray(q.options) ? q.options : JSON.parse(q.options || '[]'), 
+          correctAnswer: q.correct_answer, 
+          subject: q.subject, 
+          examType: q.exam_type, 
+        })); 
+      } else { 
+        // Fallback to local questions 
+        const localList = getQuestionsForSubject(subjectSlug, false); 
+        if (!localList || localList.length < TOTAL_QUESTIONS) { 
+          throw new Error("Question bank missing for this subject."); 
+        } 
+        questionPool = localList; 
       } 
-      // Seeded shuffle using room_code - same room = same questions, different rooms = different questions 
+
+      // Seeded shuffle using room_code so both players get same questions 
       const seedStr = roomRow.room_code; 
       let seedNum = 0; 
       for (let i = 0; i < seedStr.length; i++) { 
         seedNum = (seedNum * 31 + seedStr.charCodeAt(i)) >>> 0; 
       } 
-      // Mulberry32 PRNG for deterministic shuffle 
       const rand = () => { 
         seedNum += 0x6D2B79F5; 
         let t = seedNum; 
@@ -366,12 +390,12 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61); 
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296; 
       }; 
-      const seededList = [...list]; 
-      for (let i = seededList.length - 1; i > 0; i--) { 
+      const seededPool = [...questionPool]; 
+      for (let i = seededPool.length - 1; i > 0; i--) { 
         const j = Math.floor(rand() * (i + 1)); 
-        [seededList[i], seededList[j]] = [seededList[j], seededList[i]]; 
+        [seededPool[i], seededPool[j]] = [seededPool[j], seededPool[i]]; 
       } 
-      setQuestions(seededList.slice(0, TOTAL_QUESTIONS)); 
+      setQuestions(seededPool.slice(0, TOTAL_QUESTIONS)); 
 
       const { data: playerRows, error: playersErr } = await supabase
         .from("room_players")
