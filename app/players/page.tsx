@@ -138,6 +138,7 @@ export default function PlayersPage() {
       const room = await createBattleRoom(newRoomCode, subject, currentUser.id, stakeAmount); 
       await insertRoomPlayer(room.id, currentUser.display_name); 
       localStorage.setItem("playerName", currentUser.display_name); 
+      localStorage.setItem("createdRoomCode", newRoomCode); 
  
       // Deduct challenger stake immediately 
       const { processTransaction } = await import("@/lib/wallet"); 
@@ -167,7 +168,7 @@ export default function PlayersPage() {
           const updated = payload.new as any; 
           if (updated.room_code === newRoomCode && updated.status === 'accepted') { 
             supabase.removeChannel(listenChannel); 
-            window.location.href = `/battle/${newRoomCode}/play`; 
+            window.location.href = `/battle/${newRoomCode}`; 
           } 
         }).subscribe(); 
  
