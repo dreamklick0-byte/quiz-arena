@@ -348,7 +348,7 @@ export function BattlePlayClient({ roomCode }: { roomCode: string }) {
       }
 
       setRoom(roomRow);
-      const list = getQuestionsForSubject(roomRow.subject); 
+      const list = getQuestionsForSubject(roomRow.subject, false); 
       if (!list || list.length < TOTAL_QUESTIONS) { 
         throw new Error("Question bank missing for this subject."); 
       } 
