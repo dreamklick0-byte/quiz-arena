@@ -143,14 +143,18 @@ export default function PlayersPage() {
       localStorage.setItem("createdRoomCode", newRoomCode); 
  
       // Deduct challenger stake immediately 
-      const { processTransaction } = await import("@/lib/wallet"); 
-      await processTransaction( 
-        currentUser.id, 
-        "stake", 
-        stakeAmount, 
-        `challenge-send-${Date.now()}`, 
-        `Staked ₦${stakeAmount} for challenge vs ${opponent.display_name}` 
-      ); 
+      if (stakeAmount > 0) { 
+        await fetch('/api/payment/stake', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            userId: currentUser.id, 
+            amount: stakeAmount, 
+            reference: `challenge-${newRoomCode}`, 
+            description: `Staked ₦${stakeAmount} for challenge vs ${opponent.display_name}` 
+          }) 
+        }); 
+      } 
  
       const { error: insertError } = await supabase.from("battle_requests").insert({ 
         challenger_id: currentUser.id, 
