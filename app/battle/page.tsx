@@ -257,8 +257,12 @@ export default function BattleLobbyPage() {
            .eq("id", room.id); 
  
        if (quickStake > 0) { 
-         await processTransaction(userId, "stake", quickStake, `qm-${roomCode}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
-       } 
+          await fetch('/api/payment/stake', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${roomCode}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
+          }); 
+        } 
  
        // Tell the waiting player the room is ready 
        await supabase.from("matchmaking_queue") 
@@ -297,8 +301,12 @@ export default function BattleLobbyPage() {
            persistIdentity(player.id); 
  
            if (quickStake > 0) { 
-             await processTransaction(userId, "stake", quickStake, `qm-${myEntry.room_code}-${userId}-${Date.now()}`, `Quick match ₦${quickStake}`); 
-           } 
+              await fetch('/api/payment/stake', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${myEntry.room_code}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
+              }); 
+            } 
  
            // Go straight to battle — no room code shown 
            router.push(`/battle/${myEntry.room_code}/play`); 
