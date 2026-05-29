@@ -167,7 +167,7 @@ export default function PlayersPage() {
       // Poll every 2 seconds to check if challenge was accepted 
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); 
       const capturedRoomCode = newRoomCode; 
-      pollIntervalRef.current = setInterval(async () => { 
+      const pollId = setInterval(async () => { 
         try { 
           const sb = getSupabaseClient(); 
           const { data } = await sb 
@@ -176,13 +176,11 @@ export default function PlayersPage() {
             .eq('room_code', capturedRoomCode) 
             .maybeSingle(); 
           if (data?.status === 'accepted') { 
-            clearInterval(pollIntervalRef.current); 
-            pollIntervalRef.current = null; 
+            clearInterval(pollId); 
             window.location.href = `/battle/${capturedRoomCode}`; 
           } 
           if (data?.status === 'declined' || data?.status === 'cancelled') { 
-            clearInterval(pollIntervalRef.current); 
-            pollIntervalRef.current = null; 
+            clearInterval(pollId); 
             setSuccessMsg(null); 
             setError('Challenge was declined or cancelled.'); 
           } 
@@ -190,6 +188,7 @@ export default function PlayersPage() {
           console.error('Poll error:', err); 
         } 
       }, 2000); 
+      pollIntervalRef.current = pollId; 
  
       setChallengeModal(null); 
       setSuccessMsg( 
