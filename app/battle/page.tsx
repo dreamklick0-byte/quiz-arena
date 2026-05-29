@@ -133,15 +133,13 @@ export default function BattleLobbyPage() {
       const player = await insertRoomPlayer(room.id, playerName); 
       const playerId = player.id; 
 
-      if (stakeAmount > 0) {
-        await processTransaction(
-          user.id,
-          'stake',
-          stakeAmount,
-          `room-${roomCode}`,
-          `Staked ₦${stakeAmount} for room ${roomCode}`
-        );
-      }
+      if (stakeAmount > 0) { 
+        await fetch('/api/payment/stake', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ userId: user.id, amount: stakeAmount, reference: `room-${roomCode}`, description: `Staked ₦${stakeAmount} for room ${roomCode}` }) 
+        }); 
+      } 
 
       persistIdentity(playerId);
       localStorage.setItem("createdRoomCode", roomCode);
@@ -188,13 +186,11 @@ export default function BattleLobbyPage() {
           throw new Error(`You need ₦${room.stake_amount} to join. Your balance: ₦${balance}.`);
         }
         
-        await processTransaction(
-          user.id,
-          'stake',
-          room.stake_amount,
-          `join-${code}-${Date.now()}`,
-          `Joined room ${code} with ₦${room.stake_amount} stake`
-        );
+        await fetch('/api/payment/stake', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ userId: user.id, amount: room.stake_amount, reference: `join-${code}-${Date.now()}`, description: `Joined room ${code} with ₦${room.stake_amount} stake` }) 
+        }); 
       }
 
       const player = await insertRoomPlayer(room.id, playerName);
