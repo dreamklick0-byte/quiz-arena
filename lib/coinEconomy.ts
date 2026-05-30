@@ -4,6 +4,15 @@ export const COIN_ECONOMY = {
   BATTLE_COIN_WITHDRAWAL_FEE: 0.25, 
   REWARD_COIN_WITHDRAWAL_FEE: 0, 
   MIN_WITHDRAWAL_COINS: 1000, 
+ 
+   DAILY_SPIN_MIN: 0, 
+   DAILY_SPIN_MAX: 2, 
+   PRACTICE_REWARD: 0, 
+   DAILY_GOAL_REWARD: 1, 
+   WEEKLY_GOAL_REWARD: 5, 
+   REFERRAL_BONUS: 10, 
+   BATTLE_WIN_BONUS: 2, 
+   DAILY_LOGIN_REWARD: 1, 
 
   PACKAGES: [ 
     { naira: 500, battleCoins: 500, bonus: 100, label: 'Starter Pack', popular: false }, 
