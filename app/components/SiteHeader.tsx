@@ -101,6 +101,9 @@ export function SiteHeader() {
            <Link href="/players" className="transition hover:text-[#f59e0b]">Players Online</Link> 
            <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">💰 Refer & Earn</Link> 
            <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">🎡 Daily Spin</Link> 
+           <Link href="/coins" className="text-yellow-400 font-bold hover:text-yellow-300 transition flex items-center gap-1"> 
+             🪙 Coins 
+           </Link> 
            <Link href="/rank" style={{ color: '#f59e0b', fontWeight: 'bold' }}> 
              🏆 My Rank 
            </Link> 
