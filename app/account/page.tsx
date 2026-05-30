@@ -24,6 +24,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [balance, setBalance] = useState<number>(0);
+  const [selectedState, setSelectedState] = useState<string>("");
 
   const fetchMatchHistory = async (userId: string) => {
     const supabase = getSupabaseClient();
@@ -51,13 +52,14 @@ export default function AccountPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, state")
         .eq("id", user.id)
         .maybeSingle();
       if (profile?.display_name) {
         setProfileName(profile.display_name);
         setNewName(profile.display_name);
       }
+      if (profile?.state) setSelectedState(profile.state);
 
       fetchMatchHistory(user.id);
       const b = await getWalletBalance(user.id);
@@ -87,7 +89,7 @@ export default function AccountPage() {
 
     const { error } = await supabase
       .from("profiles")
-      .upsert({ id: user.id, display_name: newName.trim() });
+      .upsert({ id: user.id, display_name: newName.trim(), state: selectedState });
 
     if (!error) {
       setProfileName(newName.trim());
@@ -183,6 +185,22 @@ export default function AccountPage() {
                 >
                   SAVE
                 </button>
+              </div>
+            )}
+
+            {isEditingName && (
+              <div className="mt-4 mb-6"> 
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Your State</label> 
+                <select 
+                  value={selectedState} 
+                  onChange={(e) => setSelectedState(e.target.value)} 
+                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                > 
+                  <option value="">-- Select your state --</option> 
+                  {["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"].map(s => ( 
+                    <option key={s} value={s}>{s}</option> 
+                  ))} 
+                </select> 
               </div>
             )}
 

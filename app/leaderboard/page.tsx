@@ -15,6 +15,7 @@ type Row = {
 
 export default function LeaderboardPage() {
   const [subject, setSubject] = useState(SUBJECTS[0]?.slug ?? "maths");
+  const [filterState, setFilterState] = useState<string>(""); 
   const [rows, setRows] = useState<Row[]>([]);
   const [rankMap, setRankMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -30,38 +31,60 @@ export default function LeaderboardPage() {
     setLoading(true);
     setError(null);
     const supabase = getSupabaseClient();
-    supabase
-      .from("user_subject_wins")
-      .select("user_id, wins, player_label, subject")
-      .eq("subject", subject)
-      .order("wins", { ascending: false })
-      .limit(25)
-      .then(async ({ data, error: err }) => {
+
+    const run = async () => {
+      try {
+        const { data, error: err } = await supabase
+          .from("user_subject_wins")
+          .select("user_id, wins, player_label, subject")
+          .eq("subject", subject)
+          .order("wins", { ascending: false })
+          .limit(100);
+
         if (cancelled) return;
-        if (err) setError(err.message);
-        else {
-          setRows((data as Row[]) ?? []);
-          
-          // Fetch ranks for these users
-          const userIds = (data as Row[]).map(r => r.user_id).filter(Boolean);
-          if (userIds.length > 0) {
-            const { data: rankData } = await supabase
-              .from('user_ranks')
-              .select('user_id, total_xp, current_rank, rank_tier')
-              .in('user_id', userIds);
-            
-            if (rankData) {
-              const map = Object.fromEntries(rankData.map(r => [r.user_id, r]));
-              setRankMap(map);
-            }
+        if (err) {
+          setError(err.message);
+          setLoading(false);
+          return;
+        }
+
+        let filtered = (data as Row[]) ?? [];
+
+        if (filterState && filtered.length > 0) {
+          const userIds = filtered.map((r) => r.user_id).filter(Boolean);
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("id, state")
+            .in("id", userIds)
+            .eq("state", filterState);
+          const stateUserIds = new Set((profileData || []).map((p) => p.id));
+          filtered = filtered.filter((r) => stateUserIds.has(r.user_id));
+        }
+
+        setRows(filtered.slice(0, 25));
+
+        const userIds = filtered.map((r) => r.user_id).filter(Boolean);
+        if (userIds.length > 0) {
+          const { data: rankData } = await supabase
+            .from("user_ranks")
+            .select("user_id, total_xp, current_rank, rank_tier")
+            .in("user_id", userIds);
+          if (rankData) {
+            const map = Object.fromEntries(rankData.map((r) => [r.user_id, r]));
+            setRankMap(map);
           }
         }
-        setLoading(false);
-      });
+      } catch (e: any) {
+        if (!cancelled) setError(e.message);
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    run();
     return () => {
       cancelled = true;
     };
-  }, [subject]);
+  }, [subject, filterState]);
 
   useEffect(() => {
     const fetchTimeout = setTimeout(() => fetchLeaderboard(), 0);
@@ -101,6 +124,22 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="mx-auto max-w-lg px-4 py-10">
+          <div className="mb-4"> 
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400"> 
+              Filter By State 
+            </label> 
+            <select 
+              value={filterState} 
+              onChange={(e) => setFilterState(e.target.value)} 
+              className="mt-2 w-full rounded-xl border border-white/10 bg-[#161627]/90 px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/55 backdrop-blur-sm" 
+            > 
+              <option value="">🌍 All States (National)</option> 
+              {["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"].map(s => ( 
+                <option key={s} value={s}>{s}</option> 
+              ))} 
+            </select> 
+          </div> 
+
           <div className="mt-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">
               Filter By Subject
@@ -154,6 +193,11 @@ export default function LeaderboardPage() {
                       </span>
                       <span className="text-base font-bold text-white group-hover:translate-x-1 transition-transform">
                         {r.player_label?.trim() || "Player"}
+                        {(rankMap[r.user_id] as any)?.state && ( 
+                          <span className="ml-2 text-xs text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full text-[10px]"> 
+                            {(rankMap[r.user_id] as any).state} 
+                          </span> 
+                        )} 
                         {(() => {
                           const playerRank = rankMap[r.user_id];
                           const xp = playerRank?.total_xp || 0;
