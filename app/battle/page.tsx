@@ -293,7 +293,10 @@ export default function BattleLobbyPage() {
            .eq("id", room.id); 
  
        if (quickStake > 0) { 
-         if (payWithCoins) { 
+         const coinBalRes = await fetch(`/api/coins/balance?userId=${userId}`); 
+         const coinBalData = await coinBalRes.json(); 
+         const totalCoins = (coinBalData.battleCoins ?? 0) + (coinBalData.rewardCoins ?? 0); 
+         if (totalCoins >= quickStake) { 
            const coinRes = await fetch('/api/payment/stake-coins', { 
              method: 'POST', 
              headers: { 'Content-Type': 'application/json' }, 
@@ -347,7 +350,10 @@ export default function BattleLobbyPage() {
            persistIdentity(player.id); 
  
            if (quickStake > 0) { 
-             if (payWithCoins) { 
+             const coinBalRes2 = await fetch(`/api/coins/balance?userId=${userId}`); 
+             const coinBalData2 = await coinBalRes2.json(); 
+             const totalCoins2 = (coinBalData2.battleCoins ?? 0) + (coinBalData2.rewardCoins ?? 0); 
+             if (totalCoins2 >= quickStake) { 
                const coinRes = await fetch('/api/payment/stake-coins', { 
                  method: 'POST', 
                  headers: { 'Content-Type': 'application/json' }, 
