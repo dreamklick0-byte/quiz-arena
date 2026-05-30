@@ -3,7 +3,6 @@
  import { useRouter } from "next/navigation"; 
  import { getSupabaseClient } from "@/lib/supabase"; 
  import { COIN_ECONOMY, calcBattleCoinWithdrawal, calcRewardCoinWithdrawal } from "@/lib/coinEconomy"; 
- import { SiteHeader } from "@/app/components/SiteHeader"; 
  
  export default function CoinStorePage() { 
    const router = useRouter(); 
@@ -86,15 +85,13 @@
      finally { setBusy(false); } 
    } 
  
-   const battleCalc = calcBattleCoinWithdrawal(battleWithdrawAmount || 0); 
    const rewardCalc = calcRewardCoinWithdrawal(rewardWithdrawAmount || 0); 
  
    return ( 
      <div className="min-h-screen bg-[#0f0f1a] text-white"> 
-       <SiteHeader /> 
        <div className="max-w-3xl mx-auto px-4 py-10"> 
  
-         <h1 className="text-3xl font-black text-white mb-2 text-center">🪙 Arena Coins</h1> 
+         <h1 className="text-3xl font-black text-white mb-2 text-center">⚡ Arena Coins</h1> 
          <p className="text-zinc-400 text-center text-sm mb-8">Your battle currency. Compete, win, and cash out.</p> 
  
          {/* Balance Cards */} 

@@ -102,7 +102,7 @@ export function SiteHeader() {
            <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">💰 Refer & Earn</Link> 
            <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">🎡 Daily Spin</Link> 
            <Link href="/coins" className="text-yellow-400 font-bold hover:text-yellow-300 transition flex items-center gap-1"> 
-             🪙 Coins 
+             ⚡ Coins 
            </Link> 
            <Link href="/rank" style={{ color: '#f59e0b', fontWeight: 'bold' }}> 
              🏆 My Rank 
@@ -138,7 +138,7 @@ export function SiteHeader() {
              onClick={() => router.push('/coins')} 
              className="flex items-center gap-1 rounded-full bg-yellow-500/20 border border-yellow-500/40 px-3 py-1.5 text-sm font-bold text-yellow-400 hover:bg-yellow-500/30 transition" 
            > 
-             🪙 {coinBalance.toLocaleString()} 
+             ⚡ {coinBalance.toLocaleString()} 
            </button> 
            {typeof streak === "number" && streak > 0 && ( 
              <Link href="/account" title="Study streak" className="hidden rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-2.5 py-1 text-[11px] font-bold text-[#f59e0b] sm:inline"> 
