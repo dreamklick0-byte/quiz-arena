@@ -205,11 +205,11 @@ export default function AccountPage() {
               <select 
                 value={selectedState} 
                 onChange={(e) => setSelectedState(e.target.value)} 
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                style={{ background: '#1a1a2e', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px 16px', width: '100%', fontSize: '14px' }} 
               > 
-                <option value="">-- Select your state --</option> 
+                <option value="" style={{ background: '#1a1a2e', color: '#ffffff' }}>-- Select your state --</option> 
                 {["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"].map(s => ( 
-                  <option key={s} value={s}>{s}</option> 
+                  <option key={s} value={s} style={{ background: '#1a1a2e', color: '#ffffff' }}>{s}</option> 
                 ))} 
               </select> 
               <button 
