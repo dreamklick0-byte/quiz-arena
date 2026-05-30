@@ -285,12 +285,22 @@ export default function BattleLobbyPage() {
            .eq("id", room.id); 
  
        if (quickStake > 0) { 
-          await fetch('/api/payment/stake', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${roomCode}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
-          }); 
-        } 
+         if (payWithCoins) { 
+           const coinRes = await fetch('/api/payment/stake-coins', { 
+             method: 'POST', 
+             headers: { 'Content-Type': 'application/json' }, 
+             body: JSON.stringify({ userId, coinAmount: quickStake, roomCode }) 
+           }); 
+           const coinData = await coinRes.json(); 
+           if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
+         } else { 
+           await fetch('/api/payment/stake', { 
+             method: 'POST', 
+             headers: { 'Content-Type': 'application/json' }, 
+             body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${roomCode}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
+           }); 
+         } 
+       } 
  
        // Tell the waiting player the room is ready 
        await supabase.from("matchmaking_queue") 
@@ -329,12 +339,22 @@ export default function BattleLobbyPage() {
            persistIdentity(player.id); 
  
            if (quickStake > 0) { 
-              await fetch('/api/payment/stake', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${myEntry.room_code}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
-              }); 
-            } 
+             if (payWithCoins) { 
+               const coinRes = await fetch('/api/payment/stake-coins', { 
+                 method: 'POST', 
+                 headers: { 'Content-Type': 'application/json' }, 
+                 body: JSON.stringify({ userId, coinAmount: quickStake, roomCode: myEntry.room_code }) 
+               }); 
+               const coinData = await coinRes.json(); 
+               if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
+             } else { 
+               await fetch('/api/payment/stake', { 
+                 method: 'POST', 
+                 headers: { 'Content-Type': 'application/json' }, 
+                 body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${myEntry.room_code}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
+               }); 
+             } 
+           } 
  
            // Go straight to battle — no room code shown 
            router.push(`/battle/${myEntry.room_code}/play`); 
@@ -836,6 +856,22 @@ export default function BattleLobbyPage() {
               
                   <div> 
                     <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Stake Amount</label> 
+                    <div className="flex gap-2 mb-4"> 
+                      <button 
+                        type="button" 
+                        onClick={() => setPayWithCoins(false)} 
+                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${!payWithCoins ? 'bg-purple-600 text-white' : 'bg-white/10 text-zinc-400'}`} 
+                      > 
+                        💳 Pay with Naira 
+                      </button> 
+                      <button 
+                        type="button" 
+                        onClick={() => setPayWithCoins(true)} 
+                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${payWithCoins ? 'bg-yellow-500 text-black' : 'bg-white/10 text-zinc-400'}`} 
+                      > 
+                        ⚡ Pay with Coins ({coinBalance.toLocaleString()}) 
+                      </button> 
+                    </div> 
                     <div className="grid grid-cols-3 gap-2"> 
                       {QUICK_STAKE_OPTIONS.map((amt) => ( 
                         <button 
