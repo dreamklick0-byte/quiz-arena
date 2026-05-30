@@ -36,7 +36,6 @@ export default function BattleLobbyPage() {
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const STAKE_OPTIONS = [0, 100, 200, 300, 500, 1000, 2000];
   const [coinBalance, setCoinBalance] = useState(0); 
-  const [payWithCoins, setPayWithCoins] = useState(false); 
 
   const [joinPreview, setJoinPreview] = useState<{
     subject: string;
@@ -120,52 +119,53 @@ export default function BattleLobbyPage() {
         if (countError) throw countError;
         
         if (count && count >= 1) {
-          throw new Error("You've used your free challenge for today. Come back tomorrow or stake ₦100+ to play more.");
+          throw new Error("You've used your free challenge for today. Come back tomorrow or stake 100+ Coins to play more.");
         }
       }
       
       if (stakeAmount > 0) {
-        const balance = await getWalletBalance(userId);
-        if (balance < stakeAmount) {
-          throw new Error(`Insufficient balance. You need ₦${stakeAmount}. Current balance: ₦${balance}.`);
-        }
+        const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+        const roomCode = generateRoomCode(6); 
+
+        const room = await createBattleRoom(
+          roomCode,
+          subject,
+          userId,
+          stakeAmount,
+          maxPlayers
+        );
+
+        const player = await insertRoomPlayer(room.id, playerName); 
+        const playerId = player.id; 
+
+        await fetch('/api/payment/auto-stake', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ userId: user.id, coinAmount: stakeAmount, roomCode, description: `Staked ${stakeAmount} coins for room ${roomCode}` }) 
+        }); 
+
+        persistIdentity(playerId);
+        localStorage.setItem("createdRoomCode", roomCode);
+        router.push(`/battle/${roomCode}`);
+      } else {
+        const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
+        const roomCode = generateRoomCode(6); 
+
+        const room = await createBattleRoom(
+          roomCode,
+          subject,
+          userId,
+          stakeAmount,
+          maxPlayers
+        );
+
+        const player = await insertRoomPlayer(room.id, playerName); 
+        const playerId = player.id; 
+
+        persistIdentity(playerId);
+        localStorage.setItem("createdRoomCode", roomCode);
+        router.push(`/battle/${roomCode}`);
       }
-
-      const { generateRoomCode } = await import("@/app/battle/battleUtils"); 
-      const roomCode = generateRoomCode(6); 
-
-      const room = await createBattleRoom(
-        roomCode,
-        subject,
-        userId,
-        stakeAmount,
-        maxPlayers
-      );
-
-      const player = await insertRoomPlayer(room.id, playerName); 
-      const playerId = player.id; 
-
-      if (stakeAmount > 0) { 
-        if (payWithCoins) { 
-          const coinRes = await fetch('/api/payment/stake-coins', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ userId: user.id, coinAmount: stakeAmount, roomCode }) 
-          }); 
-          const coinData = await coinRes.json(); 
-          if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
-        } else { 
-          await fetch('/api/payment/stake', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ userId: user.id, amount: stakeAmount, reference: `room-${roomCode}`, description: `Staked ₦${stakeAmount} for room ${roomCode}` }) 
-          }); 
-        } 
-      } 
-
-      persistIdentity(playerId);
-      localStorage.setItem("createdRoomCode", roomCode);
-      router.push(`/battle/${roomCode}`);
     } catch (e: unknown) {
       setError((e as Error)?.message ?? "Failed to create room.");
     } finally {
@@ -203,34 +203,11 @@ export default function BattleLobbyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (room.stake_amount > 0) { 
         if (!user) throw new Error("Please sign in to join a paid room."); 
- 
-        // Check coin balance first 
-        const coinBalRes = await fetch(`/api/coins/balance?userId=${user.id}`); 
-        const coinBalData = await coinBalRes.json(); 
-        const totalCoins = (coinBalData.battleCoins ?? 0) + (coinBalData.rewardCoins ?? 0); 
-        const useCoinsForJoin = totalCoins >= room.stake_amount; 
- 
-        if (useCoinsForJoin) { 
-          // Pay with coins 
-          const coinRes = await fetch('/api/payment/stake-coins', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ userId: user.id, coinAmount: room.stake_amount, roomCode: code }) 
-          }); 
-          const coinData = await coinRes.json(); 
-          if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
-        } else { 
-          // Fallback to naira 
-          const balance = await getWalletBalance(user.id); 
-          if (balance < room.stake_amount) { 
-            throw new Error(`You need ₦${room.stake_amount} to join. Coin balance: ${totalCoins} coins, Naira balance: ₦${balance}.`); 
-          } 
-          await fetch('/api/payment/stake', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ userId: user.id, amount: room.stake_amount, reference: `join-${code}-${Date.now()}`, description: `Joined room ${code} with ₦${room.stake_amount} stake` }) 
-          }); 
-        } 
+        await fetch('/api/payment/auto-stake', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ userId: user.id, coinAmount: room.stake_amount, roomCode: code, description: `Joined room ${code} with ${room.stake_amount} coins` }) 
+        }); 
       } 
 
       const player = await insertRoomPlayer(room.id, playerName);
@@ -259,7 +236,7 @@ export default function BattleLobbyPage() {
  
      if (quickStake > 0) { 
        const balance = await getWalletBalance(userId); 
-       if (balance < quickStake) throw new Error(`Insufficient balance. Need ₦${quickStake}, have ₦${balance}.`); 
+       if (balance < quickStake) throw new Error(`Insufficient balance. Need ${quickStake} Coins, have ${balance} Coins.`); 
      } 
  
      // Clean up any old entries for this user 
@@ -293,24 +270,11 @@ export default function BattleLobbyPage() {
            .eq("id", room.id); 
  
        if (quickStake > 0) { 
-         const coinBalRes = await fetch(`/api/coins/balance?userId=${userId}`); 
-         const coinBalData = await coinBalRes.json(); 
-         const totalCoins = (coinBalData.battleCoins ?? 0) + (coinBalData.rewardCoins ?? 0); 
-         if (totalCoins >= quickStake) { 
-           const coinRes = await fetch('/api/payment/stake-coins', { 
-             method: 'POST', 
-             headers: { 'Content-Type': 'application/json' }, 
-             body: JSON.stringify({ userId, coinAmount: quickStake, roomCode }) 
-           }); 
-           const coinData = await coinRes.json(); 
-           if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
-         } else { 
-           await fetch('/api/payment/stake', { 
-             method: 'POST', 
-             headers: { 'Content-Type': 'application/json' }, 
-             body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${roomCode}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
-           }); 
-         } 
+         await fetch('/api/payment/auto-stake', { 
+           method: 'POST', 
+           headers: { 'Content-Type': 'application/json' }, 
+           body: JSON.stringify({ userId, coinAmount: quickStake, roomCode, description: `Quick match ${quickStake} coins` }) 
+         }); 
        } 
  
        // Tell the waiting player the room is ready 
@@ -350,24 +314,11 @@ export default function BattleLobbyPage() {
            persistIdentity(player.id); 
  
            if (quickStake > 0) { 
-             const coinBalRes2 = await fetch(`/api/coins/balance?userId=${userId}`); 
-             const coinBalData2 = await coinBalRes2.json(); 
-             const totalCoins2 = (coinBalData2.battleCoins ?? 0) + (coinBalData2.rewardCoins ?? 0); 
-             if (totalCoins2 >= quickStake) { 
-               const coinRes = await fetch('/api/payment/stake-coins', { 
-                 method: 'POST', 
-                 headers: { 'Content-Type': 'application/json' }, 
-                 body: JSON.stringify({ userId, coinAmount: quickStake, roomCode: myEntry.room_code }) 
-               }); 
-               const coinData = await coinRes.json(); 
-               if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
-             } else { 
-               await fetch('/api/payment/stake', { 
-                 method: 'POST', 
-                 headers: { 'Content-Type': 'application/json' }, 
-                 body: JSON.stringify({ userId, amount: quickStake, reference: `qm-${myEntry.room_code}-${userId}-${Date.now()}`, description: `Quick match ₦${quickStake}` }) 
-               }); 
-             } 
+             await fetch('/api/payment/auto-stake', { 
+               method: 'POST', 
+               headers: { 'Content-Type': 'application/json' }, 
+               body: JSON.stringify({ userId, coinAmount: quickStake, roomCode: myEntry.room_code, description: `Quick match ${quickStake} coins` }) 
+             }); 
            } 
  
            // Go straight to battle — no room code shown 
@@ -738,22 +689,6 @@ export default function BattleLobbyPage() {
                     <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
                       Stake Amount
                     </label>
-                    <div className="flex gap-2 mb-4"> 
-                      <button 
-                        type="button" 
-                        onClick={() => setPayWithCoins(false)} 
-                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${!payWithCoins ? 'bg-purple-600 text-white' : 'bg-white/10 text-zinc-400'}`} 
-                      > 
-                        💳 Pay with Naira 
-                      </button> 
-                      <button 
-                        type="button" 
-                        onClick={() => setPayWithCoins(true)} 
-                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${payWithCoins ? 'bg-yellow-500 text-black' : 'bg-white/10 text-zinc-400'}`} 
-                      > 
-                        ⚡ Pay with Coins ({coinBalance.toLocaleString()}) 
-                      </button> 
-                    </div> 
                     <div className="mt-2 flex flex-wrap gap-2">
                       {STAKE_OPTIONS.map((amt) => (
                         <button
@@ -762,7 +697,7 @@ export default function BattleLobbyPage() {
                           onClick={() => setStakeAmount(amt)}
                           className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
                         >
-                          {amt === 0 ? "Free" : `₦${amt}`}
+                          {amt === 0 ? "Free" : `${amt} Coins`}
                         </button>
                       ))}
                     </div>
@@ -779,28 +714,28 @@ export default function BattleLobbyPage() {
                     <div className="mt-3 space-y-1 text-xs font-mono">
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Entry per player:</span>
-                        <span className="text-zinc-200">₦{stakeAmount}</span>
+                        <span className="text-zinc-200">{stakeAmount.toLocaleString()} Coins</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Total Pool:</span>
-                        <span className="text-zinc-200">₦{prizeBreakdown.totalPool}</span>
+                        <span className="text-zinc-200">{prizeBreakdown.totalPool.toLocaleString()} Coins</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Platform (20%):</span>
-                        <span className="text-zinc-200">₦{prizeBreakdown.platformCut}</span>
+                        <span className="text-zinc-200">{prizeBreakdown.platformCut.toLocaleString()} Coins</span>
                       </div>
                       <div className="flex justify-between border-t border-white/10 pt-1 font-bold">
                         <span className="text-[#f59e0b]">Prize Pool (80%):</span>
-                        <span className="text-[#f59e0b]">₦{prizeBreakdown.prizePool}</span>
+                        <span className="text-[#f59e0b]">{prizeBreakdown.prizePool.toLocaleString()} Coins</span>
                       </div>
                     </div>
                     <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
                       ━━━━━━━━━━━━━━━━━━━━━━
                     </p>
                     <div className="mt-2 space-y-1 text-xs font-bold text-center">
-                      <p className="text-emerald-400">🥇 1st: ₦{Math.floor(prizeBreakdown.first)}</p>
-                      {maxPlayers >= 3 && <p className="text-blue-400">🥈 2nd: ₦{Math.floor(prizeBreakdown.second)}</p>}
-                      {maxPlayers >= 4 && <p className="text-purple-400">🥉 3rd: ₦{Math.floor(prizeBreakdown.third)}</p>}
+                      <p className="text-emerald-400">🥇 1st: {Math.floor(prizeBreakdown.first).toLocaleString()} Coins</p>
+                      {maxPlayers >= 3 && <p className="text-blue-400">🥈 2nd: {Math.floor(prizeBreakdown.second).toLocaleString()} Coins</p>}
+                      {maxPlayers >= 4 && <p className="text-purple-400">🥉 3rd: {Math.floor(prizeBreakdown.third).toLocaleString()} Coins</p>}
                     </div>
                     <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">
                       ━━━━━━━━━━━━━━━━━━━━━━
@@ -835,7 +770,7 @@ export default function BattleLobbyPage() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-zinc-400">Stake:</span>
-                            <span className="font-bold text-[#f59e0b]">{joinPreview.stake_amount === 0 ? "Free" : `₦${joinPreview.stake_amount}`}</span>
+                            <span className="font-bold text-[#f59e0b]">{joinPreview.stake_amount === 0 ? "Free" : `${joinPreview.stake_amount} Coins`}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-zinc-400">Players:</span>
@@ -870,22 +805,6 @@ export default function BattleLobbyPage() {
               
                   <div> 
                     <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Stake Amount</label> 
-                    <div className="flex gap-2 mb-4"> 
-                      <button 
-                        type="button" 
-                        onClick={() => setPayWithCoins(false)} 
-                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${!payWithCoins ? 'bg-purple-600 text-white' : 'bg-white/10 text-zinc-400'}`} 
-                      > 
-                        💳 Pay with Naira 
-                      </button> 
-                      <button 
-                        type="button" 
-                        onClick={() => setPayWithCoins(true)} 
-                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${payWithCoins ? 'bg-yellow-500 text-black' : 'bg-white/10 text-zinc-400'}`} 
-                      > 
-                        ⚡ Pay with Coins ({coinBalance.toLocaleString()}) 
-                      </button> 
-                    </div> 
                     <div className="grid grid-cols-3 gap-2"> 
                       {QUICK_STAKE_OPTIONS.map((amt) => ( 
                         <button 
@@ -894,15 +813,15 @@ export default function BattleLobbyPage() {
                           onClick={() => setQuickStake(amt)} 
                           className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`} 
                         > 
-                          ₦{amt.toLocaleString()} 
+                          {amt.toLocaleString()} Coins 
                         </button> 
                       ))} 
                     </div> 
                   </div> 
               
                   <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-zinc-400 space-y-1"> 
-                    <div className="flex justify-between"><span>Stake</span><span className="text-white font-bold">₦{quickStake.toLocaleString()}</span></div> 
-                    <div className="flex justify-between"><span>You can win</span><span className="text-emerald-400 font-bold">₦{(quickStake * 2 * 0.8).toLocaleString()}</span></div> 
+                    <div className="flex justify-between"><span>Stake</span><span className="text-white font-bold">{quickStake.toLocaleString()} Coins</span></div> 
+                    <div className="flex justify-between"><span>You can win</span><span className="text-emerald-400 font-bold">{(quickStake * 2 * 0.8).toLocaleString()} Coins</span></div> 
                     <div className="flex justify-between"><span>Subject</span><span className="text-[#7c3aed] font-bold capitalize">{quickSubject}</span></div> 
                   </div> 
               
@@ -910,7 +829,7 @@ export default function BattleLobbyPage() {
                     <div className="rounded-xl bg-[#7c3aed]/10 border border-[#7c3aed]/30 p-4 text-center"> 
                       <div className="text-2xl mb-2 animate-spin inline-block">⚡</div> 
                       <div className="text-sm font-bold text-white">{searchingMsg}</div> 
-                      <div className="text-xs text-zinc-400 mt-1">Matching you with a ₦{quickStake} opponent...</div> 
+                      <div className="text-xs text-zinc-400 mt-1">Matching you with a {quickStake.toLocaleString()} Coins opponent...</div> 
                     </div> 
                   )} 
                 </div> 
@@ -926,11 +845,11 @@ export default function BattleLobbyPage() {
                   ) : (
                     <div className="space-y-4">
                       <p className="text-sm text-zinc-400">
-                        Compete in the league for a ₦100 stake.
+                        Compete in the league for a 100 Coins stake.
                       </p>
                       <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                          <p className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-[0.2em]">
-                           ENTRY FEE: ₦100
+                           ENTRY FEE: 100 COINS
                          </p>
                       </div>
                     </div>
