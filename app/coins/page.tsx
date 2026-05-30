@@ -3,7 +3,7 @@
  import { useRouter } from "next/navigation"; 
  import { getSupabaseClient } from "@/lib/supabase"; 
  import { COIN_ECONOMY, calcBattleCoinWithdrawal, calcRewardCoinWithdrawal } from "@/lib/coinEconomy"; 
- import SiteHeader from "@/app/components/SiteHeader"; 
+ import { SiteHeader } from "@/app/components/SiteHeader"; 
  
  export default function CoinStorePage() { 
    const router = useRouter(); 
