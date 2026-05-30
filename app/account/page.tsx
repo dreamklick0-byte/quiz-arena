@@ -81,6 +81,18 @@ export default function AccountPage() {
     };
   }, [router]);
 
+  const saveState = async () => { 
+    const supabase = getSupabaseClient(); 
+    const { data: sessionData } = await supabase.auth.getSession(); 
+    const user = sessionData.session?.user; 
+    if (!user) return; 
+    await supabase.from("profiles").upsert( 
+      { id: user.id, state: selectedState }, 
+      { onConflict: "id" } 
+    ); 
+    alert("State saved!"); 
+  }; 
+
   const updateName = async () => {
     if (!newName.trim()) return;
     const supabase = getSupabaseClient();
@@ -201,6 +213,13 @@ export default function AccountPage() {
                     <option key={s} value={s}>{s}</option> 
                   ))} 
                 </select> 
+                <button 
+                  type="button" 
+                  onClick={saveState} 
+                  className="mt-3 w-full rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white transition" 
+                > 
+                  Save State 
+                </button> 
               </div>
             )}
 
