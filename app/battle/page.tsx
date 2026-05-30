@@ -201,14 +201,17 @@ export default function BattleLobbyPage() {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (room.stake_amount > 0) {
-        if (!user) throw new Error("Please sign in to join a paid room.");
-        const balance = await getWalletBalance(user.id);
-        if (balance < room.stake_amount) {
-          throw new Error(`You need ₦${room.stake_amount} to join. Your balance: ₦${balance}.`);
-        }
-        
-        if (payWithCoins) { 
+      if (room.stake_amount > 0) { 
+        if (!user) throw new Error("Please sign in to join a paid room."); 
+ 
+        // Check coin balance first 
+        const coinBalRes = await fetch(`/api/coins/balance?userId=${user.id}`); 
+        const coinBalData = await coinBalRes.json(); 
+        const totalCoins = (coinBalData.battleCoins ?? 0) + (coinBalData.rewardCoins ?? 0); 
+        const useCoinsForJoin = totalCoins >= room.stake_amount; 
+ 
+        if (useCoinsForJoin) { 
+          // Pay with coins 
           const coinRes = await fetch('/api/payment/stake-coins', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
@@ -217,13 +220,18 @@ export default function BattleLobbyPage() {
           const coinData = await coinRes.json(); 
           if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
         } else { 
+          // Fallback to naira 
+          const balance = await getWalletBalance(user.id); 
+          if (balance < room.stake_amount) { 
+            throw new Error(`You need ₦${room.stake_amount} to join. Coin balance: ${totalCoins} coins, Naira balance: ₦${balance}.`); 
+          } 
           await fetch('/api/payment/stake', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ userId: user.id, amount: room.stake_amount, reference: `join-${code}-${Date.now()}`, description: `Joined room ${code} with ₦${room.stake_amount} stake` }) 
           }); 
         } 
-      }
+      } 
 
       const player = await insertRoomPlayer(room.id, playerName);
       persistIdentity(player.id);
