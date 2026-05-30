@@ -85,6 +85,7 @@
      finally { setBusy(false); } 
    } 
  
+   const battleCalc = calcBattleCoinWithdrawal(battleWithdrawAmount || 0); 
    const rewardCalc = calcRewardCoinWithdrawal(rewardWithdrawAmount || 0); 
  
    return ( 
