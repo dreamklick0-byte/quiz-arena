@@ -200,28 +200,26 @@ export default function AccountPage() {
               </div>
             )}
 
-            {isEditingName && (
-              <div className="mt-4 mb-6"> 
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Your State</label> 
-                <select 
-                  value={selectedState} 
-                  onChange={(e) => setSelectedState(e.target.value)} 
-                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
-                > 
-                  <option value="">-- Select your state --</option> 
-                  {["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"].map(s => ( 
-                    <option key={s} value={s}>{s}</option> 
-                  ))} 
-                </select> 
-                <button 
-                  type="button" 
-                  onClick={saveState} 
-                  className="mt-3 w-full rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white transition" 
-                > 
-                  Save State 
-                </button> 
-              </div>
-            )}
+            <div className="mt-4 mb-6"> 
+              <label className="block text-sm font-medium text-zinc-400 mb-1">Your State</label> 
+              <select 
+                value={selectedState} 
+                onChange={(e) => setSelectedState(e.target.value)} 
+                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" 
+              > 
+                <option value="">-- Select your state --</option> 
+                {["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"].map(s => ( 
+                  <option key={s} value={s}>{s}</option> 
+                ))} 
+              </select> 
+              <button 
+                type="button" 
+                onClick={saveState} 
+                className="mt-3 w-full rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white transition" 
+              > 
+                Save State 
+              </button> 
+            </div> 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-2xl border border-[#f59e0b]/30 bg-[#f59e0b]/10 p-5 text-center">
