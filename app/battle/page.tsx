@@ -717,7 +717,7 @@ export default function BattleLobbyPage() {
                         onClick={() => setPayWithCoins(true)} 
                         className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${payWithCoins ? 'bg-yellow-500 text-black' : 'bg-white/10 text-zinc-400'}`} 
                       > 
-                        🪙 Pay with Coins ({coinBalance.toLocaleString()}) 
+                        ⚡ Pay with Coins ({coinBalance.toLocaleString()}) 
                       </button> 
                     </div> 
                     <div className="mt-2 flex flex-wrap gap-2">
