@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { NotificationBell, NotificationCenter } from "./NotificationSystem";
 import { LevelUpBanner } from "./GamificationUI";
@@ -16,6 +16,8 @@ export function SiteHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const router = useRouter();
+  const [coinBalance, setCoinBalance] = useState(0);
   
   const { checkActivityAndSchedule } = useNotificationScheduler();
 
@@ -50,6 +52,11 @@ export function SiteHeader() {
           .eq("user_id", uid)
           .maybeSingle();
         setBalance(typeof walletRow?.balance === "number" ? walletRow.balance : 0);
+
+        fetch(`/api/coins/balance?userId=${uid}`) 
+          .then(r => r.json()) 
+          .then(d => setCoinBalance((d.battleCoins ?? 0) + (d.rewardCoins ?? 0))) 
+          .catch(() => {}); 
       } catch (err) {
         console.error("Error fetching user header data:", err);
       }
@@ -123,6 +130,13 @@ export function SiteHeader() {
                ₦{balance.toLocaleString()} 
              </Link> 
            )} 
+           
+           <button 
+             onClick={() => router.push('/coins')} 
+             className="flex items-center gap-1 rounded-full bg-yellow-500/20 border border-yellow-500/40 px-3 py-1.5 text-sm font-bold text-yellow-400 hover:bg-yellow-500/30 transition" 
+           > 
+             🪙 {coinBalance.toLocaleString()} 
+           </button> 
            {typeof streak === "number" && streak > 0 && ( 
              <Link href="/account" title="Study streak" className="hidden rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-2.5 py-1 text-[11px] font-bold text-[#f59e0b] sm:inline"> 
                🔥 {streak} 
