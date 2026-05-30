@@ -35,6 +35,8 @@ export default function BattleLobbyPage() {
   const [maxPlayers, setMaxPlayers] = useState<number>(2);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const STAKE_OPTIONS = [0, 100, 200, 300, 500, 1000, 2000];
+  const [coinBalance, setCoinBalance] = useState(0); 
+  const [payWithCoins, setPayWithCoins] = useState(false); 
 
   const [joinPreview, setJoinPreview] = useState<{
     subject: string;
@@ -49,6 +51,16 @@ export default function BattleLobbyPage() {
   useEffect(() => {
     const saved = localStorage.getItem("playerName");
     if (saved) setPlayerName(saved);
+
+    const supabase = getSupabaseClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        fetch(`/api/coins/balance?userId=${user.id}`) 
+          .then(r => r.json()) 
+          .then(d => setCoinBalance((d.battleCoins ?? 0) + (d.rewardCoins ?? 0))) 
+          .catch(() => {}); 
+      }
+    });
   }, []);
 
   const prizeBreakdown = useMemo(() => {
@@ -134,11 +146,21 @@ export default function BattleLobbyPage() {
       const playerId = player.id; 
 
       if (stakeAmount > 0) { 
-        await fetch('/api/payment/stake', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ userId: user.id, amount: stakeAmount, reference: `room-${roomCode}`, description: `Staked ₦${stakeAmount} for room ${roomCode}` }) 
-        }); 
+        if (payWithCoins) { 
+          const coinRes = await fetch('/api/payment/stake-coins', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userId: user.id, coinAmount: stakeAmount, roomCode }) 
+          }); 
+          const coinData = await coinRes.json(); 
+          if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
+        } else { 
+          await fetch('/api/payment/stake', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userId: user.id, amount: stakeAmount, reference: `room-${roomCode}`, description: `Staked ₦${stakeAmount} for room ${roomCode}` }) 
+          }); 
+        } 
       } 
 
       persistIdentity(playerId);
@@ -186,11 +208,21 @@ export default function BattleLobbyPage() {
           throw new Error(`You need ₦${room.stake_amount} to join. Your balance: ₦${balance}.`);
         }
         
-        await fetch('/api/payment/stake', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ userId: user.id, amount: room.stake_amount, reference: `join-${code}-${Date.now()}`, description: `Joined room ${code} with ₦${room.stake_amount} stake` }) 
-        }); 
+        if (payWithCoins) { 
+          const coinRes = await fetch('/api/payment/stake-coins', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userId: user.id, coinAmount: room.stake_amount, roomCode: code }) 
+          }); 
+          const coinData = await coinRes.json(); 
+          if (!coinData.success) throw new Error(coinData.error || 'Insufficient coins'); 
+        } else { 
+          await fetch('/api/payment/stake', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userId: user.id, amount: room.stake_amount, reference: `join-${code}-${Date.now()}`, description: `Joined room ${code} with ₦${room.stake_amount} stake` }) 
+          }); 
+        } 
       }
 
       const player = await insertRoomPlayer(room.id, playerName);
@@ -672,6 +704,22 @@ export default function BattleLobbyPage() {
                     <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
                       Stake Amount
                     </label>
+                    <div className="flex gap-2 mb-4"> 
+                      <button 
+                        type="button" 
+                        onClick={() => setPayWithCoins(false)} 
+                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${!payWithCoins ? 'bg-purple-600 text-white' : 'bg-white/10 text-zinc-400'}`} 
+                      > 
+                        💳 Pay with Naira 
+                      </button> 
+                      <button 
+                        type="button" 
+                        onClick={() => setPayWithCoins(true)} 
+                        className={`flex-1 rounded-xl py-2 text-sm font-bold transition ${payWithCoins ? 'bg-yellow-500 text-black' : 'bg-white/10 text-zinc-400'}`} 
+                      > 
+                        🪙 Pay with Coins ({coinBalance.toLocaleString()}) 
+                      </button> 
+                    </div> 
                     <div className="mt-2 flex flex-wrap gap-2">
                       {STAKE_OPTIONS.map((amt) => (
                         <button
