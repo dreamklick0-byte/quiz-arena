@@ -139,7 +139,7 @@ export default function SchoolLoginPage() {
     <div className="min-h-screen bg-[#0f0f1a] px-4 py-10 text-zinc-100 flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-white">?? School Admin Portal</h1>
+          <h1 className="text-3xl font-black text-white">🏫 School Admin Portal</h1>
           <p className="text-zinc-400 text-sm mt-2">Manage your school and monitor student performance</p>
         </div>
 

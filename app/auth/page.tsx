@@ -15,6 +15,7 @@ export default function AuthPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+  const [signupRole, setSignupRole] = useState<"student" | "school_admin">("student");
 
   const [refCode, setRefCode] = useState<string | null>(null);
   useEffect(() => {
@@ -131,8 +132,18 @@ export default function AuthPage() {
         });
         if (signInError) throw signInError;
 
-        // Redirect to homepage /
-        router.push("/");
+        // Role-based routing
+        if (signupRole === "school_admin") {
+          // Save role to profile
+          const sb = getSupabaseClient();
+          const { data: { user: newUser } } = await sb.auth.getUser();
+          if (newUser) {
+            await sb.from("profiles").upsert({ id: newUser.id, role: "school_admin" }, { onConflict: "id" });
+          }
+          router.push("/school/login");
+        } else {
+          router.push("/");
+        }
         router.refresh();
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -201,6 +212,24 @@ export default function AuthPage() {
                 autoComplete="nickname"
                 required
               />
+            </div>
+          )}
+          {tab === "signup" && (
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => setSignupRole("student")}
+                className={"flex-1 rounded-xl py-2.5 text-sm font-bold border transition " + (signupRole === "student" ? "bg-purple-600 border-purple-500 text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:text-white")}
+              >
+                🎓 I am a Student
+              </button>
+              <button
+                type="button"
+                onClick={() => setSignupRole("school_admin")}
+                className={"flex-1 rounded-xl py-2.5 text-sm font-bold border transition " + (signupRole === "school_admin" ? "bg-emerald-600 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-zinc-400 hover:text-white")}
+              >
+                🏫 I am a School Admin
+              </button>
             </div>
           )}
           <div>
