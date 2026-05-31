@@ -99,6 +99,7 @@ export function SiteHeader() {
            <Link href="/leaderboard" className="transition hover:text-[#f59e0b]">Leaderboard</Link> 
            <Link href="/league" className="transition hover:text-[#f59e0b]">League</Link> 
            <Link href="/missions" className="transition hover:text-[#f59e0b]">🎯 Missions</Link> 
+           <Link href="/school" className="transition hover:text-[#f59e0b]">🏫 Schools</Link> 
            <Link href="/players" className="transition hover:text-[#f59e0b]">Players Online</Link> 
            <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">💰 Refer & Earn</Link> 
            <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">🎡 Daily Spin</Link> 
@@ -172,6 +173,7 @@ export function SiteHeader() {
            <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">Leaderboard</Link> 
            <Link href="/league" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">League</Link> 
            <Link href="/missions" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🎯 Missions</Link> 
+           <Link href="/school" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🏫 Schools</Link> 
            <hr className="border-white/10" /> 
            <Link href="/players" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">👥 Players Online</Link> 
            <Link href="/referral" onClick={() => setMenuOpen(false)} className="text-emerald-500 font-semibold hover:text-emerald-400 transition">💰 Refer & Earn</Link> 
