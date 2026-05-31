@@ -328,6 +328,19 @@ export default function AuthPage() {
               {busy ? "Working…" : tab === "signin" ? "Sign in" : "Create account"}
             </button>
           )}
+
+          {tab === "signin" && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-center text-xs text-zinc-500 mb-3">Are you a School Admin?</p>
+              <button
+                type="button"
+                onClick={() => router.push('/school/login')}
+                className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition"
+              >
+                🏫 Sign In as School Admin
+              </button>
+            </div>
+          )}
         </form>
 
         <div className="mt-8 text-center text-xs">
