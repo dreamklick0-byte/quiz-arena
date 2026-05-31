@@ -97,24 +97,24 @@ export default function AccountPage() {
     } 
   }; 
 
-  const updateName = async () => {
-    if (!newName.trim()) return;
-    const supabase = getSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const updateName = async () => { 
+    if (!newName.trim()) return; 
+    const supabase = getSupabaseClient(); 
+    const { data: { user } } = await supabase.auth.getUser(); 
+    if (!user) return; 
 
     const { error } = await supabase 
-       .from("profiles") 
-       .upsert( 
-         { id: user.id, display_name: newName.trim(), state: selectedState }, 
-         { onConflict: "id" } 
-       ); 
+      .from("profiles") 
+      .update({ display_name: newName.trim() }) 
+      .eq("id", user.id); 
 
-    if (!error) {
-      setProfileName(newName.trim());
-      setIsEditingName(false);
-    }
-  };
+    if (error) { 
+      alert("Failed to save name: " + error.message); 
+    } else { 
+      setProfileName(newName.trim()); 
+      setIsEditingName(false); 
+    } 
+  }; 
 
   const signOut = async () => {
     const supabase = getSupabaseClient();
