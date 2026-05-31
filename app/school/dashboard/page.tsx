@@ -101,7 +101,7 @@ export default function SchoolDashboard() {
         .in("user_id", studentIds);
 
       // Aggregate subject stats
-      const subjectMap: Record }> = {};
+      const subjectMap: Record<string, { wins: number; users: Set<string> }> = {};
       for (const row of subjectData || []) {
         if (!subjectMap[row.subject]) subjectMap[row.subject] = { wins: 0, users: new Set() };
         subjectMap[row.subject].wins += row.wins;
@@ -174,11 +174,9 @@ export default function SchoolDashboard() {
   const tabClass = (t: string) => `px-4 py-2 text-sm font-bold rounded-xl transition ${tab === t ? "bg-purple-600 text-white" : "text-zinc-400 hover:text-white hover:bg-white/5"}`;
 
   if (loading) return (
-    
-      Loading dashboard...
-
-    
-
+    <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
+      <p className="text-zinc-400 animate-pulse text-lg">Loading dashboard...</p>
+    </div>
   );
 
   return (
