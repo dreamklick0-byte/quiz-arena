@@ -82,15 +82,19 @@ export default function AccountPage() {
   }, [router]);
 
   const saveState = async () => { 
+    if (!selectedState) { alert("Please select a state first."); return; } 
     const supabase = getSupabaseClient(); 
-    const { data: sessionData } = await supabase.auth.getSession(); 
-    const user = sessionData.session?.user; 
+    const { data: { user } } = await supabase.auth.getUser(); 
     if (!user) return; 
-    await supabase.from("profiles").upsert( 
-      { id: user.id, state: selectedState }, 
-      { onConflict: "id" } 
-    ); 
-    alert("State saved!"); 
+    const { error } = await supabase 
+      .from("profiles") 
+      .update({ state: selectedState }) 
+      .eq("id", user.id); 
+    if (error) { 
+      alert("Failed to save state: " + error.message); 
+    } else { 
+      alert("State saved! ✅"); 
+    } 
   }; 
 
   const updateName = async () => {
@@ -99,9 +103,12 @@ export default function AccountPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({ id: user.id, display_name: newName.trim(), state: selectedState });
+    const { error } = await supabase 
+       .from("profiles") 
+       .upsert( 
+         { id: user.id, display_name: newName.trim(), state: selectedState }, 
+         { onConflict: "id" } 
+       ); 
 
     if (!error) {
       setProfileName(newName.trim());
