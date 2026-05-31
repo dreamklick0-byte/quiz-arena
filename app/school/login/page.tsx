@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -204,7 +204,7 @@ export default function SchoolLoginPage() {
             </div>
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-[#f59e0b]">Password *</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" minLength={6}
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" minLength={6}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/55" />
             </div>
 
@@ -225,3 +225,4 @@ export default function SchoolLoginPage() {
     </div>
   );
 }
+
