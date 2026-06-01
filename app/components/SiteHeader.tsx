@@ -100,6 +100,7 @@ export function SiteHeader() {
            <Link href="/hall-of-fame" className="transition hover:text-[#f59e0b]">🏆 Hall of Fame</Link> 
            <Link href="/league" className="transition hover:text-[#f59e0b]">League</Link> 
            <Link href="/missions" className="transition hover:text-[#f59e0b]">🎯 Missions</Link> 
+           <Link href="/school" className="transition hover:text-[#f59e0b]">🏫 Schools</Link> 
            <Link href="/players" className="transition hover:text-[#f59e0b]">Players Online</Link> 
            <Link href="/referral" className="transition hover:text-emerald-400 text-emerald-500 font-semibold">💰 Refer & Earn</Link> 
            <Link href="/spin" className="transition hover:text-[#f59e0b] text-[#f59e0b] font-semibold">🎡 Daily Spin</Link> 
