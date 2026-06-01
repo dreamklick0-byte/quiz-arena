@@ -22,6 +22,7 @@ type SchoolInfo = {
   city: string;
   total_students: number;
   total_wins: number;
+  logo_url?: string;
 };
 
 type SubjectStat = {
@@ -39,6 +40,8 @@ export default function SchoolDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMsg, setLogoMsg] = useState("");
   const [perfLoading, setPerfLoading] = useState(false);
   const [perfSubjectStats, setPerfSubjectStats] = useState<{subject:string,accuracy:number,battles:number}[]>([]);
   const [perfTopStudents, setPerfTopStudents] = useState<{name:string,wins:number,accuracy:number}[]>([]);
@@ -186,6 +189,30 @@ export default function SchoolDashboard() {
     if (school) setSchool((prev) => (prev ? { ...prev, total_students: prev.total_students - 1 } : null));
   };
 
+  const uploadLogo = async (file: File) => {
+    if (!school?.id) return;
+    setLogoUploading(true);
+    setLogoMsg("");
+    try {
+      const sb = getSupabaseClient();
+      const ext = file.name.split(".").pop();
+      const path = "school-logos/" + school.id + "." + ext;
+      const { error: uploadError } = await sb.storage
+        .from("public")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = sb.storage.from("public").getPublicUrl(path);
+      const logoUrl = urlData.publicUrl;
+      await sb.from("schools").update({ logo_url: logoUrl }).eq("id", school.id);
+      setSchool((prev: SchoolInfo | null) => prev ? { ...prev, logo_url: logoUrl } : prev);
+      setLogoMsg("✅ Logo uploaded successfully!");
+    } catch (e) {
+      console.error("Logo upload error:", e);
+      setLogoMsg("❌ Upload failed. Please try a smaller image (under 2MB).");
+    }
+    setLogoUploading(false);
+  };
+
   const generateAiInsight = async () => {
     setAiLoading(true);
     try {
@@ -271,11 +298,26 @@ export default function SchoolDashboard() {
     <div className="min-h-screen bg-[#0f0f1a] text-white px-4 py-6">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{school?.name || "School Dashboard"}</h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              Code: {school?.school_code || "-"} • {school?.city || "?"}, {school?.state || "?"}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {school?.logo_url ? (
+                <img src={school.logo_url} alt="School logo" className="w-16 h-16 rounded-2xl object-cover border border-white/20" />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl">🏫</div>
+              )}
+              <label className="absolute -bottom-1 -right-1 cursor-pointer bg-purple-600 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-purple-500 transition" title="Upload logo">
+                📷
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadLogo(e.target.files[0]); }} />
+              </label>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">{school?.name || "School Dashboard"}</h1>
+              <p className="mt-2 text-sm text-zinc-400">
+                Code: {school?.school_code || "-"} • {school?.city || "?"}, {school?.state || "?"}
+              </p>
+              {logoMsg && <p className={"text-xs mt-1 " + (logoMsg.startsWith("✅") ? "text-emerald-400" : "text-red-400")}>{logoMsg}</p>}
+              {logoUploading && <p className="text-xs text-zinc-400 mt-1">Uploading...</p>}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {(["overview", "students", "performance", "settings"] as const).map((t) => (
@@ -517,6 +559,28 @@ export default function SchoolDashboard() {
                     <p className="mt-2 font-semibold">{field.value || "No data"}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-[#11121d] p-6">
+              <h3 className="text-lg font-semibold mb-4">School Logo</h3>
+              <div className="flex items-center gap-6">
+                {school?.logo_url ? (
+                  <img src={school.logo_url} alt="School logo" className="w-24 h-24 rounded-2xl object-cover border border-white/20" />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl bg-white/10 border border-dashed border-white/30 flex flex-col items-center justify-center text-zinc-500">
+                    <span className="text-3xl">🏫</span>
+                    <span className="text-xs mt-1">No logo</span>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="text-sm text-zinc-400 mb-3">Upload your school crest or logo. It will appear on your dashboard and on the Hall of Fame if you win School of the Month.</p>
+                  <label className="cursor-pointer inline-block rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 transition">
+                    {logoUploading ? "Uploading..." : "Choose Logo Image"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadLogo(e.target.files[0]); }} />
+                  </label>
+                  {logoMsg && <p className={"text-xs mt-2 " + (logoMsg.startsWith("✅") ? "text-emerald-400" : "text-red-400")}>{logoMsg}</p>}
+                  <p className="text-xs text-zinc-600 mt-2">Max size: 2MB. PNG or JPG recommended.</p>
+                </div>
               </div>
             </div>
             <div className="rounded-2xl bg-[#11121d] p-6">
