@@ -171,13 +171,16 @@ export function SiteHeader() {
            <Link href="/" onClick={() => setMenuOpen(false)} className="hover:text-white transition">Home</Link> 
            <Link href="/practice" onClick={() => setMenuOpen(false)} className="hover:text-white transition">Practice</Link> 
            <Link href="/battle" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">Battle</Link> 
-           <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">Leaderboard</Link> 
+           <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">Leaderboard</Link>
+           <Link href="/hall-of-fame" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🏆 Hall of Fame</Link>
            <Link href="/league" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">League</Link> 
-           <Link href="/missions" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🎯 Missions</Link> 
+           <Link href="/missions" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🎯 Missions</Link>
+           <Link href="/school" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">🏫 Schools</Link>
            <hr className="border-white/10" /> 
            <Link href="/players" onClick={() => setMenuOpen(false)} className="hover:text-[#f59e0b] transition">👥 Players Online</Link> 
            <Link href="/referral" onClick={() => setMenuOpen(false)} className="text-emerald-500 font-semibold hover:text-emerald-400 transition">💰 Refer & Earn</Link> 
-           <Link href="/spin" onClick={() => setMenuOpen(false)} className="text-[#f59e0b] font-semibold hover:text-yellow-300 transition">🎡 Daily Spin</Link> 
+           <Link href="/spin" onClick={() => setMenuOpen(false)} className="text-[#f59e0b] font-semibold hover:text-yellow-300 transition">🎡 Daily Spin</Link>
+           <Link href="/coins" onClick={() => setMenuOpen(false)} className="text-yellow-400 font-semibold hover:text-yellow-300 transition">⚡ Coins</Link>
            <Link href="/rank" onClick={() => setMenuOpen(false)} style={{ color: '#f59e0b', fontWeight: 'bold' }}> 
              🏆 My Rank 
            </Link> 
