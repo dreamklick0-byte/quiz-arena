@@ -56,7 +56,7 @@ export default function AccountPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, state")
+        .select("display_name, state, school_id, school_name")
         .eq("id", user.id)
         .maybeSingle();
       if (profile?.display_name) {
