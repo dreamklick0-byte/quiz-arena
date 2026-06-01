@@ -189,18 +189,27 @@ export default function SchoolDashboard() {
   const generateAiInsight = async () => {
     setAiLoading(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/ai/school-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: `You are an educational analytics AI for a Nigerian secondary school quiz platform called Quiz Arena.\n\nSchool: ${school?.name}\nClass accuracy: ${perfMetrics.avg_accuracy}%\nTotal battles: ${perfMetrics.total_battles}\nActive students this week: ${perfMetrics.active_week}\nTop student: ${perfMetrics.top_student}\nStrong subjects: ${perfStrongAreas.map((s:any) => s.subject + ' (' + s.accuracy + '%)').join(', ') || 'None yet'}\nWeak subjects: ${perfWeakAreas.map((s:any) => s.subject + ' (' + s.accuracy + '%)').join(', ') || 'None yet'}\n\nWrite 3 specific actionable recommendations for the school teacher or admin. Be direct and practical. Format as numbered list. Under 120 words total.` }]
-        })
+          schoolName: school?.name,
+          avgAccuracy: perfMetrics.avg_accuracy,
+          totalBattles: perfMetrics.total_battles,
+          activeWeek: perfMetrics.active_week,
+          topStudent: perfMetrics.top_student,
+          strongAreas: perfStrongAreas.map(s => s.subject + " (" + s.accuracy + "%)").join(", ") || "None yet",
+          weakAreas: perfWeakAreas.map(s => s.subject + " (" + s.accuracy + "%)").join(", ") || "None yet",
+        }),
       });
       const data = await res.json();
-      setAiInsight(data.content?.map((c:any) => c.text || "").join("") || "Unable to generate insight.");
+      if (data.insight) {
+        setAiInsight(data.insight);
+      } else {
+        setAiInsight("Unable to generate insight. Please try again.");
+      }
     } catch (e) {
+      console.error("AI insight error:", e);
       setAiInsight("AI insight unavailable. Please try again.");
     }
     setAiLoading(false);
