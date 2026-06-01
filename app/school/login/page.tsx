@@ -17,6 +17,10 @@ export default function SchoolLoginPage() {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
 
   const STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
 
@@ -98,6 +102,28 @@ export default function SchoolLoginPage() {
     setTimeout(() => router.push("/school/dashboard"), 1500);
     setBusy(false);
   };
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotBusy(true);
+    setForgotMsg("");
+    try {
+      const { getSupabaseClient } = await import("@/lib/supabase");
+      const sb = getSupabaseClient();
+      const { error } = await sb.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: "https://www.quizarena.com.ng/school/login?reset=true",
+      });
+      if (error) {
+        setForgotMsg("Error: " + error.message);
+      } else {
+        setForgotMsg("✅ Reset link sent! Check your email inbox and spam folder.");
+      }
+    } catch (err) {
+      setForgotMsg("Something went wrong. Please try again.");
+    }
+    setForgotBusy(false);
+  }
 
   const handleSignin = async () => {
     if (!email || !password) {
@@ -208,6 +234,16 @@ export default function SchoolLoginPage() {
                 className="mt-2 w-full rounded-xl border border-white/10 bg-[#0f0f1a] px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]/55" />
             </div>
 
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => { setShowForgot(true); setForgotMsg(""); setForgotEmail(""); }}
+                className="text-xs text-purple-400 hover:text-purple-300 transition"
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <button
               onClick={tab === "signup" ? handleSignup : handleSignin}
               disabled={busy}
@@ -216,6 +252,46 @@ export default function SchoolLoginPage() {
             </button>
           </div>
 
+          {showForgot && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f1a] p-8 shadow-2xl">
+                <h2 className="text-xl font-bold text-white mb-2">Reset Password</h2>
+                <p className="text-sm text-zinc-400 mb-6">Enter your school admin email and we will send you a password reset link.</p>
+                {forgotMsg ? (
+                  <div className={"rounded-xl p-4 text-sm mb-4 " + (forgotMsg.startsWith("✅") ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" : "bg-red-500/10 border border-red-500/30 text-red-400")}>
+                    {forgotMsg}
+                  </div>
+                ) : null}
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Email</label>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotBusy}
+                    className="w-full rounded-xl bg-purple-600 py-3 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-60 transition"
+                  >
+                    {forgotBusy ? "Sending..." : "Send Reset Link"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(false)}
+                    className="w-full rounded-xl border border-white/10 py-3 text-sm text-zinc-400 hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
           <div className="mt-6 text-center space-y-2">
             <p className="text-xs text-zinc-500">Are you a student? <Link href="/auth" className="text-purple-400 hover:text-purple-300">Student login ?</Link></p>
             <Link href="/school" className="text-xs text-zinc-500 hover:text-white block">? Back to School Leaderboard</Link>
