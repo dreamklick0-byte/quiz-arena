@@ -44,7 +44,7 @@ export default function HallOfFamePage() {
   };
 
   return (
-    <PageShell>
+    <PageShell overlay="rgba(15,15,26,0.85)">
       <div className="mx-auto max-w-6xl px-4 py-16 text-white">
         <section className="rounded-3xl border border-white/10 bg-white/5 p-10 shadow-2xl shadow-black/20 backdrop-blur-xl">
           <div className="mb-10 flex items-start gap-4">
