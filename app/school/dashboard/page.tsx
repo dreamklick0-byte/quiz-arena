@@ -189,28 +189,49 @@ export default function SchoolDashboard() {
   const generateAiInsight = async () => {
     setAiLoading(true);
     try {
-      const res = await fetch("/api/ai/school-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schoolName: school?.name,
-          avgAccuracy: perfMetrics.avg_accuracy,
-          totalBattles: perfMetrics.total_battles,
-          activeWeek: perfMetrics.active_week,
-          topStudent: perfMetrics.top_student,
-          strongAreas: perfStrongAreas.map(s => s.subject + " (" + s.accuracy + "%)").join(", ") || "None yet",
-          weakAreas: perfWeakAreas.map(s => s.subject + " (" + s.accuracy + "%)").join(", ") || "None yet",
-        }),
-      });
-      const data = await res.json();
-      if (data.insight) {
-        setAiInsight(data.insight);
+      const insights: string[] = [];
+      if (perfMetrics.total_battles === 0) {
+        insights.push("No battles recorded yet. Encourage students to start competing on Quiz Arena.");
+      } else if (perfMetrics.avg_accuracy >= 70) {
+        insights.push("OVERALL ASSESSMENT\n" + (school?.name || "Your school") + " is performing excellently with " + perfMetrics.avg_accuracy + "% class accuracy across " + perfMetrics.total_battles + " battles. Top performance bracket. Keep up the momentum.");
+      } else if (perfMetrics.avg_accuracy >= 50) {
+        insights.push("OVERALL ASSESSMENT\n" + (school?.name || "Your school") + " has " + perfMetrics.avg_accuracy + "% class accuracy across " + perfMetrics.total_battles + " battles. Average performance. Room for improvement in subjects below 60%.");
       } else {
-        setAiInsight("Unable to generate insight. Please try again.");
+        insights.push("OVERALL ASSESSMENT\n" + (school?.name || "Your school") + " has " + perfMetrics.avg_accuracy + "% class accuracy across " + perfMetrics.total_battles + " battles. Below platform average of 62%. Immediate focus needed on weaker subjects.");
       }
-    } catch (e) {
-      console.error("AI insight error:", e);
-      setAiInsight("AI insight unavailable. Please try again.");
+      if (perfWeakAreas.length > 0) {
+        const wl = perfWeakAreas.map(function(s) { return "- " + s.subject + ": " + s.accuracy + "% accuracy. Schedule a revision class and assign practice sessions."; }).join("\n");
+        insights.push("WEAK AREAS\n" + wl);
+      }
+      if (perfStrongAreas.length > 0) {
+        const sl = perfStrongAreas.map(function(s) { return "- " + s.subject + ": " + s.accuracy + "% accuracy. Students excelling here."; }).join("\n");
+        insights.push("STRONG AREAS\n" + sl + "\nUse these subjects to build confidence before tackling weaker areas.");
+      }
+      if (perfMetrics.top_student && perfMetrics.top_student !== "N/A") {
+        insights.push("TOP STUDENT\n" + perfMetrics.top_student + " is your highest performer. Recognise them publicly and ask them to help peers in their strong subjects.");
+      }
+      if (perfMetrics.active_week === 0) {
+        insights.push("ENGAGEMENT\nNo students active this week. Send a reminder to log in and complete at least one battle.");
+      } else if (perfMetrics.active_week < 5) {
+        insights.push("ENGAGEMENT\nOnly " + perfMetrics.active_week + " student(s) active this week. Make Quiz Arena activity a weekly class requirement.");
+      } else {
+        insights.push("ENGAGEMENT\n" + perfMetrics.active_week + " students active with " + perfMetrics.total_battles + " total battles. Good engagement. Set weekly targets to maintain momentum.");
+      }
+      const acts: string[] = [];
+      if (perfWeakAreas.length > 0) {
+        acts.push("1. Hold a revision session for " + perfWeakAreas[0].subject + " this week - lowest accuracy at " + perfWeakAreas[0].accuracy + "%.");
+      } else {
+        acts.push("1. Continue current study pace - no critically weak subjects detected.");
+      }
+      acts.push(perfMetrics.active_week < 10 ? "2. Encourage all students to complete at least 3 battles this week." : "2. Introduce inter-class competitions to maintain high engagement.");
+      acts.push(perfMetrics.top_student && perfMetrics.top_student !== "N/A" ? "3. Publicly recognise " + perfMetrics.top_student + " as top student this week." : "3. Set up a class leaderboard display to motivate students.");
+      acts.push("4. Check the Students tab weekly to identify students needing extra support.");
+      acts.push("5. Share your school code with new students so they appear in your dashboard.");
+      insights.push("ACTION PLAN\n" + acts.join("\n"));
+      insights.push("ENCOURAGEMENT\nEvery battle on Quiz Arena is a step toward academic excellence. Keep pushing your students to engage, compete, and improve.");
+      setAiInsight(insights.join("\n\n"));
+    } catch(e) {
+      setAiInsight("Unable to generate insight. Please try again.");
     }
     setAiLoading(false);
   };
