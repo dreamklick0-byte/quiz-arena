@@ -40,11 +40,11 @@ export default function SchoolDashboard() {
   const [adminName, setAdminName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [perfLoading, setPerfLoading] = useState(false);
-  const [perfSubjectStats, setPerfSubjectStats] = useState([]);
-  const [perfTopStudents, setPerfTopStudents] = useState([]);
-  const [perfWeakAreas, setPerfWeakAreas] = useState([]);
-  const [perfStrongAreas, setPerfStrongAreas] = useState([]);
-  const [perfMetrics, setPerfMetrics] = useState({avg_accuracy:0,total_battles:0,active_week:0,top_student:""});
+  const [perfSubjectStats, setPerfSubjectStats] = useState<{subject:string,accuracy:number,battles:number}[]>([]);
+  const [perfTopStudents, setPerfTopStudents] = useState<{name:string,wins:number,accuracy:number}[]>([]);
+  const [perfWeakAreas, setPerfWeakAreas] = useState<{subject:string,accuracy:number}[]>([]);
+  const [perfStrongAreas, setPerfStrongAreas] = useState<{subject:string,accuracy:number}[]>([]);
+  const [perfMetrics, setPerfMetrics] = useState<{avg_accuracy:number,total_battles:number,active_week:number,top_student:string}>({avg_accuracy:0,total_battles:0,active_week:0,top_student:""});
   const [aiInsight, setAiInsight] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
