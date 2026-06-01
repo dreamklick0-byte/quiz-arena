@@ -25,6 +25,10 @@ export default function AccountPage() {
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [balance, setBalance] = useState<number>(0);
   const [selectedState, setSelectedState] = useState<string>("");
+  const [schoolCode, setSchoolCode] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
+  const [schoolMsg, setSchoolMsg] = useState<string>("");
+  const [schoolBusy, setSchoolBusy] = useState(false);
 
   const fetchMatchHistory = async (userId: string) => {
     const supabase = getSupabaseClient();
@@ -60,6 +64,7 @@ export default function AccountPage() {
         setNewName(profile.display_name);
       }
       if (profile?.state) setSelectedState(profile.state);
+      setSchoolName(profile?.school_name || "");
 
       fetchMatchHistory(user.id);
       const b = await getWalletBalance(user.id);
@@ -80,6 +85,36 @@ export default function AccountPage() {
       cancelled = true;
     };
   }, [router]);
+
+  const joinSchool = async () => {
+    if (!schoolCode.trim()) return;
+    setSchoolBusy(true);
+    setSchoolMsg("");
+    try {
+      const sb = getSupabaseClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data: school, error } = await sb
+        .from("schools")
+        .select("id, name")
+        .eq("school_code", schoolCode.trim().toUpperCase())
+        .single();
+      if (error || !school) {
+        setSchoolMsg("❌ School code not found. Please check and try again.");
+        setSchoolBusy(false);
+        return;
+      }
+      await sb
+        .from("profiles")
+        .update({ school_id: school.id, school_name: school.name })
+        .eq("id", user.id);
+      setSchoolName(school.name);
+      setSchoolMsg("✅ Successfully linked to " + school.name);
+    } catch (e) {
+      setSchoolMsg("Something went wrong. Please try again.");
+    }
+    setSchoolBusy(false);
+  };
 
   const saveState = async () => { 
     if (!selectedState) { alert("Please select a state first."); return; } 
@@ -227,6 +262,48 @@ export default function AccountPage() {
                 Save State 
               </button> 
             </div> 
+
+            <div className="mt-4 mb-6">
+              <label className="block text-sm font-medium text-zinc-400 mb-1">🏫 My School</label>
+              {schoolName ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-emerald-400">{schoolName}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">Linked successfully</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSchoolName(""); setSchoolMsg(""); }}
+                    className="text-xs text-zinc-500 hover:text-red-400 transition"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={schoolCode}
+                    onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
+                    placeholder="Enter school code e.g. GCA7350"
+                    style={{ background: '#1a1a2e', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '12px 16px', width: '100%', fontSize: '14px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={joinSchool}
+                    disabled={schoolBusy || !schoolCode.trim()}
+                    className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white transition disabled:opacity-60"
+                  >
+                    {schoolBusy ? "Linking..." : "Link to School"}
+                  </button>
+                  {schoolMsg && (
+                    <p className={"text-xs mt-1 " + (schoolMsg.startsWith("✅") ? "text-emerald-400" : "text-red-400")}>
+                      {schoolMsg}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-2xl border border-[#f59e0b]/30 bg-[#f59e0b]/10 p-5 text-center">
