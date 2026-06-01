@@ -160,8 +160,8 @@ export default function SchoolDashboard() {
         (answers || []).forEach((a: any) => { const b = (battles || []).find((x: any) => x.host_id === a.user_id); const s = b?.subject || "Unknown"; if (!sm[s]) sm[s] = { correct: 0, total: 0, battles: 0 }; sm[s].total++; if (a.is_correct) sm[s].correct++; });
         const stats = Object.entries(sm).map(([subject, d]) => ({ subject, accuracy: d.total > 0 ? Math.round((d.correct / d.total) * 100) : 0, battles: d.battles })).sort((a, b) => b.battles - a.battles);
         setPerfSubjectStats(stats);
-        setPerfWeakAreas(stats.filter((s: any) => s.accuracy < 50).slice(0, 3));
-        setPerfStrongAreas(stats.filter((s: any) => s.accuracy >= 70).slice(0, 3));
+        setPerfWeakAreas(stats.filter((s: any) => s.accuracy < 50 && (sm[s.subject]?.total || 0) > 0).slice(0, 3));
+        setPerfStrongAreas(stats.filter((s: any) => s.accuracy >= 70 && (sm[s.subject]?.total || 0) > 0).slice(0, 3));
         const sw: Record<string, number> = {};
         (battles || []).forEach((b: any) => { if ((b.player1_score || 0) > (b.player2_score || 0)) sw[b.host_id] = (sw[b.host_id] || 0) + 1; });
         const top = Object.entries(sw).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, wins]) => { const st = (students || []).find((x: any) => x.id === id); const c = (answers || []).filter((a: any) => a.user_id === id && a.is_correct).length; const t = (answers || []).filter((a: any) => a.user_id === id).length; return { name: st?.display_name || "Unknown", wins, accuracy: t > 0 ? Math.round((c / t) * 100) : 0 }; });
