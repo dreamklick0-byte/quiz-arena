@@ -37,6 +37,10 @@ export default function HallOfFamePage() {
     load();
   }, []);
 
+  const generateCertNumber = (id: string, type: string) => {
+    return `QA-${type.toUpperCase()[0]}${id.slice(0,4).toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  };
+
   const monthNames: Record<string, string> = {
     "1":"January","2":"February","3":"March","4":"April",
     "5":"May","6":"June","7":"July","8":"August",
@@ -98,6 +102,10 @@ export default function HallOfFamePage() {
                         <div>
                           <div className="text-xl font-bold">{entry.best_school_name}</div>
                           <div className="text-zinc-400">Score: {entry.school_score.toFixed(1)}</div>
+                          <div className="mt-3">
+                            <Link href={`/certificate?type=school&name=${encodeURIComponent(entry.best_school_name)}&month=${encodeURIComponent(entry.month)}&year=${entry.year}&cert=${generateCertNumber(entry.id,'school')}`}
+                              className="mt-3 inline-flex rounded-full bg-[#f59e0b] px-4 py-2 text-sm font-bold text-black hover:bg-[#e6950a] transition">Download Certificate</Link>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -111,6 +119,10 @@ export default function HallOfFamePage() {
                           <div className="text-zinc-400 mb-2">{entry.best_student_school}</div>
                           <div className="text-zinc-400 text-sm">
                             {entry.student_accuracy}% accuracy · {entry.student_wins} wins
+                          </div>
+                          <div className="mt-3">
+                            <Link href={`/certificate?type=student&name=${encodeURIComponent(entry.best_student_name)}&school=${encodeURIComponent(entry.best_student_school)}&month=${encodeURIComponent(entry.month)}&year=${entry.year}&wins=${entry.student_wins}&accuracy=${entry.student_accuracy}&cert=${generateCertNumber(entry.id,'student')}`}
+                              className="mt-3 inline-flex rounded-full bg-[#f59e0b] px-4 py-2 text-sm font-bold text-black hover:bg-[#e6950a] transition">Download Certificate</Link>
                           </div>
                         </div>
                       </div>
