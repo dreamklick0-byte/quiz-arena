@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import HallOfFameWidget from "@/app/components/HallOfFameWidget";
 
 export default function LandingPage() {
   const [particles, setParticles] = useState<any[]>([]);
@@ -377,6 +378,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <HallOfFameWidget />
 
       {/* SECTION 7 — CTA */}
       <section className="relative overflow-hidden py-24 text-center px-4">

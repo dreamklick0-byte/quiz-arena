@@ -97,6 +97,7 @@ export function SiteHeader() {
            <Link href="/practice" className="transition hover:text-white">Practice</Link> 
            <Link href="/battle" className="transition hover:text-[#f59e0b]">Battle</Link> 
            <Link href="/leaderboard" className="transition hover:text-[#f59e0b]">Leaderboard</Link> 
+           <Link href="/hall-of-fame" className="transition hover:text-[#f59e0b]">🏆 Hall of Fame</Link> 
            <Link href="/league" className="transition hover:text-[#f59e0b]">League</Link> 
            <Link href="/missions" className="transition hover:text-[#f59e0b]">🎯 Missions</Link> 
            <Link href="/players" className="transition hover:text-[#f59e0b]">Players Online</Link> 
