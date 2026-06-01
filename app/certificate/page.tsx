@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CertificatePage() {
+function CertificateContent() {
   const searchParams = useSearchParams();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -102,5 +102,13 @@ export default function CertificatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CertificatePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-6">Loading certificate preview...</div>}>
+      <CertificateContent />
+    </Suspense>
   );
 }
