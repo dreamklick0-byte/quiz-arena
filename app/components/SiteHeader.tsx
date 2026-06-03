@@ -7,7 +7,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { NotificationBell, NotificationCenter } from "./NotificationSystem";
 import { LevelUpBanner } from "./GamificationUI";
 import { useNotificationScheduler } from "./NotificationSettings";
-import { FEATURES } from "@/lib/featureFlags";
+import { FEATURES as DEFAULT_FEATURES } from "@/lib/featureFlags";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -21,6 +21,19 @@ export function SiteHeader() {
   const [coinBalance, setCoinBalance] = useState(0);
   
   const { checkActivityAndSchedule } = useNotificationScheduler();
+
+  const [liveFlags, setLiveFlags] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/feature-flags")
+      .then(r => r.json())
+      .then(data => { if (data.flags) setLiveFlags(data.flags); })
+      .catch(() => {});
+  }, []);
+
+  const FEATURES = liveFlags
+    ? { ...DEFAULT_FEATURES, ...liveFlags }
+    : DEFAULT_FEATURES;
 
   useEffect(() => {
     const checkMe = async () => {
