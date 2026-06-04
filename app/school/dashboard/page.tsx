@@ -40,8 +40,6 @@ export default function SchoolDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [logoMsg, setLogoMsg] = useState("");
   const [perfLoading, setPerfLoading] = useState(false);
   const [perfSubjectStats, setPerfSubjectStats] = useState<{subject:string,accuracy:number,battles:number}[]>([]);
   const [perfTopStudents, setPerfTopStudents] = useState<{name:string,wins:number,accuracy:number}[]>([]);
@@ -52,6 +50,8 @@ export default function SchoolDashboard() {
   const [aiLoading, setAiLoading] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMsg, setLogoMsg] = useState("");
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
 
   const fetchDashboard = useCallback(async () => {
@@ -76,7 +76,7 @@ export default function SchoolDashboard() {
 
     const { data: schoolData } = await supabase
       .from("schools")
-      .select("id, name, school_code, state, city")
+      .select("id, name, school_code, state, city, logo_url")
       .eq("id", adminProfile.school_id)
       .maybeSingle();
 
@@ -178,17 +178,6 @@ export default function SchoolDashboard() {
     load();
   }, [tab, school?.id]);
 
-  const handleRemoveStudent = async (studentId: string) => {
-    setBusy(true);
-    const supabase = getSupabaseClient();
-    await supabase.from("profiles").update({ school_id: null, school_code: null }).eq("id", studentId);
-    setStudents((prev) => prev.filter((s) => s.id !== studentId));
-    setRemoveConfirm(null);
-    setMsg({ type: "success", text: "Student removed from school." });
-    setBusy(false);
-    if (school) setSchool((prev) => (prev ? { ...prev, total_students: prev.total_students - 1 } : null));
-  };
-
   const uploadLogo = async (file: File) => {
     if (!school?.id) return;
     setLogoUploading(true);
@@ -211,6 +200,17 @@ export default function SchoolDashboard() {
       setLogoMsg("❌ Upload failed. Please try a smaller image (under 2MB).");
     }
     setLogoUploading(false);
+  };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    setBusy(true);
+    const supabase = getSupabaseClient();
+    await supabase.from("profiles").update({ school_id: null, school_code: null }).eq("id", studentId);
+    setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    setRemoveConfirm(null);
+    setMsg({ type: "success", text: "Student removed from school." });
+    setBusy(false);
+    if (school) setSchool((prev) => (prev ? { ...prev, total_students: prev.total_students - 1 } : null));
   };
 
   const generateAiInsight = async () => {
