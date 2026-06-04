@@ -17,15 +17,30 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const cookieStore = await cookies();
-  const adminSession = cookieStore.get("admin_session")?.value;
-  if (!adminSession) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const supabase = getAdminClient();
-  const { key, value } = await req.json();
-  if (!key || typeof value !== "boolean") return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  const { error } = await supabase
-    .from("platform_settings")
-    .upsert({ key: `feature_${key}`, value: value.toString(), updated_at: new Date().toISOString() }, { onConflict: "key" });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+  try {
+    const cookieStore = await cookies();
+    const adminSession = cookieStore.get("admin_session")?.value;
+    if (!adminSession) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabase = getAdminClient();
+    const body = await req.json();
+    const { key, value } = body;
+    if (!key || typeof value !== "boolean") {
+      return NextResponse.json({ error: "Invalid request - key and boolean value required" }, { status: 400 });
+    }
+    const dbKey = key.startsWith("feature_") ? key : `feature_${key}`;
+    const { error } = await supabase
+      .from("platform_settings")
+      .upsert(
+        { key: dbKey, value: value.toString(), updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, key: dbKey, value });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });
+  }
 }

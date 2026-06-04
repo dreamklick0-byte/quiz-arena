@@ -60,16 +60,21 @@ export default function AdminDashboard() {
       const res = await fetch("/api/admin/feature-flags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ key, value: !current }),
       });
       const data = await res.json();
       if (data.success) {
         setFeatureFlags(prev => ({ ...prev, [key]: !current }));
-        setFlagMsg(`${key} is now ${!current ? "LIVE" : "hidden"}`);
-        setTimeout(() => setFlagMsg(null), 3000);
+        setFlagMsg(`✅ ${key} is now ${!current ? "LIVE for all users" : "hidden from users"}`);
+        setTimeout(() => setFlagMsg(null), 4000);
+      } else {
+        setFlagMsg(`❌ Error: ${data.error || "Failed to update"}`);
+        setTimeout(() => setFlagMsg(null), 4000);
       }
-    } catch (e) {
-      console.error("Failed to toggle flag", e);
+    } catch (e: any) {
+      setFlagMsg(`❌ Network error: ${e.message}`);
+      setTimeout(() => setFlagMsg(null), 4000);
     }
     setFlagSaving(null);
   };
