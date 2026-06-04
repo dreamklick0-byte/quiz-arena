@@ -619,7 +619,7 @@ export default function BattleLobbyPage() {
             <button
               type="button"
               className={`rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider transition ${mode === "league" ? "bg-[#7c3aed] text-white" : "text-zinc-400"}`}
-              onClick={() => setMode("league")}
+              onClick={() => router.push("/league")}
             >
               🏆 League
             </button>
