@@ -173,8 +173,6 @@ export function SiteHeader() {
              </Link> 
            )} 
            
-           <NotificationBell onClick={() => setNotifOpen(true)} />
-
            {email ? ( 
              <> 
                <span className="hidden max-w-[140px] truncate text-zinc-500 sm:inline">{email}</span> 
@@ -183,10 +181,18 @@ export function SiteHeader() {
            ) : ( 
              <Link href="/auth" className="rounded-lg bg-[#7c3aed] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#6d28d9]">Sign in</Link> 
            )} 
-         </div> 
-       </div> 
- 
-       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
+           {FEATURES.notifications && (
+             <>
+               <NotificationBell onClick={() => setNotifOpen(true)} />
+             </>
+           )}
+
+          </div> 
+        </div> 
+
+        {FEATURES.notifications && (
+          <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
+        )}
        <LevelUpBanner />
 
        {/* Mobile dropdown menu */} 

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
+import { FEATURES as DEFAULT_FEATURES } from "@/lib/featureFlags";
 
 type School = {
   school_id: string;
@@ -33,6 +34,19 @@ export default function SchoolPage() {
   const [joinCode, setJoinCode] = useState("");
 
   const STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
+
+  const [liveFlags, setLiveFlags] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/feature-flags")
+      .then(r => r.json())
+      .then(data => { if (data.flags) setLiveFlags(data.flags); })
+      .catch(() => {});
+  }, []);
+
+  const FEATURES = liveFlags
+    ? { ...DEFAULT_FEATURES, ...liveFlags }
+    : DEFAULT_FEATURES;
 
   const generateSchoolCode = (name: string) => {
     const words = name.toUpperCase().split(" ").filter(Boolean);
@@ -126,15 +140,17 @@ export default function SchoolPage() {
 
         {tab === "leaderboard" && (
           <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Filter by State</label>
-              <select value={filterState} onChange={e => setFilterState(e.target.value)}
-                style={{ background: '#1a1a2e', color: '#ffffff' }}
-                className="mt-1 w-full rounded-xl border border-white/10 px-4 py-3 text-sm outline-none">
-                <option value="">🌍 All States (National)</option>
-                {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            {FEATURES.state_leaderboards && (
+              <div>
+                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Filter by State</label>
+                <select value={filterState} onChange={e => setFilterState(e.target.value)}
+                  style={{ background: '#1a1a2e', color: '#ffffff' }}
+                  className="mt-1 w-full rounded-xl border border-white/10 px-4 py-3 text-sm outline-none">
+                  <option value="">🌍 All States (National)</option>
+                  {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            )}
             {loading ? (
               <p className="text-center text-zinc-400 animate-pulse py-8">Loading schools...</p>
             ) : filtered.length === 0 ? (
