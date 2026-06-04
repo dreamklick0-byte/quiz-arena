@@ -22,6 +22,13 @@ interface League {
   ends_at: string;
 }
 
+interface LeagueEntry {
+  display_name: string;
+  score: number;
+  time_seconds: number;
+  user_id: string;
+}
+
 export default function LeaguePage() {
   const router = useRouter();
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -89,6 +96,7 @@ export default function LeaguePage() {
   }, []);
 
   const [finishedLeagues, setFinishedLeagues] = useState<string[]>([]);
+  const [leagueResults, setLeagueResults] = useState<Record<string, LeagueEntry[]>>({});
   useEffect(() => {
     if (user) {
       const supabase = getSupabaseClient();
@@ -102,6 +110,28 @@ export default function LeaguePage() {
         });
     }
   }, [user]);
+
+  useEffect(() => {
+    const loadResults = async () => {
+      const finished = leagues.filter(l => l.status === 'finished' || l.status === 'completed');
+      if (finished.length === 0) return;
+      const sb = getSupabaseClient();
+      const results: Record<string, LeagueEntry[]> = {};
+      await Promise.all(finished.map(async (l) => {
+        const { data } = await sb
+          .from("league_entries")
+          .select("display_name, score, time_seconds, user_id")
+          .eq("league_id", l.id)
+          .eq("finished", true)
+          .order("score", { ascending: false })
+          .order("time_seconds", { ascending: true })
+          .limit(3);
+        if (data && data.length > 0) results[l.id] = data;
+      }));
+      setLeagueResults(results);
+    };
+    loadResults();
+  }, [leagues]);
 
   async function joinLeague(league: League) {
      if (!user) {
@@ -246,35 +276,98 @@ export default function LeaguePage() {
                 </div>
               </div>
 
-              {isFinished ? (
-                <div className="mt-6 w-full rounded-2xl bg-zinc-800 py-4 text-center text-xs font-black uppercase tracking-widest text-zinc-500">
-                  ✓ COMPLETED
-                </div>
-              ) : isJoined ? (
-                <button
-                  onClick={() => router.push(`/league/${l.id}/play`)}
-                  className="mt-6 w-full rounded-2xl bg-emerald-500 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-                >
-                  🚀 PLAY NOW
-                </button>
-              ) : (
-                <button
-                  onClick={() => joinLeague(l)}
-                  disabled={busy === l.id}
-                  className="mt-6 w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9] disabled:opacity-50"
-                >
-                  {busy === l.id ? "JOINING..." : `JOIN FOR ₦${l.entry_fee}`}
-                </button>
-              )}
+              {(() => {
+                const isExpired = l.ends_at && new Date() > new Date(l.ends_at);
+                const isFinishedStatus = l.status === 'finished' || l.status === 'completed';
+                const medals = ["🥇", "🥈", "🥉"];
+                const prizeAmounts = [
+                  Math.floor(l.guaranteed_first),
+                  Math.floor(l.guaranteed_second),
+                  Math.floor((l.prize_pool || 0) * 0.1),
+                ];
+                const topEntries = leagueResults[l.id] || [];
 
-              {(l.status === 'finished' || l.status === 'completed') && ( 
-                   <button 
-                     onClick={() => router.push(`/league/${l.id}/results`)} 
-                     className="w-full mt-2 rounded-xl bg-[#7c3aed]/30 border border-[#7c3aed]/50 px-4 py-2 text-sm font-bold text-white hover:bg-[#7c3aed]/50" 
-                   > 
-                     🏆 View Results 
-                   </button> 
-              )}
+                if (isFinishedStatus && topEntries.length > 0) {
+                  return (
+                    <div className="mt-6 space-y-2">
+                      <p className="text-xs font-black uppercase tracking-widest text-[#f59e0b] mb-3">🏆 Final Results</p>
+                      {topEntries.map((entry, idx) => (
+                        <div key={idx} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{medals[idx] || `#${idx + 1}`}</span>
+                            <div>
+                              <p className="text-xs font-black text-white">{entry.display_name}</p>
+                              <p className="text-[10px] text-zinc-500">{entry.score}/10 correct · {entry.time_seconds}s</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black text-[#f59e0b]">
+                            {prizeAmounts[idx] > 0 ? `₦${prizeAmounts[idx]}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => router.push(`/league/${l.id}/results`)}
+                        className="w-full mt-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white transition"
+                      >
+                        View Full Results →
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (isFinishedStatus) {
+                  return (
+                    <div className="mt-6 space-y-2">
+                      <div className="w-full rounded-2xl bg-zinc-800 py-4 text-center text-xs font-black uppercase tracking-widest text-zinc-500">
+                        ✓ COMPLETED — Results Processing
+                      </div>
+                      <button
+                        onClick={() => router.push(`/league/${l.id}/results`)}
+                        className="w-full rounded-xl bg-[#7c3aed]/30 border border-[#7c3aed]/50 px-4 py-2 text-sm font-bold text-white hover:bg-[#7c3aed]/50"
+                      >
+                        🏆 View Results
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (isFinished) {
+                  return (
+                    <div className="mt-6 w-full rounded-2xl bg-zinc-800 py-4 text-center text-xs font-black uppercase tracking-widest text-zinc-500">
+                      ✓ YOU COMPLETED THIS LEAGUE
+                    </div>
+                  );
+                }
+
+                if (isJoined) {
+                  return (
+                    <button
+                      onClick={() => router.push(`/league/${l.id}/play`)}
+                      className="mt-6 w-full rounded-2xl bg-emerald-500 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                    >
+                      🚀 PLAY NOW
+                    </button>
+                  );
+                }
+
+                if (isExpired) {
+                  return (
+                    <div className="mt-6 w-full rounded-2xl bg-zinc-800/80 border border-red-500/20 py-4 text-center text-xs font-black uppercase tracking-widest text-red-400">
+                      🔒 Registration Closed
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    onClick={() => joinLeague(l)}
+                    disabled={busy === l.id}
+                    className="mt-6 w-full rounded-2xl bg-[#7c3aed] py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-[#7c3aed]/20 transition hover:bg-[#6d28d9] disabled:opacity-50"
+                  >
+                    {busy === l.id ? "JOINING..." : `JOIN FOR ₦${l.entry_fee}`}
+                  </button>
+                );
+              })()}
             </div>
           );
         })}
