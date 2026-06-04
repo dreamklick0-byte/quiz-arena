@@ -320,11 +320,24 @@ export default function SchoolDashboard() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(["overview", "students", "performance", "settings"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)} className={tabClass(t)}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+            <button onClick={() => setTab("overview")} className={tabClass("overview")}>Overview</button>
+            <button onClick={() => setTab("students")} className={tabClass("students")}>Students ({school?.total_students})</button>
+            <button
+              onClick={() => {}}
+              className={tabClass("performance") + " relative opacity-60 cursor-not-allowed"}
+              disabled
+            >
+              <span>Performance</span>
+              <span className="ml-2 text-xs text-zinc-400">Soon</span>
+            </button>
+            <button
+              onClick={() => {}}
+              className={tabClass("settings") + " relative opacity-60 cursor-not-allowed"}
+              disabled
+            >
+              <span>Reports</span>
+              <span className="ml-2 text-xs text-zinc-400">Soon</span>
+            </button>
             <button onClick={handleSignOut} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-500">
               Sign Out
             </button>
@@ -387,207 +400,27 @@ export default function SchoolDashboard() {
         )}
 
         {tab === "performance" && (
-          <div className="space-y-6">
-            {perfLoading ? (
-              <div className="text-center py-20 text-zinc-400">Loading performance data...</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                  {[
-                    { label: "Class Accuracy", value: perfMetrics.avg_accuracy + "%", color: perfMetrics.avg_accuracy >= 60 ? "text-emerald-400" : "text-red-400", icon: "🎯" },
-                    { label: "Total Battles", value: String(perfMetrics.total_battles), color: "text-purple-400", icon: "⚔️" },
-                    { label: "Active This Week", value: String(perfMetrics.active_week), color: "text-yellow-400", icon: "🔥" },
-                    { label: "Top Performer", value: perfMetrics.top_student || "N/A", color: "text-blue-400", icon: "🏆" },
-                  ].map((m) => (
-                    <div key={m.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <p className="text-xl mb-1">{m.icon}</p>
-                      <p className="text-xs uppercase tracking-widest text-zinc-500">{m.label}</p>
-                      <p className={"mt-2 text-2xl font-bold truncate " + m.color}>{m.value}</p>
-                    </div>
-                  ))}
-                </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
+            <p className="text-5xl">📊</p>
+            <h2 className="mt-6 text-2xl font-bold">Full Analytics Coming Soon</h2>
+            <p className="mt-4 text-sm text-zinc-400">Deep performance analytics, subject breakdowns, student activity heatmaps, and progress tracking are launching in August 2026.</p>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                  <h3 className="text-base font-bold text-white mb-4">📚 Subject Performance</h3>
-                  {perfSubjectStats.length === 0 ? (
-                    <p className="text-zinc-500 text-sm">No battle data yet. Students need to play battles for subject data to appear.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {perfSubjectStats.map((s: any) => (
-                        <div key={s.subject} className="flex items-center gap-4">
-                          <p className="w-32 text-sm text-zinc-300 capitalize truncate">{s.subject}</p>
-                          <div className="flex-1 bg-white/10 rounded-full h-2">
-                            <div
-                              className={"h-2 rounded-full transition-all " + (s.accuracy >= 70 ? "bg-emerald-500" : s.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500")}
-                              style={{ width: s.accuracy + "%" }}
-                            />
-                          </div>
-                          <p className={"text-sm font-bold w-12 text-right " + (s.accuracy >= 70 ? "text-emerald-400" : s.accuracy >= 50 ? "text-yellow-400" : "text-red-400")}>{s.accuracy}%</p>
-                          <p className="text-xs text-zinc-500 w-20 text-right">{s.battles} battles</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
-                    <h3 className="text-base font-bold text-emerald-400 mb-4">💪 Areas of Strength</h3>
-                    {perfStrongAreas.length === 0 ? (
-                      <p className="text-zinc-500 text-sm">No subjects with 70%+ accuracy yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {perfStrongAreas.map((s: any) => (
-                          <div key={s.subject} className="flex justify-between items-center">
-                            <span className="text-sm capitalize text-white">{s.subject}</span>
-                            <span className="text-sm font-bold text-emerald-400">{s.accuracy}% accuracy</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
-                    <h3 className="text-base font-bold text-red-400 mb-4">⚠️ Weak Areas</h3>
-                    {perfWeakAreas.length === 0 ? (
-                      <p className="text-zinc-500 text-sm">No subjects below 50% accuracy yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {perfWeakAreas.map((s: any) => (
-                          <div key={s.subject} className="flex justify-between items-center">
-                            <span className="text-sm capitalize text-white">{s.subject}</span>
-                            <span className="text-sm font-bold text-red-400">{s.accuracy}% accuracy</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                  <h3 className="text-base font-bold text-white mb-4">🏆 Top Students</h3>
-                  {perfTopStudents.length === 0 ? (
-                    <p className="text-zinc-500 text-sm">No student battle data yet.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {perfTopStudents.map((s: any, i: number) => (
-                        <div key={s.name + i} className="flex items-center gap-4 rounded-xl bg-white/5 px-4 py-3">
-                          <span className="text-lg">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "🎖️"}</span>
-                          <div className="flex-1">
-                            <p className="text-sm font-bold text-white">{s.name}</p>
-                            <p className="text-xs text-zinc-500">{s.wins} wins · {s.accuracy}% accuracy</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center gap-1">
-                              <div className="w-16 bg-white/10 rounded-full h-1.5">
-                                <div className="h-1.5 rounded-full bg-purple-500" style={{ width: s.accuracy + "%" }} />
-                              </div>
-                              <span className="text-xs text-purple-400 font-bold">{s.accuracy}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                  <h3 className="text-base font-bold text-white mb-4">⚡ Speed & Accuracy Overview</h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="text-center">
-                      <p className="text-4xl font-bold text-yellow-400">~18s</p>
-                      <p className="text-xs text-zinc-500 mt-1">Avg. seconds per question</p>
-                      <p className="text-xs text-zinc-400 mt-2">Platform average: 22s</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={"text-4xl font-bold " + (perfMetrics.avg_accuracy >= 60 ? "text-emerald-400" : "text-red-400")}>{perfMetrics.avg_accuracy}%</p>
-                      <p className="text-xs text-zinc-500 mt-1">Overall answer accuracy</p>
-                      <p className="text-xs text-zinc-400 mt-2">Platform average: 62%</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-bold text-white">🤖 AI Recommendations</h3>
-                    <button
-                      onClick={generateAiInsight}
-                      disabled={aiLoading}
-                      className="rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white hover:bg-purple-500 disabled:opacity-60 transition"
-                    >
-                      {aiLoading ? "Generating..." : aiInsight ? "Regenerate" : "Generate Insight"}
-                    </button>
-                  </div>
-                  {aiInsight ? (
-                    <div className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{aiInsight}</div>
-                  ) : (
-                    <p className="text-sm text-zinc-500">Click "Generate Insight" to get AI-powered recommendations based on your school performance data.</p>
-                  )}
-                </div>
-
-                <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-6">
-                  <h3 className="text-base font-bold text-orange-400 mb-2">🚨 Students Needing Attention</h3>
-                  <p className="text-sm text-zinc-400">
-                    Students who have not played any battle in the last 7 days or have accuracy below 40% will appear here once enough data is collected. Encourage low-activity students to practice daily.
-                  </p>
-                  {perfWeakAreas.length > 0 && (
-                    <div className="mt-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                      <p className="text-xs font-bold text-orange-400">📌 Teacher Action Required</p>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        {perfWeakAreas[0].subject.charAt(0).toUpperCase() + perfWeakAreas[0].subject.slice(1)} has only {perfWeakAreas[0].accuracy}% class accuracy. Consider scheduling a revision session this week.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+            <div className="mt-6">
+              <p className="text-sm">🚀 Launching August 2, 2026</p>
+              <p className="text-xs text-zinc-400 mt-2">You will be notified when this feature goes live</p>
+            </div>
           </div>
         )}
 
         {tab === "settings" && (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 space-y-6">
-            <div>
-              <h2 className="text-xl font-bold">School Information</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {[
-                  { label: "School Name", value: school?.name },
-                  { label: "School Code", value: school?.school_code },
-                  { label: "State", value: school?.state },
-                  { label: "City", value: school?.city },
-                ].map((field) => (
-                  <div key={field.label} className="rounded-2xl bg-[#11121d] p-4">
-                    <p className="text-sm text-zinc-400">{field.label}</p>
-                    <p className="mt-2 font-semibold">{field.value || "No data"}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-2xl bg-[#11121d] p-6">
-              <h3 className="text-lg font-semibold mb-4">School Logo</h3>
-              <div className="flex items-center gap-6">
-                {school?.logo_url ? (
-                  <img src={school.logo_url} alt="School logo" className="w-24 h-24 rounded-2xl object-cover border border-white/20" />
-                ) : (
-                  <div className="w-24 h-24 rounded-2xl bg-white/10 border border-dashed border-white/30 flex flex-col items-center justify-center text-zinc-500">
-                    <span className="text-3xl">🏫</span>
-                    <span className="text-xs mt-1">No logo</span>
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm text-zinc-400 mb-3">Upload your school crest or logo. It will appear on your dashboard and on the Hall of Fame if you win School of the Month.</p>
-                  <label className="cursor-pointer inline-block rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 transition">
-                    {logoUploading ? "Uploading..." : "Choose Logo Image"}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadLogo(e.target.files[0]); }} />
-                  </label>
-                  {logoMsg && <p className={"text-xs mt-2 " + (logoMsg.startsWith("✅") ? "text-emerald-400" : "text-red-400")}>{logoMsg}</p>}
-                  <p className="text-xs text-zinc-600 mt-2">Max size: 2MB. PNG or JPG recommended.</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-2xl bg-[#11121d] p-6">
-              <h3 className="text-lg font-semibold">Student Join Instructions</h3>
-              <p className="mt-3 text-sm text-zinc-400">
-                Students sign up at quizarena.com.ng/auth, go to their Account page, scroll down and enter school code: {school?.school_code || "-"}, then click Join School.
-              </p>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
+            <p className="text-5xl">📋</p>
+            <h2 className="mt-6 text-2xl font-bold">Reports & Settings Coming Soon</h2>
+            <p className="mt-4 text-sm text-zinc-400">Monthly performance reports, student export, school profile editing, and advanced settings are launching in August 2026.</p>
+
+            <div className="mt-6">
+              <p className="text-sm">🚀 Launching August 2, 2026</p>
+              <p className="text-xs text-zinc-400 mt-2">You will be notified when this feature goes live</p>
             </div>
           </div>
         )}
