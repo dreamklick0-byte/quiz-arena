@@ -57,7 +57,11 @@
  
    async function handleWithdraw(coinType: 'battle' | 'reward') { 
      if (!userId) return; 
-     const amount = coinType === 'battle' ? battleWithdrawAmount : rewardWithdrawAmount; 
+     if (coinType === 'battle') { 
+       setError('Battle Coins cannot be withdrawn.'); 
+       return; 
+     } 
+     const amount = rewardWithdrawAmount; 
      if (amount < COIN_ECONOMY.MIN_WITHDRAWAL_COINS) { 
        setError(`Minimum withdrawal is ${COIN_ECONOMY.MIN_WITHDRAWAL_COINS} coins`); 
        return; 
@@ -71,15 +75,9 @@
        }); 
        const data = await res.json(); 
        if (!data.success) throw new Error(data.error); 
-       if (coinType === 'battle') { 
-         setBattleCoins(prev => prev - amount); 
-         setBattleWithdrawAmount(0); 
-         setSuccess(`Converted ${amount} Battle Coins → ₦${data.nairaAdded} (25% fee applied)`); 
-       } else { 
-         setRewardCoins(prev => prev - amount); 
-         setRewardWithdrawAmount(0); 
-         setSuccess(`Converted ${amount} Reward Coins → ₦${data.nairaAdded} (no fee!)`); 
-       } 
+       setRewardCoins(prev => prev - amount); 
+       setRewardWithdrawAmount(0); 
+       setSuccess(`Converted ${amount} Reward Coins → ₦${data.nairaAdded} (no fee!)`); 
        setNairaBalance(prev => prev + data.nairaAdded); 
      } catch (e: any) { setError(e.message); } 
      finally { setBusy(false); } 
@@ -101,7 +99,7 @@
              <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest mb-2">🟡 Battle Coins</p> 
              <p className="text-4xl font-black text-white">{battleCoins.toLocaleString()}</p> 
              <p className="text-xs text-zinc-500 mt-2">For entering battles</p> 
-             <p className="text-xs text-zinc-500">Withdraw with 25% fee</p> 
+             <p className="text-xs text-zinc-500">Non-withdrawable battle currency</p> 
            </div> 
            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center"> 
              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">🟢 Reward Coins</p> 
@@ -153,24 +151,22 @@
            <div className="space-y-6"> 
              {/* Battle Coins Withdrawal */} 
              <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6"> 
-               <h3 className="text-base font-black text-yellow-400 mb-1">🟡 Withdraw Battle Coins</h3> 
-               <p className="text-xs text-zinc-400 mb-4">25% platform fee applies. Your purchased coins are returned to naira minus the fee.</p> 
+               <h3 className="text-base font-black text-yellow-400 mb-1">🟡 Battle Coins</h3> 
+               <p className="text-xs text-zinc-400 mb-4">These coins are only for battle entry and cannot be withdrawn.</p> 
                <div className="flex gap-3 items-end mb-3"> 
                  <div className="flex-1"> 
                    <label className="text-xs text-zinc-400 uppercase tracking-widest mb-2 block">Amount (max {battleCoins.toLocaleString()})</label> 
                    <input type="number" value={battleWithdrawAmount || ''} onChange={e => setBattleWithdrawAmount(Number(e.target.value))} 
-                     placeholder="Enter coins" max={battleCoins} 
+                     placeholder="Enter coins" max={battleCoins} disabled 
                      className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-yellow-500" /> 
                  </div> 
                  <div className="text-right min-w-[100px]"> 
-                   <p className="text-xs text-red-400 mb-1">Fee: {battleCalc.fee} coins</p> 
-                   <p className="text-lg font-black text-white">₦{battleCalc.naira.toLocaleString()}</p> 
+                   <p className="text-xs text-red-400 mb-1">Not available</p> 
+                   <p className="text-lg font-black text-white">₦0</p> 
                  </div> 
                </div> 
-               <button onClick={() => handleWithdraw('battle')} 
-                 disabled={busy || battleCoins < COIN_ECONOMY.MIN_WITHDRAWAL_COINS || battleWithdrawAmount < COIN_ECONOMY.MIN_WITHDRAWAL_COINS || battleWithdrawAmount > battleCoins} 
-                 className="w-full rounded-xl bg-yellow-600 text-white font-black py-3 hover:bg-yellow-500 disabled:opacity-40 transition text-sm"> 
-                 {battleCoins < COIN_ECONOMY.MIN_WITHDRAWAL_COINS ? `Need ${COIN_ECONOMY.MIN_WITHDRAWAL_COINS} Battle Coins` : 'Withdraw Battle Coins'} 
+               <button disabled className="w-full rounded-xl bg-yellow-600 text-white font-black py-3 disabled:opacity-40 transition text-sm"> 
+                 Battle Coins cannot be withdrawn 
                </button> 
              </div> 
  

@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "@paystack/inline-js": "^2.22.8",
-    "@supabase/supabase-js": "^2.105.3",
+    "@supabase/supabase-js": "^2.107.0",
     "bcryptjs": "^2.4.3",
     "canvas-confetti": "^1.9.4",
+    "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
     "framer-motion": "^12.39.0",
     "jose": "^6.2.3",

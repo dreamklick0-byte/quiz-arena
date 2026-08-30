@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"; 
  import { createClient } from "@supabase/supabase-js"; 
- import { COIN_ECONOMY, calcBattleCoinWithdrawal, calcRewardCoinWithdrawal } from "@/lib/coinEconomy"; 
+ import { COIN_ECONOMY, calcRewardCoinWithdrawal } from "@/lib/coinEconomy"; 
  
  export async function POST(req: Request) { 
    const supabase = createClient( 
@@ -16,11 +16,15 @@ import { NextResponse } from "next/server";
        }, { status: 400 }); 
      } 
  
-     if (coinType !== 'battle' && coinType !== 'reward') { 
+     if (coinType === 'battle') { 
+       return NextResponse.json({ error: 'Battle Coins cannot be withdrawn.' }, { status: 400 }); 
+     } 
+ 
+     if (coinType !== 'reward') { 
        return NextResponse.json({ error: 'Invalid coin type' }, { status: 400 }); 
      } 
  
-     const rpcName = coinType === 'battle' ? 'withdraw_battle_coins' : 'withdraw_reward_coins'; 
+     const rpcName = 'withdraw_reward_coins'; 
      const { data: result } = await supabase.rpc(rpcName, { 
        p_user_id: userId, 
        p_amount: coinAmount 
@@ -35,21 +39,17 @@ import { NextResponse } from "next/server";
        p_amount: result.naira_amount 
      }); 
  
-     const calc = coinType === 'battle' 
-       ? calcBattleCoinWithdrawal(coinAmount) 
-       : calcRewardCoinWithdrawal(coinAmount); 
+     const calc = calcRewardCoinWithdrawal(coinAmount); 
  
      await supabase.from('coin_transactions').insert({ 
        user_id: userId, 
-       type: `withdraw_${coinType}_coins`, 
-       battle_coins_change: coinType === 'battle' ? -coinAmount : 0, 
-       reward_coins_change: coinType === 'reward' ? -coinAmount : 0, 
+       type: `withdraw_reward_coins`, 
+       battle_coins_change: 0, 
+       reward_coins_change: -coinAmount, 
        fee_coins: calc.fee, 
        naira_equivalent: calc.naira, 
-       reference: `coin-withdraw-${coinType}-${userId}-${Date.now()}`, 
-       description: coinType === 'battle' 
-         ? `Withdrew ${coinAmount} Battle Coins → ₦${calc.naira} (25% fee applied)` 
-         : `Withdrew ${coinAmount} Reward Coins → ₦${calc.naira} (no fee)` 
+       reference: `coin-withdraw-reward-${userId}-${Date.now()}`, 
+       description: `Withdrew ${coinAmount} Reward Coins → ₦${calc.naira} (no fee)` 
      }); 
  
      return NextResponse.json({ 

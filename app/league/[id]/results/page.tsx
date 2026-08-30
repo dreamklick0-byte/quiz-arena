@@ -14,7 +14,7 @@
  export default function LeagueResultsPage() { 
    const params = useParams(); 
    const router = useRouter(); 
-   const leagueId = params?.leagueId as string; 
+   const leagueId = params?.id as string; 
    const [entries, setEntries] = useState<Entry[]>([]); 
    const [league, setLeague] = useState<any>(null); 
    const [loading, setLoading] = useState(true); 
