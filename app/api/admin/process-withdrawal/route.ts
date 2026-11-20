@@ -30,19 +30,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Withdrawal request not found" }, { status: 404 });
     }
 
-    // 2. Update status
-    const { error: updateError } = await supabase
-      .from("withdrawal_requests")
-      .update({ 
-        status,
-        processed_at: status === 'processed' ? new Date().toISOString() : null
-      })
-      .eq("id", id);
+    // 2. Update status on withdrawal_requests 
+    const { error: updateError } = await supabase 
+      .from("withdrawal_requests") 
+      .update({ status }) 
+      .eq("id", id); 
 
-    if (updateError) {
-      console.error("Error updating withdrawal:", updateError);
-      return NextResponse.json({ error: "Failed to update withdrawal status" }, { status: 500 });
-    }
+    if (updateError) { 
+      console.error("Error updating withdrawal:", updateError); 
+      return NextResponse.json({ error: "Failed to update withdrawal status" }, { status: 500 }); 
+    } 
+
+    // 3. Update the matching transaction record status 
+    await supabase 
+      .from("transactions") 
+      .update({ status: status === 'processed' ? 'completed' : 'rejected' }) 
+      .eq("user_id", withdrawal.user_id) 
+      .eq("type", "withdrawal") 
+      .eq("status", "pending") 
+      .gte("amount", withdrawal.amount) 
+      .lte("amount", withdrawal.amount); 
+
+    // 4. If rejected, refund the wallet balance 
+    if (status === 'rejected') { 
+      const { data: wallet } = await supabase 
+        .from("wallets") 
+        .select("balance") 
+        .eq("user_id", withdrawal.user_id) 
+        .single(); 
+
+      if (wallet) { 
+        await supabase 
+          .from("wallets") 
+          .update({ balance: Number(wallet.balance) + Number(withdrawal.amount) }) 
+          .eq("user_id", withdrawal.user_id); 
+
+        // Insert a refund transaction for the user to see 
+        await supabase.from("transactions").insert({ 
+          user_id: withdrawal.user_id, 
+          type: "refund", 
+          amount: withdrawal.amount, 
+          reference: `REFUND-${id}`, 
+          description: `Withdrawal rejected — ₦${withdrawal.amount} refunded to wallet`, 
+          status: "completed" 
+        }); 
+      } 
+    } 
 
     // 3. Log activity
     const ip = req.headers.get("x-forwarded-for") || "unknown";
