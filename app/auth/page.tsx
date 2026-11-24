@@ -105,15 +105,21 @@ export default function AuthPage() {
 
         if (refCode && user?.id) { 
            try { 
-             await fetch('/api/referral/apply', { 
+             const refRes = await fetch('/api/referral/apply', { 
                method: 'POST', 
                headers: { 'Content-Type': 'application/json' }, 
                body: JSON.stringify({ userId: user.id, referralCode: refCode }), 
              }); 
-             localStorage.removeItem('pendingRefCode'); 
+             const refData = await refRes.json(); 
+             console.log('Referral apply result:', refData); 
+             if (refData.success) { 
+               localStorage.removeItem('pendingRefCode'); 
+             } 
            } catch (refErr) { 
              console.error('Referral apply error:', refErr); 
            } 
+         } else { 
+           console.log('Referral skipped - refCode:', refCode, 'userId:', user?.id); 
          } 
 
         // Handle referral
