@@ -14,6 +14,7 @@ export function getSupabaseClient(): SupabaseClient {
 } 
  
 export function getAdminClient(): SupabaseClient { 
+  // Server-side only client 
   if (typeof window !== 'undefined') { 
     throw new Error('getAdminClient() can only be used on the server side.'); 
   } 
