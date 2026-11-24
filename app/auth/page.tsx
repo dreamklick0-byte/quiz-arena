@@ -17,13 +17,15 @@ export default function AuthPage() {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
   const [signupRole, setSignupRole] = useState<"student" | "school_admin">("student");
 
-  const [refCode, setRefCode] = useState<string | null>(null);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const code = new URLSearchParams(window.location.search).get("ref");
-      if (code) setRefCode(code);
-    }
-  }, []);
+  const [refCode, setRefCode] = useState<string | null>(null); 
+  useEffect(() => { 
+    if (typeof window !== "undefined") { 
+      const fromUrl = new URLSearchParams(window.location.search).get("ref"); 
+      const fromStorage = localStorage.getItem("pendingRefCode"); 
+      const code = fromUrl || fromStorage; 
+      if (code) setRefCode(code.toUpperCase()); 
+    } 
+  }, []); 
 
   const handleForgotPassword = async () => {
     setBusy(true);
@@ -100,6 +102,19 @@ export default function AuthPage() {
             // Continue signup flow even if profile upsert fails, it's optional per previous comment.
           }
         }
+
+        if (refCode && user?.id) { 
+           try { 
+             await fetch('/api/referral/apply', { 
+               method: 'POST', 
+               headers: { 'Content-Type': 'application/json' }, 
+               body: JSON.stringify({ userId: user.id, referralCode: refCode }), 
+             }); 
+             localStorage.removeItem('pendingRefCode'); 
+           } catch (refErr) { 
+             console.error('Referral apply error:', refErr); 
+           } 
+         } 
 
         // Handle referral
         if (refCode) {
