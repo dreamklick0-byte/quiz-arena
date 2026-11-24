@@ -21,6 +21,9 @@ export default function AuthPage() {
   useEffect(() => { 
     if (typeof window !== "undefined") { 
       const fromUrl = new URLSearchParams(window.location.search).get("ref"); 
+      if (fromUrl) { 
+        localStorage.setItem("pendingRefCode", fromUrl.toUpperCase()); 
+      } 
       const fromStorage = localStorage.getItem("pendingRefCode"); 
       const code = fromUrl || fromStorage; 
       if (code) setRefCode(code.toUpperCase()); 
