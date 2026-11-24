@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminClient } from "@/lib/supabase";
 
-export async function GET() {
-  try {
-    const cookieStore = await cookies();
-    const adminSessionCookie = cookieStore.get("admin_session")?.value;
-    if (!adminSessionCookie) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export async function GET() { 
+  try { 
+    const cookieStore = await cookies(); 
+    const adminSessionCookie = cookieStore.get("admin_session")?.value; 
+    if (!adminSessionCookie) { 
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); 
+    } 
 
     const supabase = getAdminClient();
 
