@@ -19,16 +19,26 @@ export async function POST(req: Request) {
 
     const supabase = getAdminClient();
 
-    // 1. Fetch request details for logging
-    const { data: withdrawal, error: fetchError } = await supabase
-      .from("withdrawal_requests")
-      .select("*, profiles:user_id (display_name)")
-      .eq("id", id)
-      .single();
+    // 1. Fetch request details for logging 
+    const { data: withdrawal, error: fetchError } = await supabase 
+      .from("withdrawal_requests") 
+      .select("*") 
+      .eq("id", id) 
+      .single(); 
 
-    if (fetchError || !withdrawal) {
-      return NextResponse.json({ error: "Withdrawal request not found" }, { status: 404 });
-    }
+    if (fetchError || !withdrawal) { 
+      console.error("Fetch error:", JSON.stringify(fetchError), "id:", id); 
+      return NextResponse.json({ error: "Withdrawal request not found", detail: fetchError?.message }, { status: 404 }); 
+    } 
+
+    // Fetch profile separately 
+    const { data: profile } = await supabase 
+      .from("profiles") 
+      .select("display_name") 
+      .eq("id", withdrawal.user_id) 
+      .single(); 
+    
+    withdrawal.profiles = profile || null; 
 
     // 2. Update status on withdrawal_requests 
     const { error: updateError } = await supabase 
