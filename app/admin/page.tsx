@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  const [featureFlags, setFeatureFlags] = useState<Record<string, any>>({});
   const [flagsLoading, setFlagsLoading] = useState(false);
   const [flagSaving, setFlagSaving] = useState<string | null>(null);
   const [flagMsg, setFlagMsg] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     loadFlags();
   }, []);
 
-  const toggleFlag = async (key: string, current: boolean) => {
+  const updateFlag = async (key: string, value: any) => {
     setFlagSaving(key);
     setFlagMsg(null);
     try {
@@ -61,12 +61,12 @@ export default function AdminDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ key, value: !current }),
+        body: JSON.stringify({ key, value }),
       });
       const data = await res.json();
       if (data.success) {
-        setFeatureFlags(prev => ({ ...prev, [key]: !current }));
-        setFlagMsg(`✅ ${key} is now ${!current ? "LIVE for all users" : "hidden from users"}`);
+        setFeatureFlags(prev => ({ ...prev, [key]: value }));
+        setFlagMsg(`✅ ${key} updated successfully`);
         setTimeout(() => setFlagMsg(null), 4000);
       } else {
         setFlagMsg(`❌ Error: ${data.error || "Failed to update"}`);
@@ -382,6 +382,50 @@ export default function AdminDashboard() {
               <p className="text-zinc-500 text-sm animate-pulse">Loading feature flags...</p>
             ) : (
               <div className="space-y-8">
+                {/* PART 1B — Stake & Daily Battle Limit */}
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider mb-3 text-amber-400">💰 Stake & Payment Controls</h3>
+                  <div className="space-y-3">
+                    {/* Paid Battle Staking Toggle */}
+                    <div className="rounded-2xl border border-white/10 bg-[#161627]/60 p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-black px-2 py-0.5 rounded-full border ${featureFlags["staking_enabled"] ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : "bg-zinc-800 border-zinc-700 text-zinc-500"}`}>
+                            {featureFlags["staking_enabled"] ? "ENABLED" : "DISABLED"}
+                          </span>
+                          <p className="font-bold text-white text-sm">Paid Battle Staking</p>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">Show stake/payment options in battle mode. When OFF, all battles are free.</p>
+                      </div>
+                      <button
+                        onClick={() => updateFlag("staking_enabled", !featureFlags["staking_enabled"])}
+                        disabled={flagSaving === "staking_enabled"}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${featureFlags["staking_enabled"] ? "bg-amber-500" : "bg-zinc-700"}`}
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${featureFlags["staking_enabled"] ? "translate-x-6" : "translate-x-1"}`} />
+                      </button>
+                    </div>
+
+                    {/* Free Daily Battle Limit Input */}
+                    <div className="rounded-2xl border border-white/10 bg-[#161627]/60 p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-white text-sm">Free Daily Battle Limit</p>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">When staking is ON, users get this many free battles per day</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          value={featureFlags["free_daily_battles"] || 2}
+                          onChange={(e) => updateFlag("free_daily_battles", parseInt(e.target.value))}
+                          className="w-20 rounded-xl bg-[#0f0f1a] border border-white/10 px-3 py-2 text-sm text-white focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {[
                   {
                     wave: "✅ Live at Launch — June 7, 2026",
@@ -454,7 +498,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-zinc-500 mt-1">{desc}</p>
                             </div>
                             <button
-                              onClick={() => toggleFlag(key, isLive)}
+                              onClick={() => updateFlag(key, !isLive)}
                               disabled={isSaving}
                               className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${isLive ? "bg-emerald-500" : "bg-zinc-700"}`}
                             >

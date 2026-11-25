@@ -23,6 +23,7 @@ export default function AdminLeaguesPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
 
   // Form State
   const [name, setName] = useState("");
@@ -121,6 +122,31 @@ export default function AdminLeaguesPage() {
       setError(error.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function notifyStudents(league: League) {
+    if (notifyingId) return;
+    setNotifyingId(league.id);
+    try {
+      const res = await fetch("/api/admin/notify-league", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          leagueId: league.id,
+          message: `A new tournament is live! Join now to compete and win prizes. Tap to view: Quiz Arena Tournament`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Students notified successfully!");
+      } else {
+        throw new Error(data.error || "Failed to notify students");
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setNotifyingId(null);
     }
   }
 
@@ -321,25 +347,36 @@ export default function AdminLeaguesPage() {
                   </td>
                   <td className="px-6 py-4 text-xs">{new Date(l.ends_at).toLocaleString()}</td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={async () => {
-                        if (!confirm("Delete this league?")) return;
-                        const res = await fetch("/api/admin/leagues", {
-                          method: "DELETE",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: l.id })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          loadLeagues();
-                        } else {
-                          alert(data.error || "Failed to delete league");
-                        }
-                      }}
-                      className="text-xs font-bold text-red-400 hover:text-red-300 transition"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      {l.status === 'open' && (
+                        <button
+                          disabled={notifyingId === l.id}
+                          onClick={() => notifyStudents(l)}
+                          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition disabled:opacity-50"
+                        >
+                          {notifyingId === l.id ? "Sending..." : "📢 Notify"}
+                        </button>
+                      )}
+                      <button 
+                        onClick={async () => {
+                          if (!confirm("Delete this league?")) return;
+                          const res = await fetch("/api/admin/leagues", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: l.id })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            loadLeagues();
+                          } else {
+                            alert(data.error || "Failed to delete league");
+                          }
+                        }}
+                        className="text-xs font-bold text-red-400 hover:text-red-300 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Flame, Sword, Trophy, Book, Coins, Check, X, Clock } from 'lucide-react';
 import { useGamificationStore, Notification as NotificationType } from '@/lib/gamificationStore';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   STREAK: <Flame className="text-orange-500" size={18} />,
@@ -11,6 +12,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   RANK: <Trophy className="text-gold-500" size={18} />,
   STUDY: <Book className="text-cyan-500" size={18} />,
   REWARD: <Coins className="text-green-500" size={18} />,
+  TOURNAMENT: <Trophy className="text-amber-500" size={18} />,
 };
 
 const getRelativeTime = (dateString: string) => {
@@ -85,7 +87,52 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
   isOpen,
   onClose,
 }) => {
-  const { notifications, markAllRead } = useGamificationStore();
+  const { notifications, markAllRead, addNotification } = useGamificationStore();
+  const [lastFetched, setLastFetched] = useState<string>(new Date().toISOString());
+
+  // Polling for DB notifications
+  useEffect(() => {
+    const fetchDBNotifications = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('user_notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('read', false)
+          .gt('created_at', lastFetched)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          data.forEach(n => {
+            addNotification({
+              type: (n.type?.toUpperCase() || 'REWARD') as any,
+              message: n.title + ': ' + n.message,
+            });
+            
+            // Show toast for recent notifications (last 5 mins)
+            const diff = Date.now() - new Date(n.created_at).getTime();
+            if (diff < 5 * 60 * 1000) {
+               // We could trigger a global toast here if one exists
+               // For now they will appear in the notification center
+            }
+          });
+          setLastFetched(new Date().toISOString());
+        }
+      } catch (e) {
+        console.error('Fetch notifications error:', e);
+      }
+    };
+
+    const id = setInterval(fetchDBNotifications, 60000); // every 60s
+    fetchDBNotifications(); // initial load
+    return () => clearInterval(id);
+  }, [addNotification, lastFetched]);
 
   return (
     <AnimatePresence>

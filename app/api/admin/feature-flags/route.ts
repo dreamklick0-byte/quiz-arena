@@ -6,12 +6,12 @@ export async function GET() {
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("platform_settings")
-    .select("key, value")
-    .like("key", "feature_%");
+    .select("key, value");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const flags: Record<string, boolean> = {};
+  const flags: Record<string, string | boolean> = {};
   (data || []).forEach((row: any) => {
-    flags[row.key.replace("feature_", "")] = row.value === "true";
+    const cleanKey = row.key.startsWith("feature_") ? row.key.replace("feature_", "") : row.key;
+    flags[cleanKey] = row.value === "true" || row.value === "false" ? row.value === "true" : row.value;
   });
   return NextResponse.json({ flags });
 }
@@ -26,20 +26,19 @@ export async function POST(req: Request) {
     const supabase = getAdminClient();
     const body = await req.json();
     const { key, value } = body;
-    if (!key || typeof value !== "boolean") {
-      return NextResponse.json({ error: "Invalid request - key and boolean value required" }, { status: 400 });
+    if (!key) {
+      return NextResponse.json({ error: "Invalid request - key required" }, { status: 400 });
     }
-    const dbKey = key.startsWith("feature_") ? key : `feature_${key}`;
     const { error } = await supabase
       .from("platform_settings")
       .upsert(
-        { key: dbKey, value: value.toString(), updated_at: new Date().toISOString() },
+        { key: key, value: value.toString(), updated_at: new Date().toISOString() },
         { onConflict: "key" }
       );
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ success: true, key: dbKey, value });
+    return NextResponse.json({ success: true, key: key, value });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });
   }

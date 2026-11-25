@@ -37,6 +37,10 @@ export default function BattleLobbyPage() {
   const STAKE_OPTIONS = [0, 100, 200, 300, 500, 1000, 2000];
   const [coinBalance, setCoinBalance] = useState(0); 
 
+  const [stakingEnabled, setStakingEnabled] = useState<boolean | null>(null);
+  const [freeBattlesUsedToday, setFreeBattlesUsedToday] = useState<number>(0);
+  const [freeBattlesLimit, setFreeBattlesLimit] = useState<number>(2);
+
   const [joinPreview, setJoinPreview] = useState<{
     subject: string;
     status: string;
@@ -52,14 +56,40 @@ export default function BattleLobbyPage() {
     if (saved) setPlayerName(saved);
 
     const supabase = getSupabaseClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         fetch(`/api/coins/balance?userId=${user.id}`) 
           .then(r => r.json()) 
           .then(d => setCoinBalance((d.battleCoins ?? 0) + (d.rewardCoins ?? 0))) 
           .catch(() => {}); 
+          
+        // Fetch free battles used today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const { count } = await supabase
+          .from("battle_rooms")
+          .select("*", { count: 'exact', head: true })
+          .eq("host_id", user.id)
+          .eq("stake_amount", 0)
+          .gte("created_at", today.toISOString());
+        setFreeBattlesUsedToday(count || 0);
       }
     });
+
+    // Fetch feature flags
+    fetch("/api/feature-flags")
+      .then(r => r.json())
+      .then(data => {
+        if (data.flags) {
+          setStakingEnabled(data.flags.staking_enabled === true);
+          setFreeBattlesLimit(Number(data.flags.free_daily_battles) || 2);
+          if (data.flags.staking_enabled === false) {
+            setStakeAmount(0);
+            setQuickStake(0);
+          }
+        }
+      })
+      .catch(() => setStakingEnabled(true));
   }, []);
 
   const prizeBreakdown = useMemo(() => {
@@ -118,8 +148,9 @@ export default function BattleLobbyPage() {
         
         if (countError) throw countError;
         
-        if (count && count >= 1) {
-          throw new Error("You've used your free challenge for today. Come back tomorrow or stake 100+ Coins to play more.");
+        // Use freeBattlesLimit from state which comes from feature flag
+        if (count != null && count >= freeBattlesLimit) {
+          throw new Error(`You've used your ${freeBattlesLimit} free battles for today. Come back tomorrow or stake 100+ Coins to play more.`);
         }
       }
       
@@ -686,21 +717,34 @@ export default function BattleLobbyPage() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
-                      Stake Amount
-                    </label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {STAKE_OPTIONS.map((amt) => (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setStakeAmount(amt)}
-                          className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
-                        >
-                          {amt === 0 ? "Free" : `${amt} Coins`}
-                        </button>
-                      ))}
-                    </div>
+                    {stakingEnabled === false ? (
+                      <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
+                        <p className="text-sm font-bold text-emerald-400">🎉 Free Play Mode — Battles are free this month!</p>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f59e0b]">
+                          Stake Amount
+                        </label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {STAKE_OPTIONS.map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setStakeAmount(amt)}
+                              className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${stakeAmount === amt ? "border-[#7c3aed] bg-[#7c3aed]/20 text-white" : "border-white/10 bg-black/20 text-zinc-500"}`}
+                            >
+                              {amt === 0 ? "Free" : `${amt} Coins`}
+                            </button>
+                          ))}
+                        </div>
+                        {stakingEnabled === true && stakeAmount === 0 && (
+                          <p className="mt-2 text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                            Free battles today: {freeBattlesUsedToday} / {freeBattlesLimit}
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2 rounded-2xl border border-dashed border-white/20 bg-black/30 p-4">
@@ -804,19 +848,27 @@ export default function BattleLobbyPage() {
                   </div> 
               
                   <div> 
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Stake Amount</label> 
-                    <div className="grid grid-cols-3 gap-2"> 
-                      {QUICK_STAKE_OPTIONS.map((amt) => ( 
-                        <button 
-                          key={amt} 
-                          type="button" 
-                          onClick={() => setQuickStake(amt)} 
-                          className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`} 
-                        > 
-                          {amt.toLocaleString()} Coins 
-                        </button> 
-                      ))} 
-                    </div> 
+                    {stakingEnabled === false ? (
+                      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
+                        <p className="text-xs font-bold text-emerald-400">🎉 Free Play Mode Active</p>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Stake Amount</label> 
+                        <div className="grid grid-cols-3 gap-2"> 
+                          {QUICK_STAKE_OPTIONS.map((amt) => ( 
+                            <button 
+                              key={amt} 
+                              type="button" 
+                              onClick={() => setQuickStake(amt)} 
+                              className={`rounded-xl py-2.5 text-xs font-black transition border ${quickStake === amt ? "bg-[#f59e0b] border-[#f59e0b] text-black" : "bg-white/5 border-white/10 text-zinc-400 hover:border-[#f59e0b]/50"}`} 
+                            > 
+                              {amt.toLocaleString()} Coins 
+                            </button> 
+                          ))} 
+                        </div> 
+                      </>
+                    )}
                   </div> 
               
                   <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-zinc-400 space-y-1"> 

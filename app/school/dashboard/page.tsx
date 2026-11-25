@@ -31,6 +31,18 @@ type SubjectStat = {
   player_count: number;
 };
 
+type StudentProgress = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  email: string;
+  subject: string;
+  score: number;
+  total_questions: number;
+  percentage: number;
+  played_at: string;
+};
+
 export default function SchoolDashboard() {
   const router = useRouter();
   const [tab, setTab] = useState("overview");
@@ -40,14 +52,31 @@ export default function SchoolDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // PERFORMANCE TAB STATE
+  const [perfData, setPerfData] = useState<{
+    display_name: string;
+    email: string;
+    subjects: string[];
+    avg_score: number;
+    total_sessions: number;
+    last_active: string;
+    status: "Strong" | "Average" | "Needs Help";
+  }[]>([]);
   const [perfLoading, setPerfLoading] = useState(false);
-  const [perfSubjectStats, setPerfSubjectStats] = useState<{subject:string,accuracy:number,battles:number}[]>([]);
-  const [perfTopStudents, setPerfTopStudents] = useState<{name:string,wins:number,accuracy:number}[]>([]);
-  const [perfWeakAreas, setPerfWeakAreas] = useState<{subject:string,accuracy:number}[]>([]);
-  const [perfStrongAreas, setPerfStrongAreas] = useState<{subject:string,accuracy:number}[]>([]);
-  const [perfMetrics, setPerfMetrics] = useState<{avg_accuracy:number,total_battles:number,active_week:number,top_student:string}>({avg_accuracy:0,total_battles:0,active_week:0,top_student:""});
-  const [aiInsight, setAiInsight] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+
+  // REPORTS TAB STATE
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [studentReport, setStudentReport] = useState<{
+    subject: string;
+    avg_score: number;
+  }[]>([]);
+  const [aiRecommendation, setAiRecommendation] = useState<{
+    strong: string[];
+    weak: string[];
+    focus: string;
+  } | null>(null);
+
   const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -148,35 +177,114 @@ export default function SchoolDashboard() {
 
   useEffect(() => {
     if (tab !== "performance" || !school?.id) return;
-    const load = async () => {
+    const loadPerformance = async () => {
       setPerfLoading(true);
       try {
-        const { getSupabaseClient } = await import("@/lib/supabase");
-        const sb = getSupabaseClient();
-        const { data: students } = await sb.from("profiles").select("id, display_name").eq("school_id", school.id);
-        const ids = (students || []).map((s: any) => s.id);
-        if (!ids.length) { setPerfLoading(false); return; }
-        const { data: battles } = await sb.from("battle_rooms").select("subject,player1_score,player2_score,host_id,status").in("host_id", ids).eq("status", "finished");
-        const { data: answers } = await sb.from("battle_answers").select("user_id,is_correct").in("user_id", ids);
-        const sm: Record<string, {correct:number,total:number,battles:number}> = {};
-        (battles || []).forEach((b: any) => { if (!sm[b.subject]) sm[b.subject] = { correct: 0, total: 0, battles: 0 }; sm[b.subject].battles++; });
-        (answers || []).forEach((a: any) => { const b = (battles || []).find((x: any) => x.host_id === a.user_id); const s = b?.subject || "Unknown"; if (!sm[s]) sm[s] = { correct: 0, total: 0, battles: 0 }; sm[s].total++; if (a.is_correct) sm[s].correct++; });
-        const stats = Object.entries(sm).map(([subject, d]) => ({ subject, accuracy: d.total > 0 ? Math.round((d.correct / d.total) * 100) : 0, battles: d.battles })).sort((a, b) => b.battles - a.battles);
-        setPerfSubjectStats(stats);
-        setPerfWeakAreas(stats.filter((s: any) => s.accuracy < 50 && (sm[s.subject]?.total || 0) > 0).slice(0, 3));
-        setPerfStrongAreas(stats.filter((s: any) => s.accuracy >= 70 && (sm[s.subject]?.total || 0) > 0).slice(0, 3));
-        const sw: Record<string, number> = {};
-        (battles || []).forEach((b: any) => { if ((b.player1_score || 0) > (b.player2_score || 0)) sw[b.host_id] = (sw[b.host_id] || 0) + 1; });
-        const top = Object.entries(sw).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, wins]) => { const st = (students || []).find((x: any) => x.id === id); const c = (answers || []).filter((a: any) => a.user_id === id && a.is_correct).length; const t = (answers || []).filter((a: any) => a.user_id === id).length; return { name: st?.display_name || "Unknown", wins, accuracy: t > 0 ? Math.round((c / t) * 100) : 0 }; });
-        setPerfTopStudents(top);
-        const ta = (answers || []).length;
-        const tc = (answers || []).filter((a: any) => a.is_correct).length;
-        setPerfMetrics({ avg_accuracy: ta > 0 ? Math.round((tc / ta) * 100) : 0, total_battles: (battles || []).length, active_week: Math.ceil(ids.length * 0.4), top_student: top[0]?.name || "N/A" });
-      } catch (e) { console.error(e); }
+        const supabase = getSupabaseClient();
+        
+        // Fetch all progress for students in this school
+        // We join with profiles (for display_name) and auth.users (for email via profiles if stored or another join)
+        // Since we can't join auth.users easily in client SDK, we'll assume email is in profiles or just use display_name
+        
+        const { data: progressData, error } = await supabase
+          .from("student_progress")
+          .select(`
+            user_id,
+            subject,
+            percentage,
+            played_at,
+            profiles:user_id (display_name, email)
+          `)
+          .eq("school_id", school.id);
+
+        if (error) throw error;
+
+        // Group by user
+        const userMap: Record<string, any> = {};
+        (progressData || []).forEach((row: any) => {
+          const uid = row.user_id;
+          if (!userMap[uid]) {
+            userMap[uid] = {
+              display_name: row.profiles?.display_name || "Unknown",
+              email: row.profiles?.email || "-",
+              subjects: new Set(),
+              total_percentage: 0,
+              count: 0,
+              last_active: row.played_at,
+            };
+          }
+          userMap[uid].subjects.add(row.subject);
+          userMap[uid].total_percentage += Number(row.percentage);
+          userMap[uid].count += 1;
+          if (new Date(row.played_at) > new Date(userMap[uid].last_active)) {
+            userMap[uid].last_active = row.played_at;
+          }
+        });
+
+        const formatted = Object.values(userMap).map((u: any) => {
+          const avg = u.count > 0 ? Math.round(u.total_percentage / u.count) : 0;
+          let status: "Strong" | "Average" | "Needs Help" = "Average";
+          if (avg > 70) status = "Strong";
+          else if (avg < 50) status = "Needs Help";
+
+          return {
+            display_name: u.display_name,
+            email: u.email,
+            subjects: Array.from(u.subjects) as string[],
+            avg_score: avg,
+            total_sessions: u.count,
+            last_active: u.last_active,
+            status,
+          };
+        });
+
+        setPerfData(formatted);
+      } catch (e) {
+        console.error("Performance load error:", e);
+      }
       setPerfLoading(false);
     };
-    load();
+    loadPerformance();
   }, [tab, school?.id]);
+
+  useEffect(() => {
+    if (tab !== "reports" || !selectedStudentId) return;
+    const loadReport = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data: progressData } = await supabase
+          .from("student_progress")
+          .select("subject, percentage")
+          .eq("user_id", selectedStudentId);
+
+        if (!progressData) return;
+
+        const subMap: Record<string, { total: number; count: number }> = {};
+        progressData.forEach((row: any) => {
+          if (!subMap[row.subject]) subMap[row.subject] = { total: 0, count: 0 };
+          subMap[row.subject].total += Number(row.percentage);
+          subMap[row.subject].count += 1;
+        });
+
+        const report = Object.entries(subMap).map(([subject, d]) => ({
+          subject,
+          avg_score: Math.round(d.total / d.count),
+        }));
+
+        setStudentReport(report);
+
+        // Generate recommendations
+        const strong = report.filter(r => r.avg_score > 70).map(r => r.subject);
+        const weak = report.filter(r => r.avg_score < 50).map(r => r.subject);
+        const focus = report.length > 0 ? [...report].sort((a, b) => a.avg_score - b.avg_score)[0].subject : "None";
+
+        setAiRecommendation({ strong, weak, focus });
+      } catch (e) {
+        console.error("Report load error:", e);
+      }
+    };
+    loadReport();
+  }, [tab, selectedStudentId]);
 
   const uploadLogo = async (file: File) => {
     if (!school?.id) return;
@@ -322,22 +430,8 @@ export default function SchoolDashboard() {
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setTab("overview")} className={tabClass("overview")}>Overview</button>
             <button onClick={() => setTab("students")} className={tabClass("students")}>Students ({school?.total_students})</button>
-            <button
-              onClick={() => {}}
-              className={tabClass("performance") + " relative opacity-60 cursor-not-allowed"}
-              disabled
-            >
-              <span>Performance</span>
-              <span className="ml-2 text-xs text-zinc-400">Soon</span>
-            </button>
-            <button
-              onClick={() => {}}
-              className={tabClass("settings") + " relative opacity-60 cursor-not-allowed"}
-              disabled
-            >
-              <span>Reports</span>
-              <span className="ml-2 text-xs text-zinc-400">Soon</span>
-            </button>
+            <button onClick={() => setTab("performance")} className={tabClass("performance")}>Performance</button>
+            <button onClick={() => setTab("reports")} className={tabClass("reports")}>Reports</button>
             <button onClick={handleSignOut} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-500">
               Sign Out
             </button>
@@ -400,28 +494,129 @@ export default function SchoolDashboard() {
         )}
 
         {tab === "performance" && (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
-            <p className="text-5xl">📊</p>
-            <h2 className="mt-6 text-2xl font-bold">Full Analytics Coming Soon</h2>
-            <p className="mt-4 text-sm text-zinc-400">Deep performance analytics, subject breakdowns, student activity heatmaps, and progress tracking are launching in August 2026.</p>
-
-            <div className="mt-6">
-              <p className="text-sm">🚀 Launching August 2, 2026</p>
-              <p className="text-xs text-zinc-400 mt-2">You will be notified when this feature goes live</p>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Student Performance</h2>
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/10 text-xs font-black uppercase tracking-widest text-zinc-400">
+                  <tr>
+                    <th className="px-6 py-4">Student</th>
+                    <th className="px-6 py-4">Subjects</th>
+                    <th className="px-6 py-4">Avg Score</th>
+                    <th className="px-6 py-4">Sessions</th>
+                    <th className="px-6 py-4">Last Active</th>
+                    <th className="px-6 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {perfData.map((row, i) => (
+                    <tr key={i} className="hover:bg-white/5 transition">
+                      <td className="px-6 py-4">
+                        <div className="font-bold">{row.display_name}</div>
+                        <div className="text-xs text-zinc-500">{row.email}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {row.subjects.map(s => (
+                            <span key={s} className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] capitalize">{s}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-mono font-bold">{row.avg_score}%</td>
+                      <td className="px-6 py-4">{row.total_sessions}</td>
+                      <td className="px-6 py-4 text-xs text-zinc-400">{new Date(row.last_active).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider border ${
+                          row.status === "Strong" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                          row.status === "Average" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                          "bg-red-500/10 border-red-500/20 text-red-400"
+                        }`}>
+                          {row.status === "Strong" ? "🟢 " : row.status === "Average" ? "🟡 " : "🔴 "}
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {perfData.length === 0 && !perfLoading && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">No practice data found yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {tab === "settings" && (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
-            <p className="text-5xl">📋</p>
-            <h2 className="mt-6 text-2xl font-bold">Reports & Settings Coming Soon</h2>
-            <p className="mt-4 text-sm text-zinc-400">Monthly performance reports, student export, school profile editing, and advanced settings are launching in August 2026.</p>
-
-            <div className="mt-6">
-              <p className="text-sm">🚀 Launching August 2, 2026</p>
-              <p className="text-xs text-zinc-400 mt-2">You will be notified when this feature goes live</p>
+        {tab === "reports" && (
+          <div className="space-y-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-2xl font-bold">Individual Reports</h2>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-sm text-white outline-none focus:border-purple-500/50"
+              >
+                <option value="" className="bg-[#0f0f1a]">Select a student</option>
+                {students.map(s => (
+                  <option key={s.id} value={s.id} className="bg-[#0f0f1a]">{s.display_name}</option>
+                ))}
+              </select>
             </div>
+
+            {selectedStudentId ? (
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Score Chart */}
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-6">Subject Accuracy</h3>
+                  <div className="space-y-4">
+                    {studentReport.map(r => (
+                      <div key={r.subject}>
+                        <div className="flex justify-between text-xs font-bold mb-1 uppercase tracking-wider">
+                          <span className="capitalize">{r.subject}</span>
+                          <span>{r.avg_score}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 ${r.avg_score > 70 ? 'bg-emerald-500' : r.avg_score > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                            style={{ width: `${r.avg_score}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {studentReport.length === 0 && <p className="text-center py-10 text-zinc-500 italic">No data available for this student.</p>}
+                  </div>
+                </div>
+
+                {/* AI Recommendation */}
+                <div className="rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-purple-400 mb-6">AI Progress Recommendation</h3>
+                  {aiRecommendation ? (
+                    <div className="space-y-6 text-sm leading-relaxed">
+                      <div>
+                        <p className="font-bold text-emerald-400 mb-2">Strong in:</p>
+                        <p className="text-zinc-300 capitalize">{aiRecommendation.strong.join(", ") || "No subjects yet"}</p>
+                      </div>
+                      <div>
+                        <p className="font-bold text-red-400 mb-2">Needs improvement in:</p>
+                        <p className="text-zinc-300 capitalize">{aiRecommendation.weak.join(", ") || "No subjects yet"}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                        <p className="font-bold text-purple-300 mb-1">Recommended focus:</p>
+                        <p className="text-white text-lg font-black capitalize">{aiRecommendation.focus}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-center py-10 text-zinc-500 italic">Select a student to see recommendations.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-20 text-center">
+                <p className="text-4xl mb-4">👤</p>
+                <p className="text-zinc-400">Please select a student from the dropdown to view their detailed performance report.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -5,11 +5,11 @@ export async function GET() {
   const supabase = getAdminClient();
   const { data } = await supabase
     .from("platform_settings")
-    .select("key, value")
-    .like("key", "feature_%");
-  const flags: Record<string, boolean> = {};
+    .select("key, value");
+  const flags: Record<string, string | boolean> = {};
   (data || []).forEach((row: any) => {
-    flags[row.key.replace("feature_", "")] = row.value === "true";
+    const cleanKey = row.key.startsWith("feature_") ? row.key.replace("feature_", "") : row.key;
+    flags[cleanKey] = row.value === "true" || row.value === "false" ? row.value === "true" : row.value;
   });
   return NextResponse.json({ flags }, {
     headers: { "Cache-Control": "no-store, max-age=0" }

@@ -76,6 +76,24 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
         const supabaseClient = getSupabaseClient(); 
         const { data: { user } } = await supabaseClient.auth.getUser(); 
         if (!user) return; 
+
+        // PART 2B — Save progress after each practice session completes
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        await supabaseClient.from('student_progress').insert({ 
+          user_id: user.id, 
+          school_id: profile?.school_id || null,
+          subject: decodedSubject || 'Practice', 
+          exam_type: decodedExamType || null, 
+          score: score, 
+          total_questions: questions.length, 
+          played_at: new Date().toISOString() 
+        });
+
         await fetch('/api/battle/award-xp', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
@@ -86,12 +104,12 @@ export function PracticeExamTypeQuizClient({ subject, examType }: Props) {
           }), 
         }); 
       } catch (e) { 
-        console.error('Practice XP error:', e); 
+        console.error('Practice completion error:', e); 
       } 
     }; 
     awardPracticeXp();
     // QUIZ ARENA EXPANSION — END
-  }, [finished, score, addXP, updateStreak]);
+  }, [finished, score, addXP, updateStreak, questions.length, decodedSubject, decodedExamType]);
 
   useEffect(() => {
     async function fetchQuestions() {
