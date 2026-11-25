@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
     if (rpcError) throw rpcError;
 
     // 2. Log the action in admin_logs
+    const payload = JSON.parse(atob(adminSession.split('.')[1]));
     await supabase.from("admin_logs").insert({
-      admin_id: (JSON.parse(atob(adminSession.split('.')[1]))).sub, // Basic extraction from JWT
+      admin_id: payload.sub || payload.id || null, 
       action: "notify_league",
       details: { league_id: leagueId, message },
     });
