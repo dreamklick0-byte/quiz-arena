@@ -11,16 +11,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Missing fields." }, { status: 400 });
     }
 
-    // Find the referrer by referral code
-    const { data: referrerProfile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("referral_code", referralCode.toUpperCase())
-      .single();
-
-    if (profileErr || !referrerProfile) {
-      return NextResponse.json({ success: false, message: "Invalid referral code." }, { status: 404 });
-    }
+    // Find the referrer by referral code 
+    const { data: referrerProfile, error: profileErr } = await supabase 
+      .from("profiles") 
+      .select("id") 
+      .eq("referral_code", referralCode.toUpperCase()) 
+      .single(); 
+ 
+    console.log("Referral lookup - code:", referralCode.toUpperCase(), "result:", referrerProfile, "error:", JSON.stringify(profileErr)); 
+ 
+    if (profileErr || !referrerProfile) { 
+      return NextResponse.json({ success: false, message: "Invalid referral code.", debug: { code: referralCode, error: profileErr?.message } }, { status: 404 }); 
+    } 
 
     // Make sure user isn't referring themselves
     if (referrerProfile.id === userId) {
