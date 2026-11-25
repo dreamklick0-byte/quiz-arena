@@ -9,7 +9,7 @@ import {
   SUBJECTS,
 } from "@/app/data/practiceQuestions";
 import { normalizeRoomCode } from "@/app/battle/battleUtils";
-import { createBattleRoom } from "@/lib/battleRoom";
+import { createBattleRoom, findQuickMatch } from "@/lib/battleRoom";
 import { insertRoomPlayer } from "@/lib/battleRoomPlayer";
 import { getWalletBalance, processTransaction } from "@/lib/wallet";
 
@@ -265,21 +265,18 @@ export default function BattleLobbyPage() {
      const userId = user?.id; 
      if (!userId) throw new Error("Please sign in to play."); 
  
-     if (quickStake > 0) { 
+     if (quickStake > 0 && stakingEnabled !== false) { 
        const balance = await getWalletBalance(userId); 
        if (balance < quickStake) throw new Error(`Insufficient balance. Need ${quickStake} Coins, have ${balance} Coins.`); 
      } 
  
-     // Clean up any old entries for this user 
-     await supabase.from("matchmaking_queue").delete().eq("user_id", userId); 
- 
      // Atomically find opponent or join queue 
-     const { data: matchResult, error: matchError } = await supabase.rpc('match_quick_battle', { 
-       p_user_id: userId, 
-       p_stake_amount: quickStake, 
-       p_subject: quickSubject 
-     }); 
-     if (matchError) throw matchError; 
+     const matchResult = await findQuickMatch(
+       userId,
+       quickSubject,
+       quickStake,
+       stakingEnabled !== false
+     );
  
      if (matchResult.matched === true) { 
        // Found a waiting player — create the room and send both players in 

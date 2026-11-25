@@ -27,3 +27,26 @@ export async function createBattleRoom(roomCode: string, subject: string, userId
    if (error) throw error;
    return room;
  }
+
+export async function findQuickMatch(
+  userId: string,
+  subject: string,
+  stake: number,
+  stakingEnabled: boolean
+) {
+  const supabase = getSupabaseClient();
+  const effectiveStake = stakingEnabled ? stake : 0;
+
+  // Clean up any old entries for this user
+  await supabase.from("matchmaking_queue").delete().eq("user_id", userId);
+
+  // Atomically find opponent or join queue
+  const { data: matchResult, error: matchError } = await supabase.rpc("match_quick_battle", {
+    p_user_id: userId,
+    p_stake_amount: effectiveStake,
+    p_subject: subject,
+  });
+
+  if (matchError) throw matchError;
+  return matchResult;
+}

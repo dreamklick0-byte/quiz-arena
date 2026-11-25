@@ -89,6 +89,7 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
 }) => {
   const { notifications, markAllRead, addNotification } = useGamificationStore();
   const [lastFetched, setLastFetched] = useState<string>(new Date().toISOString());
+  const [activeToast, setActiveToast] = useState<NotificationType | null>(null);
 
   // Polling for DB notifications
   useEffect(() => {
@@ -110,16 +111,22 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
 
         if (data && data.length > 0) {
           data.forEach(n => {
-            addNotification({
+            const newNotif = {
               type: (n.type?.toUpperCase() || 'REWARD') as any,
               message: n.title + ': ' + n.message,
-            });
+            };
+            addNotification(newNotif);
             
             // Show toast for recent notifications (last 5 mins)
             const diff = Date.now() - new Date(n.created_at).getTime();
             if (diff < 5 * 60 * 1000) {
-               // We could trigger a global toast here if one exists
-               // For now they will appear in the notification center
+               setActiveToast({
+                 id: n.id,
+                 ...newNotif,
+                 timestamp: n.created_at,
+                 read: false
+               });
+               setTimeout(() => setActiveToast(null), 5000);
             }
           });
           setLastFetched(new Date().toISOString());
@@ -135,7 +142,38 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
   }, [addNotification, lastFetched]);
 
   return (
-    <AnimatePresence>
+    <>
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {activeToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 z-[100] bg-[#161627] border border-purple-500/30 rounded-2xl shadow-2xl p-4 cursor-pointer"
+            onClick={() => {
+              setActiveToast(null);
+              // Mark as read in DB
+              const sb = getSupabaseClient();
+              sb.from('user_notifications').update({ read: true }).eq('id', activeToast.id).then(() => {
+                useGamificationStore.getState().markNotificationRead(activeToast.id);
+              });
+            }}
+          >
+            <div className="flex gap-3">
+              <div className="bg-purple-600/20 p-2 rounded-xl h-fit">
+                {TYPE_ICONS[activeToast.type] || <Bell size={18} className="text-purple-400" />}
+              </div>
+              <div>
+                <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-1">New Notification</p>
+                <p className="text-sm text-white font-medium leading-snug">{activeToast.message}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
@@ -193,5 +231,6 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
         </>
       )}
     </AnimatePresence>
+  </>
   );
 };
