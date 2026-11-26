@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { NotificationBell, NotificationCenter } from "./NotificationSystem";
+import { PushPrompt } from "./PushPrompt";
 import { LevelUpBanner } from "./GamificationUI";
 import { useNotificationScheduler } from "./NotificationSettings";
 import { FEATURES as DEFAULT_FEATURES } from "@/lib/featureFlags";
@@ -193,6 +194,7 @@ export function SiteHeader() {
         {FEATURES.notifications && (
           <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
         )}
+        <PushPrompt />
        <LevelUpBanner />
 
        {/* Mobile dropdown menu */} 

@@ -7,6 +7,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { getWalletBalance } from "@/lib/wallet";
 import { StreakCalendar } from "@/app/components/StreakSystem";
 import { NotificationPreferences } from "@/app/components/NotificationSettings";
+import { subscribeToPush, unsubscribeFromPush } from "@/lib/pushClient";
 
 type StreakRow = {
   current_streak: number;
@@ -29,6 +30,13 @@ export default function AccountPage() {
   const [schoolName, setSchoolName] = useState<string>("");
   const [schoolMsg, setSchoolMsg] = useState<string>("");
   const [schoolBusy, setSchoolBusy] = useState(false);
+  
+  // Notification settings
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneIsWhatsApp, setPhoneIsWhatsApp] = useState(false);
+  const [emailOptIn, setEmailOptIn] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const fetchMatchHistory = async (userId: string) => {
     const supabase = getSupabaseClient();
@@ -56,7 +64,7 @@ export default function AccountPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, state, school_id, school_name")
+        .select("display_name, state, school_id, school_name, phone_number, phone_is_whatsapp, email_opt_in")
         .eq("id", user.id)
         .maybeSingle();
       if (profile?.display_name) {
@@ -65,6 +73,18 @@ export default function AccountPage() {
       }
       if (profile?.state) setSelectedState(profile.state);
       setSchoolName(profile?.school_name || "");
+      setPhoneNumber(profile?.phone_number || "");
+      setPhoneIsWhatsApp(!!profile?.phone_is_whatsapp);
+      setEmailOptIn(profile?.email_opt_in !== false);
+
+      // Check push status
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.pushManager.getSubscription().then(sub => {
+            setPushEnabled(!!sub);
+          });
+        });
+      }
 
       fetchMatchHistory(user.id);
       const b = await getWalletBalance(user.id);
@@ -150,6 +170,48 @@ export default function AccountPage() {
       setIsEditingName(false); 
     } 
   }; 
+
+  const updateNotificationSettings = async () => {
+    const supabase = getSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        phone_number: phoneNumber,
+        phone_is_whatsapp: phoneIsWhatsApp,
+        email_opt_in: emailOptIn
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      alert("Failed to save settings: " + error.message);
+    } else {
+      alert("Notification settings updated! ✅");
+    }
+  };
+
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          await subscribeToPush();
+          setPushEnabled(true);
+        } else {
+          alert("Notification permission denied.");
+        }
+      }
+    } catch (err: any) {
+      alert("Push error: " + err.message);
+    }
+    setPushBusy(false);
+  };
 
   const signOut = async () => {
     const supabase = getSupabaseClient();
@@ -368,11 +430,78 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* QUIZ ARENA EXPANSION — START */}
+          {/* Notification Settings */}
           <div className="rounded-3xl border border-white/10 bg-[#161627]/60 p-6 backdrop-blur-md shadow-2xl">
-            <NotificationPreferences />
+            <h2 className="text-xl font-black text-white mb-6">Notifications</h2>
+            
+            <div className="space-y-6">
+              {/* Push Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Push Notifications</p>
+                  <p className="text-xs text-zinc-500">Get alerts on this device</p>
+                </div>
+                <button
+                  onClick={togglePush}
+                  disabled={pushBusy}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-purple-600' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${pushEnabled ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Email Opt-in */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Email Notifications</p>
+                  <p className="text-xs text-zinc-500">Tournaments and rewards</p>
+                </div>
+                <button
+                  onClick={() => setEmailOptIn(!emailOptIn)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${emailOptIn ? 'bg-purple-600' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${emailOptIn ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Phone / WhatsApp */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Phone Number</label>
+                  <input
+                    type="text"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-[#7c3aed]"
+                    placeholder="+234..."
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isWhatsApp"
+                    checked={phoneIsWhatsApp}
+                    onChange={(e) => setPhoneIsWhatsApp(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/10 bg-black/40 text-[#7c3aed] focus:ring-[#7c3aed]"
+                  />
+                  <label htmlFor="isWhatsApp" className="text-xs font-bold text-zinc-400 uppercase tracking-widest cursor-pointer">
+                    This is my WhatsApp number
+                  </label>
+                </div>
+              </div>
+
+              <button
+                onClick={updateNotificationSettings}
+                className="w-full rounded-2xl bg-white/5 border border-white/10 py-4 text-xs font-black text-white hover:bg-white/10 transition-colors uppercase tracking-widest"
+              >
+                Save Settings
+              </button>
+            </div>
           </div>
-          {/* QUIZ ARENA EXPANSION — END */}
 
           <div className="flex flex-col gap-4">
             <Link

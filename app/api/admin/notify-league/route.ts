@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminClient } from "@/lib/supabase";
+import { sendPushToAll, sendEmailToAll, sendWhatsAppToAll } from "@/lib/notifyChannels";
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,6 +40,17 @@ export async function POST(req: NextRequest) {
       details: `Sent tournament notification for league ${leagueId}: ${message}`,
       ip_address: req.headers.get("x-forwarded-for") || "unknown",
     });
+
+    try {
+      const url = 'https://www.quizarena.com.ng/league';
+      await Promise.allSettled([
+        sendPushToAll({ title: 'New Tournament Available! 🏆', body: message, url: '/league' }),
+        sendEmailToAll({ subject: 'New Tournament Available! 🏆', message, url }),
+        sendWhatsAppToAll({ message, url }),
+      ]);
+    } catch (e) {
+      console.error('Extra channels error:', e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
