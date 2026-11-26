@@ -88,7 +88,9 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
   onClose,
 }) => {
   const { notifications, markAllRead, addNotification } = useGamificationStore();
-  const [lastFetched, setLastFetched] = useState<string>(new Date().toISOString());
+  const [lastFetched, setLastFetched] = useState<string>(
+    new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  );
   const [activeToast, setActiveToast] = useState<NotificationType | null>(null);
 
   // Polling for DB notifications
@@ -112,8 +114,8 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
         if (data && data.length > 0) {
           data.forEach(n => {
             const newNotif = {
-              type: (n.type?.toUpperCase() || 'REWARD') as any,
-              message: n.title + ': ' + n.message,
+              type: (n.title?.includes('Tournament') ? 'TOURNAMENT' : 'REWARD') as any,
+              message: n.title + ': ' + (n.body ?? ''),
             };
             addNotification(newNotif);
             
