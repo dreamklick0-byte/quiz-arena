@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Flame, Sword, Trophy, Book, Coins, Check, X, Clock } from 'lucide-react';
 import { useGamificationStore, Notification as NotificationType } from '@/lib/gamificationStore';
@@ -92,6 +92,7 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
     new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   );
   const [activeToast, setActiveToast] = useState<NotificationType | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Polling for DB notifications
   useEffect(() => {
@@ -128,7 +129,8 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
                  timestamp: n.created_at,
                  read: false
                });
-               setTimeout(() => setActiveToast(null), 5000);
+               if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+               toastTimerRef.current = setTimeout(() => setActiveToast(null), 15000);
             }
           });
           setLastFetched(new Date().toISOString());
@@ -152,7 +154,7 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 z-[100] bg-[#161627] border border-purple-500/30 rounded-2xl shadow-2xl p-4 cursor-pointer"
+            className="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-8 sm:w-96 sm:max-w-[calc(100vw-4rem)] z-[100] bg-[#161627] border border-purple-500/30 rounded-2xl shadow-2xl p-4 cursor-pointer break-words"
             onClick={() => {
               setActiveToast(null);
               // Mark as read in DB
