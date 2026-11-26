@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const { leagueId, message } = await req.json();
     if (!leagueId || !message) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+      return NextResponse.json({ error: "Missing leagueId or message" }, { status: 400 });
     }
 
     const supabase = getAdminClient();
@@ -26,11 +26,18 @@ export async function POST(req: NextRequest) {
     if (rpcError) throw rpcError;
 
     // 2. Log the action in admin_logs
-    const payload = JSON.parse(atob(adminSession.split('.')[1]));
+    let adminId: string | null = null;
+    try {
+      const sessionData = JSON.parse(adminSession);
+      adminId = sessionData.id || null;
+    } catch {
+      adminId = null;
+    }
     await supabase.from("admin_logs").insert({
-      admin_id: payload.sub || payload.id || null, 
-      action: "notify_league",
-      details: { league_id: leagueId, message },
+      admin_id: adminId,
+      action: "NOTIFY_LEAGUE",
+      details: `Sent tournament notification for league ${leagueId}: ${message}`,
+      ip_address: req.headers.get("x-forwarded-for") || "unknown",
     });
 
     return NextResponse.json({ success: true });
