@@ -74,7 +74,7 @@ export async function sendEmailToAll(payload: { subject: string; message: string
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, email_opt_in')
-    .eq('email_opt_in', true);
+    .neq('email_opt_in', false);
 
   const optedInIds = new Set(profiles?.map(p => p.id) || []);
   const recipients = allUsers
@@ -117,9 +117,16 @@ export async function sendWhatsAppToAll(payload: { message: string; url: string 
     return { skipped: true, reason: 'WHATSAPP_TOKEN or WHATSAPP_PHONE_ID missing' };
   }
 
+  const supabase = getAdminClient();
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('phone_number')
+    .eq('phone_is_whatsapp', true)
+    .not('phone_number', 'is', null);
+
   // TODO: Implement Meta WhatsApp Cloud API sending.
-  // Requires an approved template.
-  // Selection: Select profiles where phone_is_whatsapp = true and phone_number is not null.
+  // Requires an approved Meta WhatsApp Cloud API template.
+  // Do not call any external API yet.
   
-  return { skipped: true, reason: 'STUB: WhatsApp implementation requires approved template' };
+  return { skipped: true, reason: 'STUB: WhatsApp implementation requires approved template', potentialRecipients: profiles?.length || 0 };
 }

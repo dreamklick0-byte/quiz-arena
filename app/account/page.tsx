@@ -438,7 +438,7 @@ export default function AccountPage() {
               {/* Push Toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-white">Push Notifications</p>
+                  <p className="text-sm font-bold text-white">🔔 Push Notifications</p>
                   <p className="text-xs text-zinc-500">Get alerts on this device</p>
                 </div>
                 <button
@@ -453,17 +453,17 @@ export default function AccountPage() {
               <hr className="border-white/5" />
 
               {/* Email Opt-in */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white">Email Notifications</p>
-                  <p className="text-xs text-zinc-500">Tournaments and rewards</p>
-                </div>
-                <button
-                  onClick={() => setEmailOptIn(!emailOptIn)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${emailOptIn ? 'bg-purple-600' : 'bg-white/10'}`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${emailOptIn ? 'left-7' : 'left-1'}`} />
-                </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="emailOptIn"
+                  checked={emailOptIn}
+                  onChange={(e) => setEmailOptIn(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-black/40 text-[#7c3aed] focus:ring-[#7c3aed]"
+                />
+                <label htmlFor="emailOptIn" className="text-xs font-bold text-zinc-400 uppercase tracking-widest cursor-pointer">
+                  Email me about tournaments and rewards
+                </label>
               </div>
 
               <hr className="border-white/5" />

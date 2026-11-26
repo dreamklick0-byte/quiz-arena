@@ -70,12 +70,11 @@ export const PushPrompt: React.FC = () => {
         <div className="relative z-10">
           <div className="flex items-start gap-4">
             <div className="bg-purple-600/20 p-3 rounded-xl h-fit">
-              <Bell className="text-purple-400" size={24} />
+              <span className="text-2xl">🔔</span>
             </div>
             <div className="flex-1">
-              <h3 className="text-white font-bold text-lg mb-1">Stay in the Game!</h3>
-              <p className="text-white/70 text-sm leading-relaxed mb-4">
-                Get notified about new tournaments and rewards, even when you're not on the app.
+              <p className="text-white font-medium text-sm leading-relaxed mb-4">
+                Get notified about tournaments and rewards, even when you're not on the app
               </p>
               
               {isIOS && !('PushManager' in window) ? (
@@ -86,13 +85,13 @@ export const PushPrompt: React.FC = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={handleEnable}
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl transition-colors text-sm shadow-lg shadow-purple-600/20"
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-xl transition-colors text-xs uppercase tracking-widest shadow-lg shadow-purple-600/20"
                   >
                     Enable
                   </button>
                   <button
                     onClick={handleDismiss}
-                    className="px-4 bg-white/5 hover:bg-white/10 text-white/60 font-medium py-2.5 rounded-xl transition-colors text-sm"
+                    className="px-4 bg-white/5 hover:bg-white/10 text-white/60 font-bold py-2 rounded-xl transition-colors text-xs uppercase tracking-widest"
                   >
                     Not now
                   </button>
