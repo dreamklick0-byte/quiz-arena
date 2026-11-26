@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Flame, Sword, Trophy, Book, Coins, Check, X, Clock } from 'lucide-react';
 import { useGamificationStore, Notification as NotificationType } from '@/lib/gamificationStore';
@@ -148,13 +149,14 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
   return (
     <>
       {/* Toast Notification */}
+      {typeof document !== 'undefined' && createPortal(
       <AnimatePresence>
         {activeToast && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-8 sm:w-96 sm:max-w-[calc(100vw-4rem)] z-[100] bg-[#161627] border border-purple-500/30 rounded-2xl shadow-2xl p-4 cursor-pointer break-words"
+            className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-[9999] bg-[#161627] border border-purple-500/30 rounded-2xl shadow-2xl p-4 cursor-pointer break-words"
             onClick={() => {
               setActiveToast(null);
               // Mark as read in DB
@@ -175,7 +177,9 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       <AnimatePresence>
       {isOpen && (
