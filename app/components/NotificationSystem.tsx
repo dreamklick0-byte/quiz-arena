@@ -141,7 +141,7 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
       }
     };
 
-    const id = setInterval(fetchDBNotifications, 60000); // every 60s
+    const id = setInterval(fetchDBNotifications, 20000); // every 20s
     fetchDBNotifications(); // initial load
     return () => clearInterval(id);
   }, [addNotification, lastFetched]);
@@ -163,6 +163,7 @@ export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void
               const sb = getSupabaseClient();
               sb.from('user_notifications').update({ read: true }).eq('id', activeToast.id).then(() => {
                 useGamificationStore.getState().markNotificationRead(activeToast.id);
+                window.location.href = '/league';
               });
             }}
           >
