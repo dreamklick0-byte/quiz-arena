@@ -43,11 +43,17 @@ export async function POST(req: NextRequest) {
 
     try {
       const url = 'https://www.quizarena.com.ng/league';
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         sendPushToAll({ title: 'New Tournament Available! 🏆', body: message, url: '/league' }),
         sendEmailToAll({ subject: 'New Tournament Available! 🏆', message, url }),
         sendWhatsAppToAll({ message, url }),
       ]);
+      console.log('Notify channels:', JSON.stringify(results.map(r => r.status === 'fulfilled' ? r.value : { error: String((r as PromiseRejectedResult).reason) })));
+      
+      return NextResponse.json({ 
+        success: true, 
+        channels: results.map(r => r.status === 'fulfilled' ? r.value : { error: String((r as PromiseRejectedResult).reason) }) 
+      });
     } catch (e) {
       console.error('Extra channels error:', e);
     }

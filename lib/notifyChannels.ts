@@ -36,6 +36,7 @@ export async function sendPushToAll(payload: { title: string; body: string; url:
         sent++;
       } catch (err: any) {
         failed++;
+        console.error('Push error:', err.statusCode, err.body);
         // If status is 404 or 410, the subscription has expired or is no longer valid
         if (err.statusCode === 404 || err.statusCode === 410) {
           await supabase.from('push_subscriptions').delete().eq('id', sub.id);
@@ -82,34 +83,45 @@ export async function sendEmailToAll(payload: { subject: string; message: string
     .map(u => u.email)
     .filter(Boolean) as string[];
 
-  if (recipients.length === 0) return { sent: 0 };
+  if (recipients.length === 0) return { sent: 0, failed: 0, total: 0 };
 
   let sent = 0;
-  // Send in batches of 50
-  for (let i = 0; i < recipients.length; i += 50) {
-    const batch = recipients.slice(i, i + 50);
-    try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM,
-        to: batch,
-        subject: payload.subject,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h1 style="color: #7c3aed;">${payload.subject}</h1>
-            <p style="font-size: 16px; color: #333; line-height: 1.5;">${payload.message}</p>
-            <div style="margin-top: 30px;">
-              <a href="${payload.url}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Open Quiz Arena</a>
+  let failed = 0;
+
+  // Send in batches of 10 using Promise.allSettled
+  for (let i = 0; i < recipients.length; i += 10) {
+    const batch = recipients.slice(i, i + 10);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (email) => {
+        const { error } = await resend!.emails.send({
+          from: process.env.EMAIL_FROM!,
+          to: [email],
+          subject: payload.subject,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h1 style="color: #7c3aed;">${payload.subject}</h1>
+              <p style="font-size: 16px; color: #333; line-height: 1.5;">${payload.message}</p>
+              <div style="margin-top: 30px;">
+                <a href="${payload.url}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Open Quiz Arena</a>
+              </div>
             </div>
-          </div>
-        `
-      });
-      sent += batch.length;
-    } catch (err) {
-      console.error('Email batch error:', err);
-    }
+          `
+        });
+        if (error) {
+          console.error('Resend error:', JSON.stringify(error));
+          throw error;
+        }
+        return true;
+      })
+    );
+
+    batchResults.forEach(r => {
+      if (r.status === 'fulfilled') sent++;
+      else failed++;
+    });
   }
 
-  return { sent };
+  return { sent, failed, total: recipients.length };
 }
 
 export async function sendWhatsAppToAll(payload: { message: string; url: string }) {
