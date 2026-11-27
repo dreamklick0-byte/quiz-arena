@@ -10,9 +10,7 @@ self.addEventListener('push', (event) => {
       data: { url: url || '/league' }
     };
 
-    event.waitUntil(
-      self.registration.showNotification(title, options)
-    );
+    event.waitUntil(self.registration.showNotification(title || 'Quiz Arena', options));
   } catch (err) {
     console.error('Push event error:', err);
   }
