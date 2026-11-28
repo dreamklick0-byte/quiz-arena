@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
-import { getWalletBalance, processTransaction } from "@/lib/wallet";
+import { getWalletBalance } from "@/lib/wallet";
+import { stakeOnServer } from "@/lib/stakeClient";
 
 type BattleRequest = {
   id: string;
@@ -73,7 +74,7 @@ export function BattleRequestListener() {
         await supabase.from("room_players").insert({ room_id: roomRow.id, player_name: currentUserName, user_id: userId, score: 0, finished: false, is_ready: true });
       }
       await Promise.all([
-        processTransaction(currentUserId, "stake", stake_amount, `challenge-accept-${id}`, `Staked ₦${stake_amount} for challenge vs ${challenger_name}`),
+        (stake_amount > 0 ? stakeOnServer(stake_amount, `challenge-accept-${id}`, `Staked ₦${stake_amount} for challenge vs ${challenger_name}`) : Promise.resolve()), 
         supabase.from("battle_rooms").update({ guest_id: userId, status: "waiting" }).eq("room_code", roomCode),
         supabase.from("battle_requests").update({ status: "accepted" }).eq("id", id),
       ]);

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import { getSubjectMeta } from "@/app/data/practiceQuestions";
 import { PageShell } from "@/app/components/PageShell";
-import { getWalletBalance, processTransaction } from "@/lib/wallet";
+import { getWalletBalance } from "@/lib/wallet";
+import { stakeOnServer } from "@/lib/stakeClient";
 import type { User } from "@supabase/supabase-js";
 
 interface League {
@@ -154,9 +155,7 @@ export default function LeaguePage() {
          throw new Error(`Insufficient balance. You need ₦${league.entry_fee}. Your balance: ₦${balance}.`);
        }
 
-       await processTransaction(
-         user.id,
-         'stake',
+       await stakeOnServer(
          league.entry_fee,
          `league-${league.id}-${user.id}-${Date.now()}`,
          `Joined League: ${league.name}`

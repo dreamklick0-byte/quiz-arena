@@ -11,7 +11,7 @@ import {
 import { normalizeRoomCode } from "@/app/battle/battleUtils";
 import { createBattleRoom, findQuickMatch } from "@/lib/battleRoom";
 import { insertRoomPlayer } from "@/lib/battleRoomPlayer";
-import { getWalletBalance, processTransaction } from "@/lib/wallet";
+import { getWalletBalance } from "@/lib/wallet";
 
 type Mode = "create" | "join" | "league" | "quick";
 
